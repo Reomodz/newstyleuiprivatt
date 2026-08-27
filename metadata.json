@@ -1,0 +1,6 @@
+{
+  "name": "IL2CppManager",
+  "description": "A high-performance reverse engineering workbench for browsing Unity IL2CPP runtime metadata, reading native ARM64 instructions, and tracing interactive method call graphs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
