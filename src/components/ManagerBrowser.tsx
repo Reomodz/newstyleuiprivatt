@@ -121,7 +121,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                     : 'Search in current view...'
                 }
                 autoFocus
-                className="w-full bg-[#28282A] border border-[#3A3A3C] focus:border-indigo-500 rounded-lg pl-9 pr-8 py-2 text-sm text-[#E2E2E4] placeholder-[#8E8E93] outline-none transition-colors"
+                className="w-full bg-[#28282A] border border-[#3A3A3C] focus:border-indigo-500 rounded-lg pl-9 pr-8 py-2 text-xs sm:text-sm text-[#E2E2E4] placeholder-[#8E8E93] outline-none transition-colors"
               />
               {searchQuery && (
                 <button
@@ -210,11 +210,11 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
               Search Results · {globalSearchResults.length} found
             </div>
             {globalSearchResults.length === 0 ? (
-              <div className="p-8 text-center text-sm text-[#8E8E93]">
+              <div className="p-8 text-center text-xs sm:text-sm text-[#8E8E93]">
                 No classes, fields, or methods match "{searchQuery}"
               </div>
             ) : (
-              <div className="divide-y divide-[#353535]/60">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 p-2">
                 {globalSearchResults.map((res) => (
                   <div
                     key={res.id}
@@ -224,7 +224,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                         onInspectMethod(res.classIndex, res.memberIndex, 'graph');
                       }
                     }}
-                    className="p-3 hover:bg-[#2C2C2E] cursor-pointer flex items-center justify-between group transition-colors"
+                    className="p-3 bg-[#1E1E20] hover:bg-[#2C2C2E] border border-[#353535] rounded-xl cursor-pointer flex items-center justify-between group transition-colors shadow-sm"
                   >
                     <div className="min-w-0 pr-4">
                       <div className="flex items-center gap-2 mb-1">
@@ -239,7 +239,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                         >
                           {SymbolKind[res.kind]}
                         </span>
-                        <span className="font-medium text-sm text-white group-hover:text-indigo-300 transition-colors truncate">
+                        <span className="font-medium text-xs sm:text-sm text-white group-hover:text-indigo-300 transition-colors truncate">
                           {res.name}
                         </span>
                       </div>
@@ -272,21 +272,21 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
             <div className="px-4 py-2.5 text-xs font-semibold text-[#8E8E93] border-b border-[#353535] bg-[#202020]/60 uppercase tracking-wider">
               Assemblies · {assemblies.length}
             </div>
-            <div className="divide-y divide-[#353535]/60">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 p-2">
               {assemblies
                 .filter((a) => filterMatch(a.name))
                 .map((asm) => (
                   <div
                     key={asm.index}
                     onClick={() => onSelectAssembly(asm.index)}
-                    className="flex items-center justify-between p-4 hover:bg-[#2C2C2E] cursor-pointer group transition-colors"
+                    className="flex items-center justify-between p-4 bg-[#1E1E20] hover:bg-[#2C2C2E] border border-[#353535] rounded-xl cursor-pointer group transition-colors shadow-sm"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-9 h-9 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
                         <Layers className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
-                        <div className="font-medium text-sm text-[#E2E2E4] group-hover:text-white transition-colors truncate">
+                        <div className="font-medium text-xs sm:text-sm text-[#E2E2E4] group-hover:text-white transition-colors truncate">
                           {asm.name}
                         </div>
                         <div className="text-xs text-[#8E8E93]">
@@ -305,21 +305,21 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
             <div className="px-4 py-2.5 text-xs font-semibold text-[#8E8E93] border-b border-[#353535] bg-[#202020]/60 uppercase tracking-wider">
               Namespaces · {namespaces.length}
             </div>
-            <div className="divide-y divide-[#353535]/60">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 p-2">
               {namespaces
                 .filter((ns) => filterMatch(ns.name || 'global'))
                 .map((ns) => (
                   <div
                     key={ns.index}
                     onClick={() => onSelectNamespace(ns.name)}
-                    className="flex items-center justify-between p-4 hover:bg-[#2C2C2E] cursor-pointer group transition-colors"
+                    className="flex items-center justify-between p-4 bg-[#1E1E20] hover:bg-[#2C2C2E] border border-[#353535] rounded-xl cursor-pointer group transition-colors shadow-sm"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
                         <Folder className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
-                        <div className="font-medium text-sm text-[#E2E2E4] group-hover:text-white transition-colors truncate">
+                        <div className="font-medium text-xs sm:text-sm text-[#E2E2E4] group-hover:text-white transition-colors truncate">
                           {ns.name || '(global namespace)'}
                         </div>
                         <div className="text-xs text-[#8E8E93]">
@@ -338,21 +338,21 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
             <div className="px-4 py-2.5 text-xs font-semibold text-[#8E8E93] border-b border-[#353535] bg-[#202020]/60 uppercase tracking-wider">
               Classes · {classesInNamespace.length}
             </div>
-            <div className="divide-y divide-[#353535]/60">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 p-2">
               {classesInNamespace
                 .filter((c) => filterMatch(c.name))
                 .map((cls) => (
                   <div
                     key={cls.index}
                     onClick={() => onSelectClass(cls.index)}
-                    className="flex items-center justify-between p-4 hover:bg-[#2C2C2E] cursor-pointer group transition-colors"
+                    className="flex items-center justify-between p-4 bg-[#1E1E20] hover:bg-[#2C2C2E] border border-[#353535] rounded-xl cursor-pointer group transition-colors shadow-sm"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-9 h-9 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
                         <Box className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
-                        <div className="font-medium text-sm text-[#E2E2E4] group-hover:text-white transition-colors truncate">
+                        <div className="font-medium text-xs sm:text-sm text-[#E2E2E4] group-hover:text-white transition-colors truncate">
                           {cls.name}
                         </div>
                         <div className="text-xs text-[#8E8E93] truncate">
@@ -451,9 +451,9 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
 
               {/* Tab Content: Methods List */}
               {classTab === ClassTab.METHODS && (
-                <div className="divide-y divide-[#353535]/60">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 p-2">
                   {currentMethods.length === 0 ? (
-                    <div className="p-8 text-center text-sm text-[#8E8E93]">
+                    <div className="p-8 col-span-full text-center text-xs sm:text-sm text-[#8E8E93]">
                       This class declares no methods.
                     </div>
                   ) : (
@@ -462,10 +462,10 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                       .map((method) => (
                         <div
                           key={method.index}
-                          className="p-4 hover:bg-[#2A2A2D] transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
+                          className="p-4 bg-[#1E1E20] border border-[#353535] rounded-xl hover:bg-[#2A2A2D] transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 group shadow-sm"
                         >
                           <div className="min-w-0 flex-1">
-                            <div className="font-medium text-sm text-white font-mono-code tracking-tight">
+                            <div className="font-medium text-xs sm:text-sm text-white font-mono-code tracking-tight">
                               {method.signature || method.name}
                             </div>
                             <div className="flex flex-wrap items-center gap-2 mt-2 text-xs font-mono-code">
@@ -538,9 +538,9 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
 
               {/* Tab Content: Fields List */}
               {classTab === ClassTab.FIELDS && (
-                <div className="divide-y divide-[#353535]/60">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 p-2">
                   {currentFields.length === 0 ? (
-                    <div className="p-8 text-center text-sm text-[#8E8E93]">
+                    <div className="p-8 col-span-full text-center text-xs sm:text-sm text-[#8E8E93]">
                       This class declares no fields.
                     </div>
                   ) : (
@@ -549,10 +549,10 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                       .map((field) => (
                         <div
                           key={field.index}
-                          className="p-4 hover:bg-[#2A2A2D] transition-colors flex items-center justify-between gap-3 group"
+                          className="p-4 bg-[#1E1E20] border border-[#353535] rounded-xl hover:bg-[#2A2A2D] transition-colors flex items-center justify-between gap-3 group shadow-sm"
                         >
                           <div className="min-w-0">
-                            <div className="flex items-center gap-2 font-mono-code text-sm">
+                            <div className="flex items-center gap-2 font-mono-code text-xs sm:text-sm">
                               {field.isStatic && (
                                 <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
                                   STATIC
