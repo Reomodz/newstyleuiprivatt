@@ -56,51 +56,52 @@ export const ManagerHeader: React.FC<ManagerHeaderProps> = ({
   return (
     <header className="bg-[#1A1A1A] text-[#E2E2E4] border-b border-[#353535] shrink-0 flex flex-col select-none">
       {/* Top Primary Bar */}
-      <div className="h-14 px-4 flex items-center justify-between gap-3">
+      <div className="h-12 sm:h-14 px-2 sm:px-4 flex items-center justify-between gap-1.5 sm:gap-3">
         {/* App Title & Process Selector */}
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-sm">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+          <div className="hidden sm:flex items-center gap-1.5 md:gap-2 shrink-0">
+            <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-xs md:text-sm">
               IL2
             </div>
-            <span className="font-semibold text-base tracking-tight hidden sm:inline">
+            <span className="font-semibold text-xs md:text-sm lg:text-base tracking-tight hidden md:inline">
               IL2CppManager
             </span>
           </div>
 
-          <div className="h-5 w-[1px] bg-[#353535] hidden sm:block" />
+          <div className="h-4 md:h-5 w-[1px] bg-[#353535] hidden sm:block shrink-0" />
 
           {/* Process Selector Chip */}
           <button
             onClick={onOpenProcessPicker}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors max-w-[220px] sm:max-w-[320px] truncate ${
+            className={`flex items-center justify-center p-1.5 sm:px-2.5 md:px-3 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-medium border transition-colors max-w-[36px] sm:max-w-[170px] md:max-w-[220px] lg:max-w-[280px] shrink truncate ${
               currentProcess
-                ? 'bg-[#28282A] hover:bg-[#323235] text-[#E2E2E4] border-[#3F3F42]'
-                : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30'
+                ? 'bg-[#28282A] hover:bg-[#323235] text-[#E2E2E4] border-emerald-500/40 sm:border-[#3F3F42]'
+                : 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border-rose-500/40 sm:bg-amber-500/10 sm:hover:bg-amber-500/20 sm:text-amber-300 sm:border-amber-500/30'
             }`}
             title={currentProcess ? `${currentProcess.appName} (${currentProcess.name})` : 'Select target process'}
+            aria-label={currentProcess ? `Connected: ${currentProcess.appName}` : 'Not connected: Select Process'}
           >
-            <Activity className={`w-3.5 h-3.5 shrink-0 ${currentProcess ? 'text-emerald-400' : 'text-amber-400 animate-pulse'}`} />
-            <span className="truncate">
+            <Activity className={`w-4 h-4 sm:w-3.5 sm:h-3.5 shrink-0 ${currentProcess ? 'text-emerald-400' : 'text-rose-500 sm:text-amber-400'}`} />
+            <span className="hidden sm:inline truncate text-[11px] sm:text-xs ml-1.5">
               {currentProcess ? `${currentProcess.appName} · PID ${currentProcess.pid}` : 'Select Process'}
             </span>
           </button>
         </div>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           {/* Search Toggle (Visible only in Browser or Canvas mode) */}
           {activeWorkspace !== 'dashboard' && (
             <button
               onClick={onToggleSearch}
-              className={`p-2 rounded-lg transition-colors ${
+              className={`p-1.5 sm:p-2 rounded-lg transition-colors ${
                 isSearchOpen
                   ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
                   : 'text-[#B8B8B8] hover:text-[#E2E2E4] hover:bg-[#28282A]'
               }`}
               title="Search (Ctrl/Cmd+F)"
             >
-              <Search className="w-4 h-4" />
+              <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           )}
 
@@ -108,10 +109,10 @@ export const ManagerHeader: React.FC<ManagerHeaderProps> = ({
           {activeWorkspace !== 'dashboard' && currentProcess && (
             <button
               onClick={onOpenDumpModal}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#B8B8B8] hover:text-[#E2E2E4] hover:bg-[#28282A] border border-transparent hover:border-[#353535] transition-colors"
+              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-medium text-[#B8B8B8] hover:text-[#E2E2E4] hover:bg-[#28282A] border border-transparent hover:border-[#353535] transition-colors"
               title="Export C# Dump (dump.cs)"
             >
-              <FileCode2 className="w-4 h-4 text-sky-400" />
+              <FileCode2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-400" />
               <span className="hidden md:inline">Dump C#</span>
             </button>
           )}
@@ -121,32 +122,32 @@ export const ManagerHeader: React.FC<ManagerHeaderProps> = ({
             <div className="flex items-center bg-[#202020] p-0.5 rounded-lg border border-[#353535]">
               <button
                 onClick={() => onSwitchWorkspace('dashboard')}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                className={`flex items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-md text-[10px] sm:text-xs font-medium transition-all ${
                   activeWorkspace === 'dashboard'
-                    ? 'bg-indigo-600 text-white shadow-sm'
+                    ? 'bg-indigo-600 text-white shadow-sm font-semibold'
                     : 'text-[#8E8E93] hover:text-[#E2E2E4]'
                 }`}
               >
-                <LayoutDashboard className="w-3.5 h-3.5" />
+                <LayoutDashboard className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 <span>Dashboard</span>
               </button>
               <button
                 onClick={() => onSwitchWorkspace('browser')}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                className={`flex items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-md text-[10px] sm:text-xs font-medium transition-all ${
                   activeWorkspace === 'browser'
-                    ? 'bg-indigo-600 text-white shadow-sm'
+                    ? 'bg-indigo-600 text-white shadow-sm font-semibold'
                     : 'text-[#8E8E93] hover:text-[#E2E2E4]'
                 }`}
               >
-                <Code2 className="w-3.5 h-3.5" />
+                <Code2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 <span>Browser</span>
               </button>
-              {canvasTabs.length > 0 && (
+              {canvasTabs.length > 0 && activeWorkspace !== 'dashboard' && (
                 <button
                   onClick={() => onSwitchWorkspace('canvas')}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                  className={`flex items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-md text-[10px] sm:text-xs font-medium transition-all ${
                     activeWorkspace === 'canvas'
-                      ? 'bg-indigo-600 text-white shadow-sm'
+                      ? 'bg-indigo-600 text-white shadow-sm font-semibold'
                       : 'text-[#8E8E93] hover:text-[#E2E2E4]'
                   }`}
                 >
@@ -161,7 +162,7 @@ export const ManagerHeader: React.FC<ManagerHeaderProps> = ({
           {activeWorkspace === 'dashboard' && (
             <button
               onClick={onOpenMenu}
-              className="p-2 rounded-lg text-[#B8B8B8] hover:text-[#E2E2E4] hover:bg-[#28282A] transition-colors"
+              className="p-1.5 sm:p-2 rounded-lg text-[#B8B8B8] hover:text-[#E2E2E4] hover:bg-[#28282A] transition-colors"
               title="App Menu"
             >
               <Menu className="w-4 h-4" />

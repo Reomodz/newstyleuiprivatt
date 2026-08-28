@@ -22,7 +22,27 @@ import {
   ExternalLink,
   Code2,
   Tag,
+  LayoutGrid,
+  List,
+  Grid3X3,
+  SlidersHorizontal,
+  RotateCcw,
+  Settings2,
 } from 'lucide-react';
+
+export interface BrowserCardViewSettings {
+  tabletLayout: 'grid' | 'dense' | 'list';
+  density: 'compact' | 'comfortable';
+  showMetadata: boolean;
+  showRvaLabels: boolean;
+}
+
+const DEFAULT_BROWSER_VIEW_SETTINGS: BrowserCardViewSettings = {
+  tabletLayout: 'grid',
+  density: 'comfortable',
+  showMetadata: true,
+  showRvaLabels: true,
+};
 
 interface ManagerBrowserProps {
   currentLevel: DirectoryLevel | 'CLASS_DETAILS';
@@ -57,6 +77,31 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
   const [matchMode, setMatchMode] = useState<SearchMatchMode>(SearchMatchMode.CONTAINS);
   const [matchCase, setMatchCase] = useState(false);
   const [classTab, setClassTab] = useState<ClassTab>(ClassTab.METHODS);
+
+  // Browser Card View Settings
+  const [browserSettings, setBrowserSettings] = useState<BrowserCardViewSettings>(() => {
+    try {
+      const saved = localStorage.getItem('il2cpp_browser_view_settings');
+      if (saved) {
+        return { ...DEFAULT_BROWSER_VIEW_SETTINGS, ...JSON.parse(saved) };
+      }
+    } catch {
+      // fallback
+    }
+    return DEFAULT_BROWSER_VIEW_SETTINGS;
+  });
+
+  const [isBrowserSettingsModalOpen, setIsBrowserSettingsModalOpen] = useState(false);
+
+  const updateBrowserSettings = (patch: Partial<BrowserCardViewSettings>) => {
+    setBrowserSettings((prev) => {
+      const next = { ...prev, ...patch };
+      try {
+        localStorage.setItem('il2cpp_browser_view_settings', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
 
   // Queries
   const assemblies = useMemo(() => il2cppEngine.getAssemblies(), []);
@@ -102,6 +147,76 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
     const val = matchCase ? text : text.toLowerCase();
     return matchMode === SearchMatchMode.EXACT ? val === term : val.includes(term);
   };
+
+  // Dynamic grid class computation based on tablet/large screen setting
+  const getGridClasses = (context: 'standard' | 'methods') => {
+    const layout = browserSettings.tabletLayout || 'grid';
+    if (context === 'methods') {
+      if (layout === 'list') return 'grid grid-cols-1 gap-2 p-2 sm:p-3';
+      if (layout === 'dense') return 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 p-2 sm:p-3';
+      return 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2.5 sm:gap-3 p-2 sm:p-3';
+    }
+    // Standard cards (Assemblies, Namespaces, Classes, Fields, Search results)
+    if (layout === 'list') return 'grid grid-cols-1 gap-2 p-2 sm:p-3';
+    if (layout === 'dense') return 'grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2 p-2 sm:p-3';
+    return 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 p-2 sm:p-3';
+  };
+
+  const isCompact = browserSettings.density === 'compact';
+
+  // Responsive Toolbar Controls for Tablet & Big Screen
+  const renderTabletToolbar = () => (
+    <div className="hidden md:flex items-center gap-1.5 shrink-0">
+      {/* Quick Layout Mode Buttons */}
+      <div className="flex items-center bg-[#18181A] p-0.5 rounded-lg border border-[#333336]">
+        <button
+          onClick={() => updateBrowserSettings({ tabletLayout: 'grid' })}
+          className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-all ${
+            browserSettings.tabletLayout === 'grid'
+              ? 'bg-indigo-600 text-white shadow-sm font-semibold'
+              : 'text-[#8E8E93] hover:text-[#E2E2E4]'
+          }`}
+          title="Tablet & Desktop: Grid Cards (2-3 Cols)"
+        >
+          <LayoutGrid className="w-3 h-3" />
+          <span>Grid</span>
+        </button>
+        <button
+          onClick={() => updateBrowserSettings({ tabletLayout: 'dense' })}
+          className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-all ${
+            browserSettings.tabletLayout === 'dense'
+              ? 'bg-indigo-600 text-white shadow-sm font-semibold'
+              : 'text-[#8E8E93] hover:text-[#E2E2E4]'
+          }`}
+          title="Tablet & Desktop: Dense Grid (3-4 Cols)"
+        >
+          <Grid3X3 className="w-3 h-3" />
+          <span>Dense</span>
+        </button>
+        <button
+          onClick={() => updateBrowserSettings({ tabletLayout: 'list' })}
+          className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-all ${
+            browserSettings.tabletLayout === 'list'
+              ? 'bg-indigo-600 text-white shadow-sm font-semibold'
+              : 'text-[#8E8E93] hover:text-[#E2E2E4]'
+          }`}
+          title="Tablet & Desktop: List View (Full Width)"
+        >
+          <List className="w-3 h-3" />
+          <span>List</span>
+        </button>
+      </div>
+
+      {/* Settings Modal Button */}
+      <button
+        onClick={() => setIsBrowserSettingsModalOpen(true)}
+        className="p-1.5 text-[#8E8E93] hover:text-white bg-[#18181A] hover:bg-[#252528] rounded-lg border border-[#333336] transition-colors"
+        title="Browser Card Settings"
+      >
+        <SlidersHorizontal className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
 
   return (
     <div className="flex-1 flex flex-col bg-[#242426] text-[#E2E2E4] overflow-hidden">
@@ -206,15 +321,16 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
         {/* Global search results mode */}
         {isSearchOpen && searchScope === 'everywhere' && searchQuery.trim() ? (
           <div>
-            <div className="px-4 py-2 text-xs font-semibold text-[#8E8E93] border-b border-[#353535] bg-[#202020]/60 uppercase tracking-wider">
-              Search Results · {globalSearchResults.length} found
+            <div className="px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold text-[#8E8E93] border-b border-[#353535] bg-[#202020]/60 uppercase tracking-wider flex items-center justify-between">
+              <span>Search Results · {globalSearchResults.length} found</span>
+              {renderTabletToolbar()}
             </div>
             {globalSearchResults.length === 0 ? (
               <div className="p-8 text-center text-xs sm:text-sm text-[#8E8E93]">
                 No classes, fields, or methods match "{searchQuery}"
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 p-2">
+              <div className={getGridClasses('standard')}>
                 {globalSearchResults.map((res) => (
                   <div
                     key={res.id}
@@ -224,12 +340,14 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                         onInspectMethod(res.classIndex, res.memberIndex, 'graph');
                       }
                     }}
-                    className="p-3 bg-[#1E1E20] hover:bg-[#2C2C2E] border border-[#353535] rounded-xl cursor-pointer flex items-center justify-between group transition-colors shadow-sm"
+                    className={`${
+                      isCompact ? 'p-2 sm:p-2.5' : 'p-3 sm:p-4'
+                    } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] hover:bg-[#2C2C2E] md:hover:to-[#1F1F24] border border-[#353535] md:border-[#38383E] hover:border-indigo-500/40 rounded-xl cursor-pointer flex items-center justify-between group transition-all shadow-sm`}
                   >
-                    <div className="min-w-0 pr-4">
-                      <div className="flex items-center gap-2 mb-1">
+                    <div className="min-w-0 pr-3">
+                      <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
                         <span
-                          className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${
+                          className={`px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider ${
                             res.kind === SymbolKind.CLASS
                               ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
                               : res.kind === SymbolKind.METHOD
@@ -243,23 +361,25 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                           {res.name}
                         </span>
                       </div>
-                      <div className="text-xs text-[#8E8E93] truncate font-mono-code">
-                        {res.ownerName} · {res.assemblyName}
-                      </div>
+                      {browserSettings.showMetadata && (
+                        <div className="text-[11px] sm:text-xs text-[#8E8E93] truncate font-mono-code">
+                          {res.ownerName} · {res.assemblyName}
+                        </div>
+                      )}
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      {res.rvaLabel && (
-                        <span className="font-mono-code text-xs px-2 py-0.5 bg-[#1C1C1E] border border-[#353535] rounded text-indigo-300">
+                    <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                      {browserSettings.showRvaLabels && res.rvaLabel && (
+                        <span className="font-mono-code text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-[#1C1C1E] border border-[#353535] rounded text-indigo-300">
                           {res.rvaLabel}
                         </span>
                       )}
-                      {res.offsetLabel && (
-                        <span className="font-mono-code text-xs px-2 py-0.5 bg-[#1C1C1E] border border-[#353535] rounded text-emerald-300">
+                      {browserSettings.showRvaLabels && res.offsetLabel && (
+                        <span className="font-mono-code text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-[#1C1C1E] border border-[#353535] rounded text-emerald-300">
                           {res.offsetLabel}
                         </span>
                       )}
-                      <ChevronRight className="w-4 h-4 text-[#8E8E93] group-hover:translate-x-0.5 transition-transform" />
+                      <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#8E8E93] group-hover:translate-x-0.5 transition-transform" />
                     </div>
                   </div>
                 ))}
@@ -269,32 +389,37 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
         ) : currentLevel === DirectoryLevel.ASSEMBLIES ? (
           /* Level 1: Assemblies List */
           <div>
-            <div className="px-4 py-2.5 text-xs font-semibold text-[#8E8E93] border-b border-[#353535] bg-[#202020]/60 uppercase tracking-wider">
-              Assemblies · {assemblies.length}
+            <div className="px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold text-[#8E8E93] border-b border-[#353535] bg-[#202020]/60 uppercase tracking-wider flex items-center justify-between">
+              <span>Assemblies · {assemblies.length}</span>
+              {renderTabletToolbar()}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 p-2">
+            <div className={getGridClasses('standard')}>
               {assemblies
                 .filter((a) => filterMatch(a.name))
                 .map((asm) => (
                   <div
                     key={asm.index}
                     onClick={() => onSelectAssembly(asm.index)}
-                    className="flex items-center justify-between p-4 bg-[#1E1E20] hover:bg-[#2C2C2E] border border-[#353535] rounded-xl cursor-pointer group transition-colors shadow-sm"
+                    className={`flex items-center justify-between ${
+                      isCompact ? 'p-2.5 sm:p-3' : 'p-3.5 sm:p-4'
+                    } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] hover:bg-[#2C2C2E] md:hover:to-[#1F1F24] border border-[#353535] md:border-[#38383E] hover:border-indigo-500/40 rounded-xl cursor-pointer group transition-all shadow-sm`}
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
                         <Layers className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
                         <div className="font-medium text-xs sm:text-sm text-[#E2E2E4] group-hover:text-white transition-colors truncate">
                           {asm.name}
                         </div>
-                        <div className="text-xs text-[#8E8E93]">
-                          {asm.classCount || 0} classes
-                        </div>
+                        {browserSettings.showMetadata && (
+                          <div className="text-[11px] sm:text-xs text-[#8E8E93]">
+                            {asm.classCount || 0} classes
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-[#8E8E93] group-hover:translate-x-0.5 transition-transform" />
+                    <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#8E8E93] group-hover:translate-x-0.5 transition-transform shrink-0" />
                   </div>
                 ))}
             </div>
@@ -302,32 +427,37 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
         ) : currentLevel === DirectoryLevel.NAMESPACES ? (
           /* Level 2: Namespaces & Global Classes */
           <div>
-            <div className="px-4 py-2.5 text-xs font-semibold text-[#8E8E93] border-b border-[#353535] bg-[#202020]/60 uppercase tracking-wider">
-              Namespaces · {namespaces.length}
+            <div className="px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold text-[#8E8E93] border-b border-[#353535] bg-[#202020]/60 uppercase tracking-wider flex items-center justify-between">
+              <span>Namespaces · {namespaces.length}</span>
+              {renderTabletToolbar()}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 p-2">
+            <div className={getGridClasses('standard')}>
               {namespaces
                 .filter((ns) => filterMatch(ns.name || 'global'))
                 .map((ns) => (
                   <div
                     key={ns.index}
                     onClick={() => onSelectNamespace(ns.name)}
-                    className="flex items-center justify-between p-4 bg-[#1E1E20] hover:bg-[#2C2C2E] border border-[#353535] rounded-xl cursor-pointer group transition-colors shadow-sm"
+                    className={`flex items-center justify-between ${
+                      isCompact ? 'p-2.5 sm:p-3' : 'p-3.5 sm:p-4'
+                    } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] hover:bg-[#2C2C2E] md:hover:to-[#1F1F24] border border-[#353535] md:border-[#38383E] hover:border-amber-500/40 rounded-xl cursor-pointer group transition-all shadow-sm`}
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
                         <Folder className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
                         <div className="font-medium text-xs sm:text-sm text-[#E2E2E4] group-hover:text-white transition-colors truncate">
                           {ns.name || '(global namespace)'}
                         </div>
-                        <div className="text-xs text-[#8E8E93]">
-                          {ns.classCount || 0} classes
-                        </div>
+                        {browserSettings.showMetadata && (
+                          <div className="text-[11px] sm:text-xs text-[#8E8E93]">
+                            {ns.classCount || 0} classes
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-[#8E8E93] group-hover:translate-x-0.5 transition-transform" />
+                    <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#8E8E93] group-hover:translate-x-0.5 transition-transform shrink-0" />
                   </div>
                 ))}
             </div>
@@ -335,32 +465,37 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
         ) : currentLevel === DirectoryLevel.CLASSES ? (
           /* Level 3: Classes in Selected Namespace */
           <div>
-            <div className="px-4 py-2.5 text-xs font-semibold text-[#8E8E93] border-b border-[#353535] bg-[#202020]/60 uppercase tracking-wider">
-              Classes · {classesInNamespace.length}
+            <div className="px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold text-[#8E8E93] border-b border-[#353535] bg-[#202020]/60 uppercase tracking-wider flex items-center justify-between">
+              <span>Classes · {classesInNamespace.length}</span>
+              {renderTabletToolbar()}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 p-2">
+            <div className={getGridClasses('standard')}>
               {classesInNamespace
                 .filter((c) => filterMatch(c.name))
                 .map((cls) => (
                   <div
                     key={cls.index}
                     onClick={() => onSelectClass(cls.index)}
-                    className="flex items-center justify-between p-4 bg-[#1E1E20] hover:bg-[#2C2C2E] border border-[#353535] rounded-xl cursor-pointer group transition-colors shadow-sm"
+                    className={`flex items-center justify-between ${
+                      isCompact ? 'p-2.5 sm:p-3' : 'p-3.5 sm:p-4'
+                    } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] hover:bg-[#2C2C2E] md:hover:to-[#1F1F24] border border-[#353535] md:border-[#38383E] hover:border-purple-500/40 rounded-xl cursor-pointer group transition-all shadow-sm`}
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
                         <Box className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
                         <div className="font-medium text-xs sm:text-sm text-[#E2E2E4] group-hover:text-white transition-colors truncate">
                           {cls.name}
                         </div>
-                        <div className="text-xs text-[#8E8E93] truncate">
-                          {cls.parentType?.name ? `: ${cls.parentType.name}` : cls.namespaceName || 'global'}
-                        </div>
+                        {browserSettings.showMetadata && (
+                          <div className="text-[11px] sm:text-xs text-[#8E8E93] truncate">
+                            {cls.parentType?.name ? `: ${cls.parentType.name}` : cls.namespaceName || 'global'}
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-[#8E8E93] group-hover:translate-x-0.5 transition-transform" />
+                    <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#8E8E93] group-hover:translate-x-0.5 transition-transform shrink-0" />
                   </div>
                 ))}
             </div>
@@ -370,14 +505,14 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
           currentClassInfo && (
             <div className="flex flex-col">
               {/* Class Header Banner */}
-              <div className="p-4 bg-[#1C1C1E] border-b border-[#353535]">
+              <div className="p-3 sm:p-4 bg-[#1C1C1E] border-b border-[#353535]">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30">
                         CLASS
                       </span>
-                      <h2 className="text-lg font-bold text-white tracking-tight">
+                      <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
                         {currentClassInfo.name}
                       </h2>
                     </div>
@@ -389,69 +524,78 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                     </div>
                   </div>
 
-                  <button
-                    onClick={() =>
-                      onCopyText(
-                        currentClassInfo.namespaceName
-                          ? `${currentClassInfo.namespaceName}.${currentClassInfo.name}`
-                          : currentClassInfo.name,
-                        'Class Full Name'
-                      )
-                    }
-                    className="p-2 rounded-lg text-[#8E8E93] hover:text-white hover:bg-[#28282A] border border-[#353535]"
-                    title="Copy full class name"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() =>
+                        onCopyText(
+                          currentClassInfo.namespaceName
+                            ? `${currentClassInfo.namespaceName}.${currentClassInfo.name}`
+                            : currentClassInfo.name,
+                          'Class Full Name'
+                        )
+                      }
+                      className="p-1.5 sm:p-2 rounded-lg text-[#8E8E93] hover:text-white hover:bg-[#28282A] border border-[#353535]"
+                      title="Copy full class name"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Class Metadata Badges */}
-                <div className="flex flex-wrap gap-2 mt-3 text-xs text-[#8E8E93]">
-                  {currentClassInfo.parentType?.name && (
-                    <div className="px-2.5 py-1 rounded bg-[#28282A] border border-[#353535] font-mono-code text-[11px]">
-                      Base: <span className="text-[#E2E2E4]">{currentClassInfo.parentType.name}</span>
+                {browserSettings.showMetadata && (
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2.5 sm:mt-3 text-xs text-[#8E8E93]">
+                    {currentClassInfo.parentType?.name && (
+                      <div className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded bg-[#28282A] border border-[#353535] font-mono-code text-[10px] sm:text-[11px]">
+                        Base: <span className="text-[#E2E2E4]">{currentClassInfo.parentType.name}</span>
+                      </div>
+                    )}
+                    {currentClassInfo.sizes && (
+                      <div className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded bg-[#28282A] border border-[#353535] font-mono-code text-[10px] sm:text-[11px]">
+                        Size: <span className="text-[#E2E2E4]">0x{currentClassInfo.sizes.instanceSize.toString(16)}</span>
+                      </div>
+                    )}
+                    <div className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded bg-[#28282A] border border-[#353535] font-mono-code text-[10px] sm:text-[11px]">
+                      Token: <span className="text-[#E2E2E4]">0x{currentClassInfo.token.toString(16)}</span>
                     </div>
-                  )}
-                  {currentClassInfo.sizes && (
-                    <div className="px-2.5 py-1 rounded bg-[#28282A] border border-[#353535] font-mono-code text-[11px]">
-                      Size: <span className="text-[#E2E2E4]">0x{currentClassInfo.sizes.instanceSize.toString(16)}</span>
-                    </div>
-                  )}
-                  <div className="px-2.5 py-1 rounded bg-[#28282A] border border-[#353535] font-mono-code text-[11px]">
-                    Token: <span className="text-[#E2E2E4]">0x{currentClassInfo.token.toString(16)}</span>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Segmented Tabs: Fields vs Methods */}
-              <div className="flex border-b border-[#353535] bg-[#1E1E20] sticky top-0 z-10">
-                <button
-                  onClick={() => setClassTab(ClassTab.METHODS)}
-                  className={`flex-1 py-3 text-xs font-semibold flex items-center justify-center gap-2 border-b-2 transition-colors ${
-                    classTab === ClassTab.METHODS
-                      ? 'border-indigo-500 text-white bg-[#242426]'
-                      : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4]'
-                  }`}
-                >
-                  <Code2 className="w-3.5 h-3.5" />
-                  <span>METHODS ({currentMethods.length})</span>
-                </button>
-                <button
-                  onClick={() => setClassTab(ClassTab.FIELDS)}
-                  className={`flex-1 py-3 text-xs font-semibold flex items-center justify-center gap-2 border-b-2 transition-colors ${
-                    classTab === ClassTab.FIELDS
-                      ? 'border-indigo-500 text-white bg-[#242426]'
-                      : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4]'
-                  }`}
-                >
-                  <Tag className="w-3.5 h-3.5" />
-                  <span>FIELDS ({currentFields.length})</span>
-                </button>
+              <div className="flex items-center justify-between border-b border-[#353535] bg-[#1E1E20] sticky top-0 z-10 pr-2">
+                <div className="flex flex-1">
+                  <button
+                    onClick={() => setClassTab(ClassTab.METHODS)}
+                    className={`flex-1 py-2.5 sm:py-3 text-xs font-semibold flex items-center justify-center gap-1.5 sm:gap-2 border-b-2 transition-colors ${
+                      classTab === ClassTab.METHODS
+                        ? 'border-indigo-500 text-white bg-[#242426]'
+                        : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4]'
+                    }`}
+                  >
+                    <Code2 className="w-3.5 h-3.5" />
+                    <span>METHODS ({currentMethods.length})</span>
+                  </button>
+                  <button
+                    onClick={() => setClassTab(ClassTab.FIELDS)}
+                    className={`flex-1 py-2.5 sm:py-3 text-xs font-semibold flex items-center justify-center gap-1.5 sm:gap-2 border-b-2 transition-colors ${
+                      classTab === ClassTab.FIELDS
+                        ? 'border-indigo-500 text-white bg-[#242426]'
+                        : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4]'
+                    }`}
+                  >
+                    <Tag className="w-3.5 h-3.5" />
+                    <span>FIELDS ({currentFields.length})</span>
+                  </button>
+                </div>
+
+                {/* Tablet toolbar inside Class details */}
+                {renderTabletToolbar()}
               </div>
 
               {/* Tab Content: Methods List */}
               {classTab === ClassTab.METHODS && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 p-2">
+                <div className={getGridClasses('methods')}>
                   {currentMethods.length === 0 ? (
                     <div className="p-8 col-span-full text-center text-xs sm:text-sm text-[#8E8E93]">
                       This class declares no methods.
@@ -462,14 +606,16 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                       .map((method) => (
                         <div
                           key={method.index}
-                          className="p-4 bg-[#1E1E20] border border-[#353535] rounded-xl hover:bg-[#2A2A2D] transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 group shadow-sm"
+                          className={`${
+                            isCompact ? 'p-2.5 sm:p-3' : 'p-3.5 sm:p-4'
+                          } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] border border-[#353535] md:border-[#38383E] rounded-xl hover:bg-[#2A2A2D] md:hover:to-[#1F1F24] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 group shadow-sm`}
                         >
                           <div className="min-w-0 flex-1">
-                            <div className="font-medium text-xs sm:text-sm text-white font-mono-code tracking-tight">
+                            <div className="font-medium text-xs sm:text-sm text-white font-mono-code tracking-tight truncate">
                               {method.signature || method.name}
                             </div>
-                            <div className="flex flex-wrap items-center gap-2 mt-2 text-xs font-mono-code">
-                              {method.rva && (
+                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1.5 text-xs font-mono-code">
+                              {browserSettings.showRvaLabels && method.rva && (
                                 <button
                                   onClick={() =>
                                     onCopyText(
@@ -477,14 +623,14 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                                       'RVA'
                                     )
                                   }
-                                  className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#1C1C1E] hover:bg-[#353535] text-indigo-300 border border-[#353535] transition-colors"
+                                  className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded bg-[#1C1C1E] hover:bg-[#353535] text-indigo-300 border border-[#353535] transition-colors text-[10px] sm:text-xs"
                                   title="Copy RVA"
                                 >
                                   <span>RVA: 0x{method.rva.toString(16).toUpperCase()}</span>
-                                  <Copy className="w-3 h-3 text-[#8E8E93]" />
+                                  <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#8E8E93]" />
                                 </button>
                               )}
-                              {method.address && (
+                              {browserSettings.showRvaLabels && method.address && (
                                 <button
                                   onClick={() =>
                                     onCopyText(
@@ -492,26 +638,26 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                                       'VA'
                                     )
                                   }
-                                  className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#1C1C1E] hover:bg-[#353535] text-sky-300 border border-[#353535] transition-colors"
+                                  className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded bg-[#1C1C1E] hover:bg-[#353535] text-sky-300 border border-[#353535] transition-colors text-[10px] sm:text-xs"
                                   title="Copy VA"
                                 >
                                   <span>VA: 0x{method.address.toString(16).toUpperCase()}</span>
-                                  <Copy className="w-3 h-3 text-[#8E8E93]" />
+                                  <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#8E8E93]" />
                                 </button>
                               )}
                             </div>
                           </div>
 
                           {/* Quick Method Actions */}
-                          <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                             <button
                               onClick={() =>
                                 onInspectMethod(currentClassInfo.index, method.index, 'graph')
                               }
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 text-xs font-medium transition-colors"
+                              className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 text-[11px] sm:text-xs font-medium transition-colors"
                               title="Trace Call Graph"
                             >
-                              <Sparkles className="w-3.5 h-3.5" />
+                              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                               <span>Call Graph</span>
                             </button>
 
@@ -523,10 +669,10 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                                   'instructions'
                                 )
                               }
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#323235] hover:bg-[#3E3E42] text-[#E2E2E4] border border-[#454549] text-xs font-medium transition-colors"
+                              className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-[#323235] hover:bg-[#3E3E42] text-[#E2E2E4] border border-[#454549] text-[11px] sm:text-xs font-medium transition-colors"
                               title="Disassemble Instructions"
                             >
-                              <ExternalLink className="w-3.5 h-3.5" />
+                              <ExternalLink className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                               <span>Disasm</span>
                             </button>
                           </div>
@@ -538,7 +684,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
 
               {/* Tab Content: Fields List */}
               {classTab === ClassTab.FIELDS && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 p-2">
+                <div className={getGridClasses('standard')}>
                   {currentFields.length === 0 ? (
                     <div className="p-8 col-span-full text-center text-xs sm:text-sm text-[#8E8E93]">
                       This class declares no fields.
@@ -549,23 +695,27 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                       .map((field) => (
                         <div
                           key={field.index}
-                          className="p-4 bg-[#1E1E20] border border-[#353535] rounded-xl hover:bg-[#2A2A2D] transition-colors flex items-center justify-between gap-3 group shadow-sm"
+                          className={`${
+                            isCompact ? 'p-2.5 sm:p-3' : 'p-3.5 sm:p-4'
+                          } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] border border-[#353535] md:border-[#38383E] rounded-xl hover:bg-[#2A2A2D] md:hover:to-[#1F1F24] transition-all flex items-center justify-between gap-2.5 sm:gap-3 group shadow-sm`}
                         >
                           <div className="min-w-0">
-                            <div className="flex items-center gap-2 font-mono-code text-xs sm:text-sm">
+                            <div className="flex items-center gap-1.5 sm:gap-2 font-mono-code text-xs sm:text-sm">
                               {field.isStatic && (
-                                <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                <span className="px-1.5 py-0.2 rounded text-[9px] sm:text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
                                   STATIC
                                 </span>
                               )}
-                              <span className="font-semibold text-white">{field.name}</span>
+                              <span className="font-semibold text-white truncate">{field.name}</span>
                             </div>
-                            <div className="text-xs text-[#8E8E93] font-mono-code mt-0.5">
-                              {field.typeName || 'object'}
-                            </div>
+                            {browserSettings.showMetadata && (
+                              <div className="text-[11px] sm:text-xs text-[#8E8E93] font-mono-code mt-0.5 truncate">
+                                {field.typeName || 'object'}
+                              </div>
+                            )}
                           </div>
 
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 shrink-0">
                             {field.offset !== undefined && (
                               <button
                                 onClick={() =>
@@ -574,7 +724,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                                     'Field Offset'
                                   )
                                 }
-                                className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#1C1C1E] hover:bg-[#353535] text-emerald-300 font-mono-code text-xs border border-[#353535] transition-colors"
+                                className="flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded bg-[#1C1C1E] hover:bg-[#353535] text-emerald-300 font-mono-code text-[11px] sm:text-xs border border-[#353535] transition-colors"
                                 title="Copy offset"
                               >
                                 <span>Offset: 0x{field.offset.toString(16)}</span>
@@ -591,6 +741,163 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
           )
         )}
       </div>
+
+      {/* Browser Card & Layout Settings Modal */}
+      {isBrowserSettingsModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm overflow-y-auto p-2.5 sm:p-4 flex justify-center items-start sm:items-center">
+          <div className="bg-[#1C1C1F] border border-[#35353A] rounded-xl sm:rounded-3xl p-3 sm:p-6 max-w-lg w-full shadow-2xl flex flex-col gap-2.5 sm:gap-4 animate-in fade-in zoom-in-95 duration-200 mt-8 sm:mt-0 mb-auto sm:my-auto shrink-0 max-h-[88vh]">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-2 sm:pb-3 border-b border-[#2C2C30]">
+              <div className="flex items-center gap-1.5 sm:gap-2.5">
+                <div className="p-1.5 sm:p-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-lg sm:rounded-xl">
+                  <Settings2 className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+                </div>
+                <div className="flex flex-col">
+                  <h3 className="text-xs sm:text-base font-bold text-[#E2E2E4]">Browser Card Settings</h3>
+                  <p className="text-[9px] sm:text-xs text-[#8E8E93]">Customize card density, grid layout, and badges</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsBrowserSettingsModalOpen(false)}
+                className="p-1 sm:p-1.5 text-[#8E8E93] hover:text-white hover:bg-[#2A2A2E] rounded-md sm:rounded-lg transition-colors"
+                title="Close settings"
+              >
+                <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </button>
+            </div>
+
+            {/* Modal Scrollable Body */}
+            <div className="flex flex-col gap-2 sm:gap-3 overflow-y-auto pr-0.5">
+              {/* Tablet & Big Screen View Style (Hidden on Mobile, shown only on tablet/desktop) */}
+              <div className="hidden md:flex bg-[#141416] p-3 rounded-xl border border-[#27272A] flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-[#D8D8DC]">Tablet & Large Screen Card Style</span>
+                  <span className="text-[9px] text-indigo-400 font-medium bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
+                    Tab & Desktop Only
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => updateBrowserSettings({ tabletLayout: 'grid' })}
+                    className={`py-1.5 px-2 rounded-lg text-xs font-medium border transition-all ${
+                      (browserSettings.tabletLayout || 'grid') === 'grid'
+                        ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 font-bold'
+                        : 'bg-[#1E1E22] border-[#2E2E32] text-[#8E8E93] hover:text-white'
+                    }`}
+                  >
+                    Grid (2-3 Cols)
+                  </button>
+                  <button
+                    onClick={() => updateBrowserSettings({ tabletLayout: 'dense' })}
+                    className={`py-1.5 px-2 rounded-lg text-xs font-medium border transition-all ${
+                      browserSettings.tabletLayout === 'dense'
+                        ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 font-bold'
+                        : 'bg-[#1E1E22] border-[#2E2E32] text-[#8E8E93] hover:text-white'
+                    }`}
+                  >
+                    Dense (3-4 Cols)
+                  </button>
+                  <button
+                    onClick={() => updateBrowserSettings({ tabletLayout: 'list' })}
+                    className={`py-1.5 px-2 rounded-lg text-xs font-medium border transition-all ${
+                      browserSettings.tabletLayout === 'list'
+                        ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 font-bold'
+                        : 'bg-[#1E1E22] border-[#2E2E32] text-[#8E8E93] hover:text-white'
+                    }`}
+                  >
+                    List (Full Width)
+                  </button>
+                </div>
+              </div>
+
+              {/* Density Segment */}
+              <div className="bg-[#141416] p-2 sm:p-3 rounded-lg sm:rounded-xl border border-[#27272A] flex flex-col gap-1.5 sm:gap-2">
+                <span className="text-[10px] sm:text-xs font-semibold text-[#D8D8DC]">Card Density</span>
+                <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
+                  <button
+                    onClick={() => updateBrowserSettings({ density: 'compact' })}
+                    className={`py-1 sm:py-1.5 px-2 sm:px-3 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-medium border transition-all ${
+                      browserSettings.density === 'compact'
+                        ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 font-bold'
+                        : 'bg-[#1E1E22] border-[#2E2E32] text-[#8E8E93] hover:text-white'
+                    }`}
+                  >
+                    Compact Padding
+                  </button>
+                  <button
+                    onClick={() => updateBrowserSettings({ density: 'comfortable' })}
+                    className={`py-1 sm:py-1.5 px-2 sm:px-3 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-medium border transition-all ${
+                      browserSettings.density === 'comfortable'
+                        ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 font-bold'
+                        : 'bg-[#1E1E22] border-[#2E2E32] text-[#8E8E93] hover:text-white'
+                    }`}
+                  >
+                    Comfortable (Default)
+                  </button>
+                </div>
+              </div>
+
+              {/* Toggle Options Grid */}
+              <div className="flex flex-col gap-1 sm:gap-2 bg-[#141416] p-2 sm:p-3 rounded-lg sm:rounded-xl border border-[#27272A]">
+                <span className="text-[10px] sm:text-xs font-semibold text-[#D8D8DC] mb-0.5 sm:mb-1">Card Details & Information</span>
+
+                {/* Show Metadata Toggle */}
+                <label className="flex items-center justify-between p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-[#1E1E22] transition-colors cursor-pointer">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] sm:text-xs font-medium text-[#E2E2E4]">Show Metadata & Subtext</span>
+                    <span className="text-[9px] sm:text-[10px] text-[#8E8E93]">Display class counts, namespaces, type names, and tokens</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={browserSettings.showMetadata}
+                    onChange={(e) => updateBrowserSettings({ showMetadata: e.target.checked })}
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 accent-indigo-600 rounded cursor-pointer shrink-0"
+                  />
+                </label>
+
+                {/* Show RVA & Offset Tags */}
+                <label className="flex items-center justify-between p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-[#1E1E22] transition-colors cursor-pointer border-t border-[#222226]">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] sm:text-xs font-medium text-[#E2E2E4]">Show RVA & Offset Tags</span>
+                    <span className="text-[9px] sm:text-[10px] text-[#8E8E93]">Display quick copy pills for RVAs and memory offsets</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={browserSettings.showRvaLabels}
+                    onChange={(e) => updateBrowserSettings({ showRvaLabels: e.target.checked })}
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 accent-indigo-600 rounded cursor-pointer shrink-0"
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-[#2C2C30]">
+              <button
+                onClick={() => {
+                  setBrowserSettings(DEFAULT_BROWSER_VIEW_SETTINGS);
+                  try {
+                    localStorage.removeItem('il2cpp_browser_view_settings');
+                  } catch {}
+                  onCopyText('', 'Reset browser card settings to default');
+                }}
+                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-semibold text-[#8E8E93] hover:text-white hover:bg-[#262629] rounded-lg sm:rounded-xl transition-colors"
+                title="Reset all settings to default"
+              >
+                <RotateCcw className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span>Reset Defaults</span>
+              </button>
+
+              <button
+                onClick={() => setIsBrowserSettingsModalOpen(false)}
+                className="px-3.5 sm:px-5 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold shadow-md shadow-indigo-600/30 transition-all"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

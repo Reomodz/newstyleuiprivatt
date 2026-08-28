@@ -24,6 +24,9 @@ import {
   ChevronDown,
   Upload,
   Sliders,
+  SlidersHorizontal,
+  Settings2,
+  RotateCcw,
   Pencil,
   Sparkles,
   ShieldCheck,
@@ -52,10 +55,36 @@ interface MainDashboardProps {
   storageDumpName?: string | null;
   onStorageDumpLoaded?: (fileName: string | null) => void;
   onOpenProcessPicker: () => void;
-  onNavigateToBrowser: (classIndex?: number) => void;
+  onNavigateToBrowser?: (classIndex?: number) => void;
   onCopyText: (text: string, label: string) => void;
   showToast: (msg: string) => void;
 }
+
+export interface TargetCardViewSettings {
+  showFallbacks: boolean;
+  showClassName: boolean;
+  showMemberName: boolean;
+  showCustomName: boolean;
+  showKindBadge: boolean;
+  showComments: boolean;
+  density: 'compact' | 'comfortable';
+  tabletLayout?: 'grid' | 'list';
+  showTargetBanner?: boolean;
+  showScanLogCard?: boolean;
+}
+
+const DEFAULT_TARGET_VIEW_SETTINGS: TargetCardViewSettings = {
+  showFallbacks: true,
+  showClassName: true,
+  showMemberName: true,
+  showCustomName: true,
+  showKindBadge: true,
+  showComments: true,
+  density: 'comfortable',
+  tabletLayout: 'grid',
+  showTargetBanner: true,
+  showScanLogCard: true,
+};
 
 const DEFAULT_SCAN_HISTORY: ScanHistoryRecord[] = [
   {
@@ -546,7 +575,6 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   storageDumpName,
   onStorageDumpLoaded,
   onOpenProcessPicker,
-  onNavigateToBrowser,
   onCopyText,
   showToast,
 }) => {
@@ -664,6 +692,29 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
   // Live filter inside watchlist
   const [watchlistFilter, setWatchlistFilter] = useState('');
+
+  // Target Card View & Display Settings (Custom Card Options)
+  const [cardViewSettings, setCardViewSettings] = useState<TargetCardViewSettings>(() => {
+    try {
+      const saved = localStorage.getItem('il2cpp_target_view_settings');
+      if (saved) {
+        return { ...DEFAULT_TARGET_VIEW_SETTINGS, ...JSON.parse(saved) };
+      }
+    } catch {
+      // fallback
+    }
+    return DEFAULT_TARGET_VIEW_SETTINGS;
+  });
+
+  const updateCardViewSettings = (patch: Partial<TargetCardViewSettings>) => {
+    setCardViewSettings((prev) => {
+      const next = { ...prev, ...patch };
+      localStorage.setItem('il2cpp_target_view_settings', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const [isCardSettingsModalOpen, setIsCardSettingsModalOpen] = useState(false);
 
   // Target Detail Modal State (View Mode)
   const [viewingTargetItem, setViewingTargetItem] = useState<WatchlistTargetItem | null>(null);
@@ -985,12 +1036,12 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     showToast(`Updated profile "${editProfileName.trim()}"`);
   };
 
-  // Restore / Reset to Starter Profiles
-  const handleResetDefaultProfiles = () => {
-    saveProfiles(DEFAULT_PROFILES);
-    setActiveProfileId(DEFAULT_PROFILES[0].id);
-    showToast('Loaded 3 starter profiles with 15 verified targets');
-  };
+  // Restore / Reset to Starter Profiles (preserved for future use)
+  // const handleResetDefaultProfiles = () => {
+  //   saveProfiles(DEFAULT_PROFILES);
+  //   setActiveProfileId(DEFAULT_PROFILES[0].id);
+  //   showToast('Loaded 3 starter profiles with 15 verified targets');
+  // };
 
   // Export / Share Profile as JSON
   const handleExportProfile = (prof: WatchlistProfile, e?: React.MouseEvent) => {
@@ -1218,177 +1269,185 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
   return (
     <div className="flex-1 flex flex-col h-full bg-[#18181A] text-[#E2E2E4] overflow-hidden relative">
-      {/* Top Tab Navigation (Android Style) */}
-      <div className="bg-[#1E1E20] border-b border-[#2D2D30] px-3 sm:px-4 pt-3 shrink-0">
-        <div className="max-w-5xl mx-auto flex">
+      {/* Top Tab Navigation (Responsive Bar / Card Style on Tablet & Big Screen) */}
+      <div className="bg-[#1E1E20] border-b border-[#2D2D30] px-2 sm:px-4 pt-1.5 sm:pt-2 pb-1.5 shrink-0">
+        <div className="max-w-5xl mx-auto flex md:bg-[#141416] md:p-1 md:rounded-2xl md:border md:border-[#2D2D30] md:shadow-inner">
           <button
             onClick={() => setActiveTab('target')}
-            className={`flex-1 py-2 sm:py-3 text-xs sm:text-sm font-semibold transition-colors border-b-2 flex justify-center items-center gap-2 ${
-              activeTab === 'target' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4]'
+            className={`flex-1 py-1.5 sm:py-2.5 md:py-2 text-[11px] sm:text-xs md:text-sm font-semibold transition-all border-b-2 md:border-b-0 md:rounded-xl flex justify-center items-center gap-1.5 sm:gap-2 ${
+              activeTab === 'target'
+                ? 'border-indigo-500 text-indigo-400 md:bg-indigo-600 md:text-white md:shadow-md'
+                : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4] md:hover:bg-[#1C1C1F]'
             }`}
           >
-            <Cpu className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <Cpu className="w-3 h-3 sm:w-4 sm:h-4" />
             <span>Target Setup</span>
           </button>
           <button
             onClick={() => setActiveTab('watchlist')}
-            className={`flex-1 py-2 sm:py-3 text-xs sm:text-sm font-semibold transition-colors border-b-2 flex justify-center items-center gap-2 ${
-              activeTab === 'watchlist' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4]'
+            className={`flex-1 py-1.5 sm:py-2.5 md:py-2 text-[11px] sm:text-xs md:text-sm font-semibold transition-all border-b-2 md:border-b-0 md:rounded-xl flex justify-center items-center gap-1.5 sm:gap-2 ${
+              activeTab === 'watchlist'
+                ? 'border-indigo-500 text-indigo-400 md:bg-indigo-600 md:text-white md:shadow-md'
+                : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4] md:hover:bg-[#1C1C1F]'
             }`}
           >
-            <BookmarkPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <BookmarkPlus className="w-3 h-3 sm:w-4 sm:h-4" />
             <span>Profile</span>
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`flex-1 py-2 sm:py-3 text-xs sm:text-sm font-semibold transition-colors border-b-2 flex justify-center items-center gap-2 ${
-              activeTab === 'history' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4]'
+            className={`flex-1 py-1.5 sm:py-2.5 md:py-2 text-[11px] sm:text-xs md:text-sm font-semibold transition-all border-b-2 md:border-b-0 md:rounded-xl flex justify-center items-center gap-1.5 sm:gap-2 ${
+              activeTab === 'history'
+                ? 'border-indigo-500 text-indigo-400 md:bg-indigo-600 md:text-white md:shadow-md'
+                : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4] md:hover:bg-[#1C1C1F]'
             }`}
           >
-            <History className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <History className="w-3 h-3 sm:w-4 sm:h-4" />
             <span>History</span>
           </button>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto w-full">
-        <div className="max-w-5xl mx-auto w-full p-3 sm:p-4 flex flex-col gap-4 sm:gap-6 pb-24">
+        <div className="max-w-5xl mx-auto w-full p-2.5 sm:p-4 flex flex-col gap-3 sm:gap-6 pb-24">
           {/* TAB 1: TARGET SETUP */}
           {activeTab === 'target' && (
-            <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 lg:gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              {/* Left Column on Tablet */}
-              <div className="flex flex-col gap-3 sm:gap-4">
+            <div className={`flex flex-col ${cardViewSettings.showScanLogCard ? 'md:grid md:grid-cols-2 lg:grid-cols-2' : 'max-w-3xl mx-auto w-full'} gap-3 sm:gap-4 md:gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+              {/* Left Column / Half-Side on Tablet & Big Screen */}
+              <div className="flex flex-col gap-2.5 sm:gap-4">
                 {/* Dual Mode Switcher Tabs */}
-                <div className="flex items-center gap-1 bg-[#141416] p-1.5 rounded-xl sm:rounded-2xl border border-[#353538] shrink-0 mb-2 shadow-lg">
-                <button
-                  onClick={() => setSourceMode('live')}
-                  className={`flex-1 flex justify-center items-center gap-2 px-2.5 sm:px-4 py-1.5 sm:py-3 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-semibold transition-all ${
-                    sourceMode === 'live'
-                      ? 'bg-indigo-600 text-white shadow-md'
-                      : 'text-[#8E8E93] hover:text-[#E2E2E4]'
-                  }`}
-                >
-                  <Cpu className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span>Live Scan</span>
-                </button>
+                <div className="flex items-center gap-1 bg-[#141416] p-1 sm:p-1.5 rounded-lg sm:rounded-2xl border border-[#353538] shrink-0 mb-0.5 sm:mb-2 shadow-lg">
+                  <button
+                    onClick={() => setSourceMode('live')}
+                    className={`flex-1 flex justify-center items-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-3 rounded-md sm:rounded-xl text-[10px] sm:text-xs font-semibold transition-all ${
+                      sourceMode === 'live'
+                        ? 'bg-indigo-600 text-white shadow-md'
+                        : 'text-[#8E8E93] hover:text-[#E2E2E4]'
+                    }`}
+                  >
+                    <Cpu className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span>Live Scan</span>
+                  </button>
 
-                <button
-                  onClick={() => setSourceMode('storage')}
-                  className={`flex-1 flex justify-center items-center gap-2 px-2.5 sm:px-4 py-1.5 sm:py-3 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-semibold transition-all ${
-                    sourceMode === 'storage'
-                      ? 'bg-sky-600 text-white shadow-md'
-                      : 'text-[#8E8E93] hover:text-[#E2E2E4]'
-                  }`}
-                >
-                  <FolderOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span>Storage Dump</span>
-                </button>
-              </div>
+                  <button
+                    onClick={() => setSourceMode('storage')}
+                    className={`flex-1 flex justify-center items-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-3 rounded-md sm:rounded-xl text-[10px] sm:text-xs font-semibold transition-all ${
+                      sourceMode === 'storage'
+                        ? 'bg-sky-600 text-white shadow-md'
+                        : 'text-[#8E8E93] hover:text-[#E2E2E4]'
+                    }`}
+                  >
+                    <FolderOpen className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span>Storage Dump</span>
+                  </button>
+                </div>
 
-              {/* Active Target Banner */}
-              <div className="flex flex-col bg-[#1E1E20] border border-[#2D2D30] rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-lg relative overflow-hidden">
-                <div className={`absolute top-0 left-0 w-full h-1 ${sourceMode === 'live' ? 'bg-indigo-500' : 'bg-sky-500'}`} />
-                {sourceMode === 'live' ? (
-                  <div className="flex flex-col gap-1.5 sm:gap-3">
-                    {currentProcess ? (
-                      <div className="flex items-center justify-between gap-1.5 sm:gap-3">
-                        <div className="flex flex-col gap-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                            <span className="text-[11px] sm:text-sm font-semibold text-[#E2E2E4] truncate">
-                              {currentProcess.appName}
-                            </span>
-                            <span className="text-[9px] sm:text-[10px] font-mono px-1.5 sm:px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 shrink-0">
-                              PID {currentProcess.pid}
-                            </span>
+                {/* Active Target Banner */}
+                {cardViewSettings.showTargetBanner && (
+                  <div className="flex flex-col bg-[#1E1E20] border border-[#2D2D30] rounded-xl sm:rounded-2xl p-2.5 sm:p-5 shadow-lg relative overflow-hidden">
+                    <div className={`absolute top-0 left-0 w-full h-1 ${sourceMode === 'live' ? 'bg-indigo-500' : 'bg-sky-500'}`} />
+                    {sourceMode === 'live' ? (
+                      <div className="flex flex-col gap-1.5 sm:gap-3">
+                        {currentProcess ? (
+                          <div className="flex items-center justify-between gap-1.5 sm:gap-3">
+                            <div className="flex flex-col gap-0.5 sm:gap-1 min-w-0">
+                              <div className="flex items-center gap-1.5 sm:gap-2">
+                                <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                                <span className="text-[10px] sm:text-sm font-semibold text-[#E2E2E4] truncate">
+                                  {currentProcess.appName}
+                                </span>
+                                <span className="text-[8px] sm:text-[10px] font-mono px-1 sm:px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 shrink-0">
+                                  PID {currentProcess.pid}
+                                </span>
+                              </div>
+                              <div className="text-[9px] sm:text-xs text-[#8E8E93] truncate">
+                                Arch: {currentProcess.arch || 'arm64-v8a'} · Unity: {currentProcess.unityVersion || '2022.3'} · Memory mapped
+                              </div>
+                            </div>
+
+                            <button
+                              onClick={onOpenProcessPicker}
+                              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-2 bg-[#262629] hover:bg-[#323236] text-indigo-300 hover:text-white border border-[#3A3A3E] rounded-md sm:rounded-xl text-[9px] sm:text-xs font-semibold shrink-0 transition-colors shadow-sm"
+                              title="Switch to another target process"
+                            >
+                              <RefreshCw className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" />
+                              <span>Change</span>
+                            </button>
                           </div>
-                          <div className="text-[10px] sm:text-xs text-[#8E8E93] truncate">
-                            Arch: {currentProcess.arch || 'arm64-v8a'} · Unity: {currentProcess.unityVersion || '2022.3'} · Memory mapped
-                          </div>
-                        </div>
+                        ) : (
+                          <div className="flex flex-col gap-2 sm:gap-4">
+                            <div className="flex flex-col gap-0.5 sm:gap-1">
+                              <div className="flex items-center gap-1.5 sm:gap-2">
+                                <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-amber-400 shrink-0" />
+                                <span className="text-[10px] sm:text-sm font-semibold text-[#E2E2E4]">
+                                  No Live Process Selected
+                                </span>
+                              </div>
+                              <div className="text-[9px] sm:text-xs text-[#8E8E93]">
+                                Attach to a running game or process to scan live memory addresses
+                              </div>
+                            </div>
 
-                        <button
-                          onClick={onOpenProcessPicker}
-                          className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-[#262629] hover:bg-[#323236] text-indigo-300 hover:text-white border border-[#3A3A3E] rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-semibold shrink-0 transition-colors shadow-sm"
-                          title="Switch to another target process"
-                        >
-                          <RefreshCw className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                          <span>Change</span>
-                        </button>
+                            <button
+                              onClick={onOpenProcessPicker}
+                              className="w-full px-2 sm:px-4 py-1.5 sm:py-3 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 rounded-lg sm:rounded-xl text-[10px] sm:text-sm font-medium transition-colors"
+                            >
+                              Select Process Target
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ) : (
-                      <div className="flex flex-col gap-3 sm:gap-4">
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0" />
-                            <span className="text-[11px] sm:text-sm font-semibold text-[#E2E2E4]">
-                              No Live Process Selected
+                      <div className="flex flex-col gap-2 sm:gap-4">
+                        <div className="flex flex-col gap-1 sm:gap-1.5">
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-sky-400" />
+                            <span className="text-[10px] sm:text-sm font-semibold text-[#E2E2E4] truncate">
+                              {loadedStorageFileName ? loadedStorageFileName : 'Load dump.cs from Storage'}
                             </span>
                           </div>
-                          <div className="text-[10px] sm:text-xs text-[#8E8E93]">
-                            Attach to a running game or process to scan live memory addresses
-                          </div>
+                          {parsedSummary && (
+                            <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-0.5 sm:mt-1">
+                              <span className="text-[8px] sm:text-[10px] font-mono px-1 sm:px-2 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20">
+                                {parsedSummary.classes} Classes
+                              </span>
+                              <span className="text-[8px] sm:text-[10px] font-mono px-1 sm:px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                                {parsedSummary.fields} Fields
+                              </span>
+                              <span className="text-[8px] sm:text-[10px] font-mono px-1 sm:px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                                {parsedSummary.methods} Methods
+                              </span>
+                            </div>
+                          )}
+                          {!parsedSummary && (
+                            <div className="text-[9px] sm:text-xs text-[#8E8E93] mt-0.5 sm:mt-1">
+                              Upload or pick a previously generated dump.cs file to extract and inspect offsets offline.
+                            </div>
+                          )}
                         </div>
 
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleDumpFileUpload}
+                          accept=".cs,.txt,.dat"
+                          className="hidden"
+                        />
                         <button
-                          onClick={onOpenProcessPicker}
-                          className="w-full px-2.5 sm:px-4 py-1.5 sm:py-3 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-colors"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isParsingDump}
+                          className="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-3 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/40 rounded-lg sm:rounded-xl text-[10px] sm:text-sm font-medium transition-colors"
                         >
-                          Select Process Target
+                          <Upload className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <span>{isParsingDump ? 'Parsing Dump...' : 'Choose File'}</span>
                         </button>
                       </div>
                     )}
                   </div>
-                ) : (
-                  <div className="flex flex-col gap-3 sm:gap-4">
-                    <div className="flex flex-col gap-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-sky-400" />
-                        <span className="text-[11px] sm:text-sm font-semibold text-[#E2E2E4] truncate">
-                          {loadedStorageFileName ? loadedStorageFileName : 'Load dump.cs from Storage'}
-                        </span>
-                      </div>
-                      {parsedSummary && (
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          <span className="text-[9px] sm:text-[10px] font-mono px-1.5 sm:px-2 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20">
-                            {parsedSummary.classes} Classes
-                          </span>
-                          <span className="text-[9px] sm:text-[10px] font-mono px-1.5 sm:px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
-                            {parsedSummary.fields} Fields
-                          </span>
-                          <span className="text-[9px] sm:text-[10px] font-mono px-1.5 sm:px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20">
-                            {parsedSummary.methods} Methods
-                          </span>
-                        </div>
-                      )}
-                      {!parsedSummary && (
-                        <div className="text-[10px] sm:text-xs text-[#8E8E93] mt-1">
-                          Upload or pick a previously generated dump.cs file to extract and inspect offsets offline.
-                        </div>
-                      )}
-                    </div>
-
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleDumpFileUpload}
-                      accept=".cs,.txt,.dat"
-                      className="hidden"
-                    />
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isParsingDump}
-                      className="w-full flex items-center justify-center gap-2 px-2.5 sm:px-4 py-1.5 sm:py-3 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/40 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-colors"
-                    >
-                      <Upload className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      <span>{isParsingDump ? 'Parsing Dump...' : 'Choose File'}</span>
-                    </button>
-                  </div>
                 )}
-              </div>
 
               {/* Compact Scan Profile Box & Trigger */}
-              <div className="bg-[#1E1E20] border border-[#2D2D30] rounded-xl sm:rounded-2xl p-3 sm:p-4 pl-5 sm:pl-6 shadow-lg flex items-center justify-between gap-1.5 sm:gap-3 relative overflow-hidden">
+              <div className="bg-[#1E1E20] border border-[#2D2D30] rounded-xl sm:rounded-2xl p-2.5 sm:p-4 pl-4 sm:pl-6 shadow-lg flex items-center justify-between gap-1.5 sm:gap-3 relative overflow-hidden">
                 {/* Left Blue Accent Line */}
                 <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-blue-400 via-sky-400 to-indigo-600 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
 
@@ -1397,7 +1456,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                   <select
                     value={activeProfileId}
                     onChange={(e) => setActiveProfileId(e.target.value)}
-                    className="w-full pl-3.5 pr-8 py-1.5 sm:py-2.5 bg-[#141416] hover:bg-[#18181B] border border-[#353538] focus:border-indigo-500 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold text-[#E2E2E4] focus:outline-none appearance-none cursor-pointer truncate transition-colors"
+                    className="w-full pl-2.5 sm:pl-3.5 pr-7 sm:pr-8 py-1 sm:py-2.5 bg-[#141416] hover:bg-[#18181B] border border-[#353538] focus:border-indigo-500 rounded-md sm:rounded-xl text-[9px] sm:text-xs font-bold text-[#E2E2E4] focus:outline-none appearance-none cursor-pointer truncate transition-colors"
                   >
                     {profiles.map((p) => (
                       <option key={p.id} value={p.id} className="bg-[#1E1E20] text-[#E2E2E4]">
@@ -1405,16 +1464,16 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#8E8E93] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 text-[#8E8E93] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
 
                 {/* Scan Action Button */}
                 <button
                   onClick={handleScanProfile}
                   disabled={isScanning || !activeProfile || activeProfile.items.length === 0}
-                  className="flex items-center gap-2 px-3 sm:px-5 py-1.5 sm:py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg sm:rounded-xl font-bold text-[10px] sm:text-xs shadow-md shadow-indigo-600/30 transition-all active:scale-98 shrink-0"
+                  className="flex items-center gap-1 sm:gap-2 px-2.5 sm:px-5 py-1 sm:py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-md sm:rounded-xl font-bold text-[9px] sm:text-xs shadow-md shadow-indigo-600/30 transition-all active:scale-98 shrink-0"
                 >
-                  <Play className={`w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current ${isScanning ? 'animate-spin' : ''}`} />
+                  <Play className={`w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 fill-current ${isScanning ? 'animate-spin' : ''}`} />
                   <span>{isScanning ? 'Scanning...' : 'Start Scan'}</span>
                 </button>
               </div>
@@ -1422,41 +1481,43 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
               {/* Right Column on Tablet */}
               {/* Live Scan Output & Execution Log Card */}
-              <div className="bg-[#151517] border border-[#2D2D30] rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-lg flex flex-col gap-2 h-full min-h-[300px]">
-                <div className="flex items-center justify-between pb-2 border-b border-[#28282B]">
-                  <div className="flex items-center gap-2">
-                    <Terminal className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
-                    <span className="text-[10px] sm:text-xs font-semibold text-[#E2E2E4]">Live Scan Log</span>
-                  </div>
-                  {isScanning && (
-                    <span className="flex items-center gap-1.5 text-[9px] sm:text-[10px] text-amber-400 animate-pulse">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                      Scanning...
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex-1 overflow-y-auto font-mono text-[9px] sm:text-[11px] space-y-1.5 p-2 sm:p-3 bg-[#0E0E10] rounded-lg sm:rounded-xl border border-[#222225] select-text">
-                  {scanLogs.map((log, index) => (
-                    <div key={index} className="flex items-start gap-2 leading-relaxed">
-                      <span className="text-[#55555A] shrink-0">{log.time}</span>
-                      <span
-                        className={
-                          log.type === 'success'
-                            ? 'text-emerald-400 font-medium'
-                            : log.type === 'warn'
-                            ? 'text-amber-400 font-medium'
-                            : log.type === 'error'
-                            ? 'text-red-400 font-medium'
-                            : 'text-[#A0A0A5]'
-                        }
-                      >
-                        {log.text}
-                      </span>
+              {cardViewSettings.showScanLogCard && (
+                <div className="bg-[#151517] border border-[#2D2D30] rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-lg flex flex-col gap-2 h-full min-h-[300px]">
+                  <div className="flex items-center justify-between pb-2 border-b border-[#28282B]">
+                    <div className="flex items-center gap-2">
+                      <Terminal className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
+                      <span className="text-[10px] sm:text-xs font-semibold text-[#E2E2E4]">Live Scan Log</span>
                     </div>
-                  ))}
+                    {isScanning && (
+                      <span className="flex items-center gap-1.5 text-[9px] sm:text-[10px] text-amber-400 animate-pulse">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                        Scanning...
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto font-mono text-[9px] sm:text-[11px] space-y-1.5 p-2 sm:p-3 bg-[#0E0E10] rounded-lg sm:rounded-xl border border-[#222225] select-text">
+                    {scanLogs.map((log, index) => (
+                      <div key={index} className="flex items-start gap-2 leading-relaxed">
+                        <span className="text-[#55555A] shrink-0">{log.time}</span>
+                        <span
+                          className={
+                            log.type === 'success'
+                              ? 'text-emerald-400 font-medium'
+                              : log.type === 'warn'
+                              ? 'text-amber-400 font-medium'
+                              : log.type === 'error'
+                              ? 'text-red-400 font-medium'
+                              : 'text-[#A0A0A5]'
+                          }
+                        >
+                          {log.text}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -1476,41 +1537,32 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               {selectedProfileViewId === null ? (
                 <div className="flex flex-col gap-3 sm:gap-4">
                   {/* Top Bar: Title, Import & Create Profile Button */}
-                  <div className="flex items-center justify-between gap-1.5 sm:gap-3 bg-[#1E1E20] border border-[#2D2D30] rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-sm">
-                    <div className="flex items-center gap-2">
-                      <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" />
-                      <div className="flex flex-col">
-                        <span className="text-xs sm:text-sm font-bold text-[#E2E2E4]">Offset Profiles</span>
-                        <span className="text-[10px] sm:text-xs text-[#8E8E93]">{profiles.length} profiles configured</span>
+                  <div className="flex items-center justify-between gap-2 bg-[#1E1E20] border border-[#2D2D30] rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-sm">
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                      <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400 shrink-0" />
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-xs sm:text-sm font-bold text-[#E2E2E4] truncate">Offset Profiles</span>
+                        <span className="text-[10px] sm:text-xs text-[#8E8E93] truncate">{profiles.length} profiles</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <button
-                        onClick={handleResetDefaultProfiles}
-                        className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-[#262629] hover:bg-[#323236] text-[#A0A0A5] hover:text-indigo-300 border border-[#353538] hover:border-indigo-500/30 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-semibold transition-colors shadow-sm"
-                        title="Reload Verified Starter Profiles & Targets"
-                      >
-                        <RefreshCw className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-indigo-400" />
-                        <span>Starter Profiles</span>
-                      </button>
-
+                    <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                       <button
                         onClick={() => profileImportInputRef.current?.click()}
-                        className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-[#262629] hover:bg-[#323236] text-[#A0A0A5] hover:text-white border border-[#353538] rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-semibold transition-colors shadow-sm"
+                        className="flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-2 bg-[#262629] hover:bg-[#323236] text-[#A0A0A5] hover:text-white border border-[#353538] rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-semibold transition-colors shadow-sm"
                         title="Import Profile JSON"
                       >
-                        <Upload className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                        <Upload className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
                         <span>Import</span>
                       </button>
 
                       <button
                         onClick={() => setIsNewProfileModalOpen(true)}
-                        className="flex items-center gap-1.5 px-2 sm:px-3.5 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold transition-all shadow-md shadow-indigo-600/30"
+                        className="flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3.5 py-1 sm:py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold transition-all shadow-md shadow-indigo-600/30"
                         title="Create New Profile"
                       >
-                        <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                        <span>New Profile</span>
+                        <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                        <span>New</span>
                       </button>
                     </div>
                   </div>
@@ -1670,15 +1722,25 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                   </div>
 
                   {/* Targets Search Filter */}
-                  <div className="relative w-full">
-                    <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8E8E93]" />
-                    <input
-                      type="text"
-                      value={watchlistFilter}
-                      onChange={(e) => setWatchlistFilter(e.target.value)}
-                      placeholder="Search targets in profile..."
-                      className="w-full pl-10 pr-4 py-2 sm:py-3 bg-[#1E1E20] border border-[#2D2D30] rounded-xl sm:rounded-2xl text-xs sm:text-sm text-[#E2E2E4] placeholder-[#6C6C70] focus:outline-none focus:border-indigo-500 shadow-sm"
-                    />
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8E8E93]" />
+                      <input
+                        type="text"
+                        value={watchlistFilter}
+                        onChange={(e) => setWatchlistFilter(e.target.value)}
+                        placeholder="Search targets in profile..."
+                        className="w-full pl-10 pr-4 py-2 sm:py-3 bg-[#1E1E20] border border-[#2D2D30] rounded-xl sm:rounded-2xl text-xs sm:text-sm text-[#E2E2E4] placeholder-[#6C6C70] focus:outline-none focus:border-indigo-500 shadow-sm"
+                      />
+                    </div>
+                    <button
+                      onClick={() => setIsCardSettingsModalOpen(true)}
+                      className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 sm:py-3 bg-[#1E1E20] hover:bg-[#26262A] text-[#8E8E93] hover:text-white border border-[#2D2D30] hover:border-indigo-500/40 rounded-xl sm:rounded-2xl text-xs font-semibold transition-colors shadow-sm shrink-0"
+                      title="Card Display Options"
+                    >
+                      <SlidersHorizontal className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-400" />
+                      <span className="hidden sm:inline">Options</span>
+                    </button>
                   </div>
 
                   {/* Targets List */}
@@ -1691,22 +1753,26 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                       </p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-3 sm:gap-4">
+                    <div className={`grid grid-cols-1 ${cardViewSettings.tabletLayout === 'list' ? 'md:grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3'} gap-2.5 sm:gap-3.5 md:gap-4`}>
                     {displayedItems.map((item) => {
                       const hasFallbacks =
                         (item.fallbackClassNames && item.fallbackClassNames.length > 0) ||
                         (item.fallbackMemberNames && item.fallbackMemberNames.length > 0);
 
+                      const isCompact = cardViewSettings.density === 'compact';
+
                       return (
                         <div
                           key={item.id}
                           onClick={() => setViewingTargetItem(item)}
-                          className="bg-[#1E1E20] hover:bg-[#232326] border border-[#2D2D30] hover:border-indigo-500/40 p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-sm flex flex-col gap-1.5 sm:gap-3 relative cursor-pointer transition-all active:scale-[0.99] group/card"
+                          className={`bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] hover:bg-[#232326] md:hover:to-[#1C1C20] border border-[#2D2D30] md:border-[#35353C] hover:border-indigo-500/40 md:hover:border-indigo-500/50 md:shadow-md md:hover:shadow-indigo-500/5 ${
+                            isCompact ? 'p-2 sm:p-2.5 md:p-3 gap-1 sm:gap-1.5' : 'p-3 sm:p-4 gap-1.5 sm:gap-2.5'
+                          } rounded-xl sm:rounded-2xl shadow-sm flex flex-col relative cursor-pointer transition-all active:scale-[0.99] group/card`}
                         >
                           <div className="flex items-start justify-between">
-                            <div className="flex flex-col gap-1 min-w-0 pr-24">
-                              {/* Custom Name / Label if present */}
-                              {item.customName && (
+                            <div className="flex flex-col gap-1 min-w-0 pr-20 sm:pr-24">
+                              {/* Custom Name / Label if enabled */}
+                              {cardViewSettings.showCustomName && item.customName && (
                                 <div className="flex items-center gap-1.5">
                                   <span className="font-bold text-xs sm:text-sm text-white group-hover/card:text-indigo-200 transition-colors truncate">
                                     {item.customName}
@@ -1717,33 +1783,45 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                                 </div>
                               )}
 
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className={`font-semibold text-xs sm:text-sm ${item.customName ? 'text-[#8E8E93]' : 'text-[#E2E2E4] group-hover/card:text-indigo-300'} transition-colors truncate`}>
-                                  {item.className}
-                                </span>
-                                <span className="text-[#6C6C70]">.</span>
-                                <span className="font-mono text-xs sm:text-sm text-sky-300 font-medium truncate">
-                                  {item.memberName}
-                                </span>
-                                <span
-                                  className={`text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded font-mono font-semibold ${
-                                    item.kind === 'FIELD'
-                                      ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                                      : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                  }`}
-                                >
-                                  {item.kind}
-                                </span>
-                              </div>
+                              {/* Class & Member Identification */}
+                              {(cardViewSettings.showClassName || cardViewSettings.showMemberName || cardViewSettings.showKindBadge) && (
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {cardViewSettings.showClassName && (
+                                    <span className={`font-semibold text-xs sm:text-sm ${item.customName && cardViewSettings.showCustomName ? 'text-[#8E8E93]' : 'text-[#E2E2E4] group-hover/card:text-indigo-300'} transition-colors truncate`}>
+                                      {item.className}
+                                    </span>
+                                  )}
+                                  {cardViewSettings.showClassName && cardViewSettings.showMemberName && (
+                                    <span className="text-[#6C6C70]">.</span>
+                                  )}
+                                  {cardViewSettings.showMemberName && (
+                                    <span className="font-mono text-xs sm:text-sm text-sky-300 font-medium truncate">
+                                      {item.memberName}
+                                    </span>
+                                  )}
+                                  {cardViewSettings.showKindBadge && (
+                                    <span
+                                      className={`text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded font-mono font-semibold ${
+                                        item.kind === 'FIELD'
+                                          ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                          : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                      }`}
+                                    >
+                                      {item.kind}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
 
-                              {item.comment && (
+                              {/* Comments Preview */}
+                              {cardViewSettings.showComments && item.comment && (
                                 <div className="text-[9px] sm:text-[11px] text-[#8E8E93] italic line-clamp-1">
                                   // {item.comment}
                                 </div>
                               )}
 
                               {/* Fallbacks Preview */}
-                              {hasFallbacks && (
+                              {cardViewSettings.showFallbacks && hasFallbacks && (
                                 <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] text-amber-400/90 mt-0.5 flex-wrap font-mono">
                                   <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
                                   <span className="text-[#8E8E93]">Fallbacks:</span>
@@ -1761,26 +1839,14 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                               )}
                             </div>
 
-                            {/* Action Buttons: Navigate, Edit (Pencil), Delete */}
-                            <div className="absolute top-3 sm:p-4 right-4 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                              {item.classIndex !== undefined && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onNavigateToBrowser(item.classIndex);
-                                  }}
-                                  className="p-1.5 sm:p-2 text-[#8E8E93] hover:text-indigo-300 bg-[#262629] hover:bg-[#323236] rounded-lg sm:rounded-xl transition-colors"
-                                  title="Inspect in Class Browser"
-                                >
-                                  <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                </button>
-                              )}
+                            {/* Action Buttons: Edit (Pencil), Delete */}
+                            <div className="absolute top-2.5 sm:top-3 sm:p-4 right-3 sm:right-4 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleOpenEditTarget(item);
                                 }}
-                                className="p-1.5 sm:p-2 text-[#8E8E93] hover:text-indigo-400 bg-[#262629] hover:bg-[#323236] rounded-lg sm:rounded-xl transition-colors"
+                                className="p-1.5 sm:p-2 text-[#8E8E93] hover:text-indigo-400 bg-[#262629] md:bg-[#202024] hover:bg-[#323236] rounded-lg sm:rounded-xl transition-colors"
                                 title="Edit Target & Fallbacks"
                               >
                                 <Pencil className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -1790,75 +1856,12 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                                   e.stopPropagation();
                                   handleRemoveTargetItem(item.id);
                                 }}
-                                className="p-1.5 sm:p-2 text-[#8E8E93] hover:text-red-400 bg-[#262629] hover:bg-[#323236] rounded-lg sm:rounded-xl transition-colors"
+                                className="p-1.5 sm:p-2 text-[#8E8E93] hover:text-red-400 bg-[#262629] md:bg-[#202024] hover:bg-[#323236] rounded-lg sm:rounded-xl transition-colors"
                                 title="Remove target"
                               >
                                 <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                               </button>
                             </div>
-                          </div>
-
-                          {/* Resolved Offset Badge & Fallback Info */}
-                          <div className="pt-2 border-t border-[#2D2D30]/60 flex items-center justify-between gap-2 flex-wrap">
-                            {item.resolved ? (
-                              <div className="flex items-center gap-2 font-mono text-[10px] sm:text-xs overflow-x-auto scrollbar-hide py-0.5 flex-wrap">
-                                {item.kind === 'FIELD' ? (
-                                  <div className="flex items-center gap-1.5 bg-[#141416] px-1.5 sm:px-2.5 py-1 rounded-md sm:rounded-lg border border-[#3E3E42]">
-                                    <span className="text-[#8E8E93]">Offset:</span>
-                                    <span className="text-amber-400 font-bold">{item.offsetHex}</span>
-                                    <span className="text-[9px] sm:text-[10px] text-[#8E8E93]">
-                                      ({item.typeName || 'field'})
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center gap-1.5 bg-[#141416] px-1.5 sm:px-2.5 py-1 rounded-md sm:rounded-lg border border-[#3E3E42]">
-                                    <span className="text-[#8E8E93]">RVA:</span>
-                                    <span className="text-purple-400 font-bold">{item.rvaHex}</span>
-                                  </div>
-                                )}
-
-                                {item.resolvedViaFallback && (
-                                  <div className="flex items-center gap-1 bg-amber-500/10 border border-amber-500/30 px-1.5 sm:px-2 py-1 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] text-amber-300 font-sans font-medium">
-                                    <ShieldCheck className="w-3 h-3 text-amber-400" />
-                                    <span>
-                                      Matched via fallback ({item.resolvedClassName}.{item.resolvedMemberName})
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-[#8E8E93]">
-                                <AlertCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500" />
-                                <span>Not resolved</span>
-                              </div>
-                            )}
-
-                            {item.resolved && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const codeSnippet = formatTargetCodeSnippet(
-                                    item,
-                                    activeProfile?.codeStylePreset || 'cpp_constexpr',
-                                    activeProfile?.customCodeStyleTemplate
-                                  );
-                                  const presetObj = CODE_STYLE_PRESETS.find(
-                                    (p) => p.id === (activeProfile?.codeStylePreset || 'cpp_constexpr')
-                                  );
-                                  onCopyText(
-                                    codeSnippet,
-                                    `${item.customName || item.memberName} (${presetObj?.label || 'Code Snippet'})`
-                                  );
-                                }}
-                                className="text-[10px] sm:text-xs text-[#A0A0A5] hover:text-white flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-md sm:rounded-lg bg-[#262629] hover:bg-[#35353C] transition-colors shrink-0 shadow-sm ml-auto"
-                                title="Copy offset code snippet"
-                              >
-                                <Copy className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                <span className="text-[9px] sm:text-[11px] font-mono text-indigo-300 font-medium">
-                                  {CODE_STYLE_PRESETS.find((p) => p.id === (activeProfile?.codeStylePreset || 'cpp_constexpr'))?.fileExtension || 'Code'}
-                                </span>
-                              </button>
-                            )}
                           </div>
                         </div>
                       );
@@ -3097,26 +3100,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               ) : null}
             </div>
 
-            {/* Action Footer: Copy Formatted Code & Done */}
-            <div className="flex items-center justify-between pt-2 border-t border-[#2D2D30]">
-              <button
-                onClick={() => {
-                  const snippet = formatTargetCodeSnippet(
-                    viewingTargetItem,
-                    activeProfile?.codeStylePreset || 'cpp_constexpr',
-                    activeProfile?.customCodeStyleTemplate
-                  );
-                  const presetObj = CODE_STYLE_PRESETS.find(
-                    (p) => p.id === (activeProfile?.codeStylePreset || 'cpp_constexpr')
-                  );
-                  onCopyText(snippet, `${viewingTargetItem.memberName} (${presetObj?.label || 'Code'})`);
-                }}
-                className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2.5 bg-[#262629] hover:bg-[#323236] text-[#E2E2E4] rounded-lg sm:rounded-xl text-[9px] sm:text-xs font-semibold transition-colors"
-              >
-                <Copy className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-indigo-400" />
-                <span>Copy Formatted Code</span>
-              </button>
-
+            {/* Action Footer: Done */}
+            <div className="flex items-center justify-end pt-2 border-t border-[#2D2D30]">
               <button
                 onClick={() => setViewingTargetItem(null)}
                 className="px-2.5 sm:px-5 py-1.5 sm:py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg sm:rounded-xl text-[9px] sm:text-xs font-bold transition-colors shadow-md shadow-indigo-600/20"
@@ -3507,6 +3492,209 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           </div>
         );
       })()}
+
+      {/* Card Display & Target View Settings Modal */}
+      {isCardSettingsModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm overflow-y-auto p-2.5 sm:p-4 flex justify-center items-start sm:items-center">
+          <div className="bg-[#1C1C1F] border border-[#35353A] rounded-xl sm:rounded-3xl p-3 sm:p-6 max-w-lg w-full shadow-2xl flex flex-col gap-2.5 sm:gap-4 animate-in fade-in zoom-in-95 duration-200 mt-8 sm:mt-0 mb-auto sm:my-auto shrink-0 max-h-[88vh]">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-2 sm:pb-3 border-b border-[#2C2C30]">
+              <div className="flex items-center gap-1.5 sm:gap-2.5">
+                <div className="p-1.5 sm:p-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-lg sm:rounded-xl">
+                  <Settings2 className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+                </div>
+                <div className="flex flex-col">
+                  <h3 className="text-xs sm:text-base font-bold text-[#E2E2E4]">Target Card Settings</h3>
+                  <p className="text-[9px] sm:text-xs text-[#8E8E93]">Customize visible fields, badges, and layout</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsCardSettingsModalOpen(false)}
+                className="p-1 sm:p-1.5 text-[#8E8E93] hover:text-white hover:bg-[#2A2A2E] rounded-md sm:rounded-lg transition-colors"
+                title="Close settings"
+              >
+                <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </button>
+            </div>
+
+            {/* Modal Content / Options List */}
+            <div className="flex flex-col gap-2 sm:gap-3 overflow-y-auto pr-0.5">
+              {/* Density Segment */}
+              <div className="bg-[#141416] p-2 sm:p-3 rounded-lg sm:rounded-xl border border-[#27272A] flex flex-col gap-1.5 sm:gap-2">
+                <span className="text-[10px] sm:text-xs font-semibold text-[#D8D8DC]">Card Density</span>
+                <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
+                  <button
+                    onClick={() => updateCardViewSettings({ density: 'compact' })}
+                    className={`py-1 sm:py-1.5 px-2 sm:px-3 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-medium border transition-all ${
+                      cardViewSettings.density === 'compact'
+                        ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 font-bold'
+                        : 'bg-[#1E1E22] border-[#2E2E32] text-[#8E8E93] hover:text-white'
+                    }`}
+                  >
+                    Compact (Mobile)
+                  </button>
+                  <button
+                    onClick={() => updateCardViewSettings({ density: 'comfortable' })}
+                    className={`py-1 sm:py-1.5 px-2 sm:px-3 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-medium border transition-all ${
+                      cardViewSettings.density === 'comfortable'
+                        ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 font-bold'
+                        : 'bg-[#1E1E22] border-[#2E2E32] text-[#8E8E93] hover:text-white'
+                    }`}
+                  >
+                    Comfortable (Standard)
+                  </button>
+                </div>
+              </div>
+
+              {/* Tablet & Big Screen View Style (Hidden on Mobile, shown only on tablet/desktop) */}
+              <div className="hidden md:flex bg-[#141416] p-3 rounded-xl border border-[#27272A] flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-[#D8D8DC]">Tablet & Large Screen Card Style</span>
+                  <span className="text-[9px] text-indigo-400 font-medium bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
+                    Tab & Desktop Only
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => updateCardViewSettings({ tabletLayout: 'grid' })}
+                    className={`py-1.5 px-3 rounded-lg text-xs font-medium border transition-all ${
+                      (cardViewSettings.tabletLayout || 'grid') === 'grid'
+                        ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 font-bold'
+                        : 'bg-[#1E1E22] border-[#2E2E32] text-[#8E8E93] hover:text-white'
+                    }`}
+                  >
+                    Card Grid View (Side-by-side)
+                  </button>
+                  <button
+                    onClick={() => updateCardViewSettings({ tabletLayout: 'list' })}
+                    className={`py-1.5 px-3 rounded-lg text-xs font-medium border transition-all ${
+                      cardViewSettings.tabletLayout === 'list'
+                        ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 font-bold'
+                        : 'bg-[#1E1E22] border-[#2E2E32] text-[#8E8E93] hover:text-white'
+                    }`}
+                  >
+                    List View (Full Width)
+                  </button>
+                </div>
+              </div>
+
+              {/* Toggle Options Grid */}
+              <div className="flex flex-col gap-1 sm:gap-2 bg-[#141416] p-2 sm:p-3 rounded-lg sm:rounded-xl border border-[#27272A]">
+                <span className="text-[10px] sm:text-xs font-semibold text-[#D8D8DC] mb-0.5 sm:mb-1">Field & Card Visibility</span>
+
+                {/* Show Fallbacks Toggle */}
+                <label className="flex items-center justify-between p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-[#1E1E22] transition-colors cursor-pointer">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] sm:text-xs font-medium text-[#E2E2E4]">Show Fallbacks</span>
+                    <span className="text-[9px] sm:text-[10px] text-[#8E8E93]">Display alternate fallback class and field names</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={cardViewSettings.showFallbacks}
+                    onChange={(e) => updateCardViewSettings({ showFallbacks: e.target.checked })}
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 accent-indigo-600 rounded cursor-pointer shrink-0"
+                  />
+                </label>
+
+                {/* Show Class Name */}
+                <label className="flex items-center justify-between p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-[#1E1E22] transition-colors cursor-pointer border-t border-[#222226]">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] sm:text-xs font-medium text-[#E2E2E4]">Show Class Name</span>
+                    <span className="text-[9px] sm:text-[10px] text-[#8E8E93]">Display class identifier on cards</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={cardViewSettings.showClassName}
+                    onChange={(e) => updateCardViewSettings({ showClassName: e.target.checked })}
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 accent-indigo-600 rounded cursor-pointer shrink-0"
+                  />
+                </label>
+
+                {/* Show Member Name */}
+                <label className="flex items-center justify-between p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-[#1E1E22] transition-colors cursor-pointer border-t border-[#222226]">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] sm:text-xs font-medium text-[#E2E2E4]">Show Field / Method Name</span>
+                    <span className="text-[9px] sm:text-[10px] text-[#8E8E93]">Display target member name</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={cardViewSettings.showMemberName}
+                    onChange={(e) => updateCardViewSettings({ showMemberName: e.target.checked })}
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 accent-indigo-600 rounded cursor-pointer shrink-0"
+                  />
+                </label>
+
+                {/* Show Custom Name */}
+                <label className="flex items-center justify-between p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-[#1E1E22] transition-colors cursor-pointer border-t border-[#222226]">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] sm:text-xs font-medium text-[#E2E2E4]">Show Custom Name / Alias</span>
+                    <span className="text-[9px] sm:text-[10px] text-[#8E8E93]">Display user-defined alias tag if present</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={cardViewSettings.showCustomName}
+                    onChange={(e) => updateCardViewSettings({ showCustomName: e.target.checked })}
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 accent-indigo-600 rounded cursor-pointer shrink-0"
+                  />
+                </label>
+
+                {/* Show Kind Badge */}
+                <label className="flex items-center justify-between p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-[#1E1E22] transition-colors cursor-pointer border-t border-[#222226]">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] sm:text-xs font-medium text-[#E2E2E4]">Show Kind Badge</span>
+                    <span className="text-[9px] sm:text-[10px] text-[#8E8E93]">Display FIELD or METHOD pill badge</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={cardViewSettings.showKindBadge}
+                    onChange={(e) => updateCardViewSettings({ showKindBadge: e.target.checked })}
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 accent-indigo-600 rounded cursor-pointer shrink-0"
+                  />
+                </label>
+
+                {/* Show Comments */}
+                <label className="flex items-center justify-between p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-[#1E1E22] transition-colors cursor-pointer border-t border-[#222226]">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] sm:text-xs font-medium text-[#E2E2E4]">Show Target Comments</span>
+                    <span className="text-[9px] sm:text-[10px] text-[#8E8E93]">Display custom code notes and comments</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={cardViewSettings.showComments}
+                    onChange={(e) => updateCardViewSettings({ showComments: e.target.checked })}
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 accent-indigo-600 rounded cursor-pointer shrink-0"
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-[#2C2C30]">
+              <button
+                onClick={() => {
+                  setCardViewSettings(DEFAULT_TARGET_VIEW_SETTINGS);
+                  try {
+                    localStorage.removeItem('il2cpp_target_view_settings');
+                  } catch {}
+                  showToast('Reset target card settings to default');
+                }}
+                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-semibold text-[#8E8E93] hover:text-white hover:bg-[#262629] rounded-lg sm:rounded-xl transition-colors"
+                title="Reset all settings to default"
+              >
+                <RotateCcw className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span>Reset Defaults</span>
+              </button>
+
+              <button
+                onClick={() => setIsCardSettingsModalOpen(false)}
+                className="px-3.5 sm:px-5 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold shadow-md shadow-indigo-600/30 transition-all"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirmation Modal: Clear All History */}
       {isConfirmClearHistoryOpen && (
