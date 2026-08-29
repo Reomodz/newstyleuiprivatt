@@ -1,5 +1,5 @@
 import React from 'react';
-import { ManagerInfoDestination } from '../types';
+import { ManagerInfoDestination } from '../../types';
 import { X, Info, Award, FileText } from 'lucide-react';
 
 interface InfoModalProps {

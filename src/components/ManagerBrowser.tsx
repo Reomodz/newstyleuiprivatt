@@ -35,8 +35,8 @@ export interface BrowserCardViewSettings {
 }
 
 const DEFAULT_BROWSER_VIEW_SETTINGS: BrowserCardViewSettings = {
-  tabletLayout: 'grid',
-  density: 'comfortable',
+  tabletLayout: 'list',
+  density: 'compact',
   showMetadata: true,
   showRvaLabels: true,
 };
@@ -78,9 +78,16 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
   // Browser Card View Settings
   const [browserSettings, setBrowserSettings] = useState<BrowserCardViewSettings>(() => {
     try {
-      const saved = localStorage.getItem('il2cpp_browser_view_settings');
-      if (saved) {
-        return { ...DEFAULT_BROWSER_VIEW_SETTINGS, ...JSON.parse(saved) };
+      const vKey = 'il2cpp_browser_view_settings_v4';
+      const hasInit = localStorage.getItem(vKey);
+      if (hasInit) {
+        const saved = localStorage.getItem('il2cpp_browser_view_settings');
+        if (saved) {
+          return { ...DEFAULT_BROWSER_VIEW_SETTINGS, ...JSON.parse(saved) };
+        }
+      } else {
+        localStorage.setItem(vKey, '1');
+        localStorage.setItem('il2cpp_browser_view_settings', JSON.stringify(DEFAULT_BROWSER_VIEW_SETTINGS));
       }
     } catch {
       // fallback
@@ -558,64 +565,69 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                       This class declares no methods.
                     </div>
                   ) : (
-                    currentMethods
+                      currentMethods
                       .filter((m) => filterMatch(m.name) || filterMatch(m.signature))
                       .map((method) => (
                         <div
                           key={method.index}
                           className={`${
                             isCompact ? 'p-2.5 sm:p-3' : 'p-3.5 sm:p-4'
-                          } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] border border-[#353535] md:border-[#38383E] rounded-xl hover:bg-[#2A2A2D] md:hover:to-[#1F1F24] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 group shadow-sm`}
+                          } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] border border-[#353535] md:border-[#38383E] rounded-xl hover:bg-[#2A2A2D] md:hover:to-[#1F1F24] transition-all flex flex-col justify-between group shadow-sm`}
                         >
                           <div className="min-w-0 flex-1">
-                            <div className="font-medium text-xs sm:text-sm text-white font-mono-code tracking-tight truncate">
+                            {/* Line 1: Method Signature / Name */}
+                            <div className="font-semibold text-xs sm:text-sm text-white font-mono-code tracking-tight break-words leading-snug">
                               {method.signature || method.name}
                             </div>
-                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1.5 text-xs font-mono-code">
-                              {browserSettings.showRvaLabels && method.rva && (
-                                <button
-                                  onClick={() =>
-                                    onCopyText(
-                                      `0x${method.rva!.toString(16).toUpperCase()}`,
-                                      'RVA'
-                                    )
-                                  }
-                                  className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded bg-[#1C1C1E] hover:bg-[#353535] text-indigo-300 border border-[#353535] transition-colors text-[10px] sm:text-xs"
-                                  title="Copy RVA"
-                                >
-                                  <span>RVA: 0x{method.rva.toString(16).toUpperCase()}</span>
-                                  <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#8E8E93]" />
-                                </button>
-                              )}
-                              {browserSettings.showRvaLabels && method.address && (
-                                <button
-                                  onClick={() =>
-                                    onCopyText(
-                                      `0x${method.address!.toString(16).toUpperCase()}`,
-                                      'VA'
-                                    )
-                                  }
-                                  className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded bg-[#1C1C1E] hover:bg-[#353535] text-sky-300 border border-[#353535] transition-colors text-[10px] sm:text-xs"
-                                  title="Copy VA"
-                                >
-                                  <span>VA: 0x{method.address.toString(16).toUpperCase()}</span>
-                                  <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#8E8E93]" />
-                                </button>
-                              )}
-                            </div>
+
+                            {/* Line 2: RVA and VA Pills */}
+                            {browserSettings.showRvaLabels && (method.rva || method.address) && (
+                              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-2 text-xs font-mono-code">
+                                {method.rva && (
+                                  <button
+                                    onClick={() =>
+                                      onCopyText(
+                                        `0x${method.rva!.toString(16).toUpperCase()}`,
+                                        'RVA'
+                                      )
+                                    }
+                                    className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#1C1C1E] hover:bg-[#353535] text-indigo-300 border border-indigo-500/30 transition-colors text-[10px] sm:text-xs font-medium"
+                                    title="Copy RVA"
+                                  >
+                                    <span>RVA: 0x{method.rva.toString(16).toUpperCase()}</span>
+                                    <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#8E8E93]" />
+                                  </button>
+                                )}
+                                {method.address && (
+                                  <button
+                                    onClick={() =>
+                                      onCopyText(
+                                        `0x${method.address!.toString(16).toUpperCase()}`,
+                                        'VA'
+                                      )
+                                    }
+                                    className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#1C1C1E] hover:bg-[#353535] text-sky-300 border border-sky-500/30 transition-colors text-[10px] sm:text-xs font-medium"
+                                    title="Copy VA"
+                                  >
+                                    <span>VA: 0x{method.address.toString(16).toUpperCase()}</span>
+                                    <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#8E8E93]" />
+                                  </button>
+                                )}
+                              </div>
+                            )}
                           </div>
 
-                          {/* Quick Method Actions */}
-                          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                          {/* Line 3: Quick Method Actions (Call Graph + Disasm) */}
+                          <div className="grid grid-cols-2 gap-2 mt-3 pt-2.5 border-t border-[#303034]">
                             <button
                               onClick={() =>
                                 onInspectMethod(currentClassInfo.index, method.index, 'graph')
                               }
-                              className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 text-[11px] sm:text-xs font-medium transition-colors"
+                              className="flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 text-[11px] sm:text-xs font-medium transition-colors shadow-sm"
                               title="Trace Call Graph"
                             >
-                              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                              <span>Call Graph</span>
+                              <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                              <span className="truncate">Call Graph</span>
                             </button>
 
                             <button
@@ -626,11 +638,11 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                                   'instructions'
                                 )
                               }
-                              className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-[#323235] hover:bg-[#3E3E42] text-[#E2E2E4] border border-[#454549] text-[11px] sm:text-xs font-medium transition-colors"
+                              className="flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg bg-[#2D2D30] hover:bg-[#3A3A3E] text-[#E2E2E4] hover:text-white border border-[#444448] text-[11px] sm:text-xs font-medium transition-colors shadow-sm"
                               title="Disassemble Instructions"
                             >
-                              <ExternalLink className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                              <span>Disasm</span>
+                              <ExternalLink className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                              <span className="truncate">Disasm</span>
                             </button>
                           </div>
                         </div>
@@ -735,9 +747,19 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <button
+                    onClick={() => updateBrowserSettings({ tabletLayout: 'list' })}
+                    className={`py-1.5 px-2 rounded-lg text-xs font-medium border transition-all ${
+                      (browserSettings.tabletLayout || 'list') === 'list'
+                        ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 font-bold'
+                        : 'bg-[#1E1E22] border-[#2E2E32] text-[#8E8E93] hover:text-white'
+                    }`}
+                  >
+                    List (Default)
+                  </button>
+                  <button
                     onClick={() => updateBrowserSettings({ tabletLayout: 'grid' })}
                     className={`py-1.5 px-2 rounded-lg text-xs font-medium border transition-all ${
-                      (browserSettings.tabletLayout || 'grid') === 'grid'
+                      browserSettings.tabletLayout === 'grid'
                         ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 font-bold'
                         : 'bg-[#1E1E22] border-[#2E2E32] text-[#8E8E93] hover:text-white'
                     }`}
@@ -754,16 +776,6 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                   >
                     Dense (3-4 Cols)
                   </button>
-                  <button
-                    onClick={() => updateBrowserSettings({ tabletLayout: 'list' })}
-                    className={`py-1.5 px-2 rounded-lg text-xs font-medium border transition-all ${
-                      browserSettings.tabletLayout === 'list'
-                        ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 font-bold'
-                        : 'bg-[#1E1E22] border-[#2E2E32] text-[#8E8E93] hover:text-white'
-                    }`}
-                  >
-                    List (Full Width)
-                  </button>
                 </div>
               </div>
 
@@ -774,12 +786,12 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                   <button
                     onClick={() => updateBrowserSettings({ density: 'compact' })}
                     className={`py-1 sm:py-1.5 px-2 sm:px-3 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-medium border transition-all ${
-                      browserSettings.density === 'compact'
+                      (browserSettings.density || 'compact') === 'compact'
                         ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 font-bold'
                         : 'bg-[#1E1E22] border-[#2E2E32] text-[#8E8E93] hover:text-white'
                     }`}
                   >
-                    Compact Padding
+                    Compact (Default)
                   </button>
                   <button
                     onClick={() => updateBrowserSettings({ density: 'comfortable' })}
@@ -789,7 +801,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                         : 'bg-[#1E1E22] border-[#2E2E32] text-[#8E8E93] hover:text-white'
                     }`}
                   >
-                    Comfortable (Default)
+                    Comfortable Padding
                   </button>
                 </div>
               </div>

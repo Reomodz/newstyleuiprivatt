@@ -12,11 +12,11 @@ import { MainDashboard } from './components/MainDashboard';
 import { ManagerBrowser } from './components/ManagerBrowser';
 import { CallGraphView } from './components/CallGraphView';
 import { MethodInstructionsView } from './components/MethodInstructionsView';
-import { ProcessPickerModal } from './components/ProcessPickerModal';
-import { DumpModal } from './components/DumpModal';
+import { ProcessPickerModal } from './components/modals/ProcessPickerModal';
+import { DumpModal } from './components/modals/DumpModal';
 import { ManagerDrawer } from './components/ManagerDrawer';
-import { InfoModal } from './components/InfoModal';
-import { Toast } from './components/Toast';
+import { InfoModal } from './components/modals/InfoModal';
+import { Toast } from './components/common/Toast';
 
 export const App: React.FC = () => {
   // Process State

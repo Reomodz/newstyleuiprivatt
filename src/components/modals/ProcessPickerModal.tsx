@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { ProcessDescriptor } from '../types';
-import { il2cppEngine } from '../services/il2cppEngine';
+import { ProcessDescriptor } from '../../types';
+import { il2cppEngine } from '../../services/il2cppEngine';
 import {
   Activity,
   Search,

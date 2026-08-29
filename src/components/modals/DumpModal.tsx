@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { il2cppEngine } from '../services/il2cppEngine';
+import { il2cppEngine } from '../../services/il2cppEngine';
 import {
   FileCode2,
   Copy,

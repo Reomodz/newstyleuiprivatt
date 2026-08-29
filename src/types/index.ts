@@ -349,3 +349,69 @@ export interface ScanHistoryRecord {
     resolved?: boolean;
   }[];
 }
+
+export interface ProfileCardViewSettings {
+  density: 'compact' | 'comfortable';
+  tabletLayout: 'list' | 'grid';
+  showDescription: boolean;
+  showTargetCount: boolean;
+  showTargetChips: boolean;
+  showActiveBadge: boolean;
+  showActionButtons: boolean;
+  showOpenIndicator: boolean;
+}
+
+export const DEFAULT_PROFILE_VIEW_SETTINGS: ProfileCardViewSettings = {
+  density: 'compact',
+  tabletLayout: 'list',
+  showDescription: true,
+  showTargetCount: true,
+  showTargetChips: true,
+  showActiveBadge: true,
+  showActionButtons: true,
+  showOpenIndicator: true,
+};
+
+export interface TargetCardViewSettings {
+  showFallbacks: boolean;
+  showClassName: boolean;
+  showMemberName: boolean;
+  showCustomName: boolean;
+  showKindBadge: boolean;
+  showComments: boolean;
+  density: 'compact' | 'comfortable';
+  tabletLayout?: 'grid' | 'list';
+  showTargetBanner?: boolean;
+  showScanLogCard?: boolean;
+}
+
+export const DEFAULT_TARGET_VIEW_SETTINGS: TargetCardViewSettings = {
+  showFallbacks: false,
+  showClassName: false,
+  showMemberName: false,
+  showCustomName: true,
+  showKindBadge: false,
+  showComments: true,
+  density: 'compact',
+  tabletLayout: 'list',
+  showTargetBanner: true,
+  showScanLogCard: true,
+};
+
+export interface HistoryCardViewSettings {
+  tabletLayout: 'list' | 'grid';
+  density: 'compact' | 'comfortable';
+  showCodeStyleBadge: boolean;
+  showMetadata: boolean;
+  showOffsetTags: boolean;
+  showQuickActions: boolean;
+}
+
+export const DEFAULT_HISTORY_VIEW_SETTINGS: HistoryCardViewSettings = {
+  tabletLayout: 'list',
+  density: 'compact',
+  showCodeStyleBadge: false,
+  showMetadata: true,
+  showOffsetTags: false,
+  showQuickActions: true,
+};
