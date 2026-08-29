@@ -7,7 +7,6 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
-# Grant repository write permissions if needed for releases or artifacts
 permissions:
   contents: read
 
@@ -23,33 +22,34 @@ jobs:
       - name: Setup Node.js Environment
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'npm'
+          node-version: 22
 
-      - name: Setup Java JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-          cache: 'gradle'
-
-      - name: Install Dependencies
+      - name: Install Node Dependencies
         run: npm install
 
       - name: Build Web Bundle (Vite)
         run: npm run build
 
-      - name: Initialize & Sync Android Platform (Capacitor)
+      - name: Initialize & Sync Capacitor Android Project
         run: |
           if [ ! -d "android" ]; then
             npx cap add android
           fi
           npx cap sync android
 
-      - name: Set Execution Permissions for Gradle Wrapper
+      - name: Setup Java JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Grant Execute Permission to Gradle Wrapper
         run: chmod +x android/gradlew
 
-      - name: Build Android Debug APK
+      - name: Build Android Debug APK with Gradle
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 
