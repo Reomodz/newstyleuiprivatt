@@ -1,0 +1,6 @@
+{
+  "appId": "com.il2cpp.manager",
+  "appName": "IL2CppManager",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
