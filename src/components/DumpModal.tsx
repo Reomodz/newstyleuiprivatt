@@ -122,7 +122,7 @@ export const DumpModal: React.FC<DumpModalProps> = ({
         </div>
 
         {/* Code Preview */}
-        <div className="flex-1 overflow-auto p-4 bg-[#141416] font-mono-code text-xs text-[#E2E2E4] leading-relaxed">
+        <div className="flex-1 overflow-auto p-2 sm:p-4 bg-[#141416] font-mono-code text-[8px] sm:text-xs text-[#E2E2E4] leading-relaxed">
           <pre className="whitespace-pre">{dumpText}</pre>
         </div>
       </div>

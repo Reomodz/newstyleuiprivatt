@@ -81,7 +81,7 @@ const DEFAULT_TARGET_VIEW_SETTINGS: TargetCardViewSettings = {
   showKindBadge: false,
   showComments: true,
   density: 'comfortable',
-  tabletLayout: 'grid',
+  tabletLayout: 'list',
   showTargetBanner: true,
   showScanLogCard: true,
 };
@@ -1312,9 +1312,9 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         <div className="max-w-5xl mx-auto w-full p-2.5 sm:p-4 flex flex-col gap-3 sm:gap-6 pb-24">
           {/* TAB 1: TARGET SETUP */}
           {activeTab === 'target' && (
-            <div className={`flex flex-col ${cardViewSettings.showScanLogCard ? 'md:grid md:grid-cols-2 lg:grid-cols-2' : 'max-w-3xl mx-auto w-full'} gap-3 sm:gap-4 md:gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-              {/* Left Column / Half-Side on Tablet & Big Screen */}
-              <div className="flex flex-col gap-2.5 sm:gap-4">
+            <div className="flex flex-col max-w-3xl mx-auto w-full gap-3 sm:gap-4 md:gap-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {/* Target Setup Controls */}
+              <div className="flex flex-col gap-2.5 sm:gap-4 w-full">
                 {/* Dual Mode Switcher Tabs */}
                 <div className="flex items-center gap-1 bg-[#141416] p-1 sm:p-1.5 rounded-lg sm:rounded-2xl border border-[#353538] shrink-0 mb-0.5 sm:mb-2 shadow-lg">
                   <button
@@ -1486,12 +1486,11 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                   <span>{isScanning ? 'Scanning...' : 'Start Scan'}</span>
                 </button>
               </div>
-              </div> {/* End Left Column */}
+              </div>
 
-              {/* Right Column on Tablet */}
-              {/* Live Scan Output & Execution Log Card */}
+              {/* Live Scan Output & Execution Log Card (Full-width list style) */}
               {cardViewSettings.showScanLogCard && (
-                <div className="bg-[#151517] border border-[#2D2D30] rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-lg flex flex-col gap-2 h-full min-h-[300px]">
+                <div className="bg-[#151517] border border-[#2D2D30] rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-lg flex flex-col gap-2 w-full min-h-[180px] max-h-[340px]">
                   <div className="flex items-center justify-between pb-2 border-b border-[#28282B]">
                     <div className="flex items-center gap-2">
                       <Terminal className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
@@ -3380,23 +3379,23 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                       );
 
                       return (
-                        <div key={idx} className="p-2 sm:p-3.5 flex flex-col gap-2 hover:bg-[#1A1A1D] transition-colors">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-3">
-                            <div className="flex flex-col gap-1 min-w-0">
+                        <div key={idx} className="p-2 sm:p-3 flex flex-col gap-1.5 sm:gap-2 hover:bg-[#1A1A1D] transition-colors">
+                          <div className="flex items-start sm:items-center justify-between gap-1.5 sm:gap-3">
+                            <div className="flex flex-col gap-0.5 sm:gap-1 min-w-0 flex-1">
                               {/* Custom Name if exists */}
                               {item.customName && (
                                 <div className="flex items-center gap-1.5">
                                   <span className="text-[10px] sm:text-xs font-bold text-white truncate">{item.customName}</span>
-                                  <span className="text-[8px] sm:text-[9px] px-1 py-0.2 bg-indigo-500/20 text-indigo-300 rounded font-medium">Custom</span>
+                                  <span className="text-[7px] sm:text-[9px] px-1 py-0.2 bg-indigo-500/20 text-indigo-300 rounded font-medium shrink-0">Custom</span>
                                 </div>
                               )}
 
-                              <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-mono flex-wrap">
-                                <span className="text-[#A0A0A5] truncate">{targetClass}</span>
-                                <span className="text-[#6C6C70]">.</span>
-                                <span className="text-sky-300 font-semibold truncate">{targetMember}</span>
+                              <div className="flex items-center gap-1 sm:gap-1.5 text-[9px] sm:text-xs font-mono flex-wrap">
+                                <span className="text-[#8E8E93] truncate max-w-[110px] sm:max-w-none">{targetClass}</span>
+                                <span className="text-[#55555A]">.</span>
+                                <span className="text-sky-300 font-semibold truncate max-w-[120px] sm:max-w-none">{targetMember}</span>
                                 <span
-                                  className={`text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded font-mono font-semibold ${
+                                  className={`text-[7px] sm:text-[9px] px-1 sm:px-1.5 py-0.2 sm:py-0.5 rounded font-mono font-semibold shrink-0 ${
                                     item.kind === 'FIELD'
                                       ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                                       : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
@@ -3407,13 +3406,13 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+                            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                               {offsetOrRva ? (
-                                <span className="font-mono text-[11px] sm:text-xs font-bold px-1.5 sm:px-2.5 py-1 bg-[#202024] border border-[#3E3E44] rounded-md sm:rounded-lg text-amber-300">
+                                <span className="font-mono text-[9px] sm:text-xs font-bold px-1.5 sm:px-2.5 py-0.5 sm:py-1 bg-[#202024] border border-[#3E3E44] rounded-md sm:rounded-lg text-amber-300 select-all">
                                   {offsetOrRva}
                                 </span>
                               ) : (
-                                <span className="text-[11px] sm:text-xs text-red-400/80 font-mono bg-red-500/10 px-1.5 sm:px-2 py-0.5 rounded">
+                                <span className="text-[8px] sm:text-xs text-red-400/90 font-mono bg-red-500/10 border border-red-500/20 px-1.5 sm:px-2 py-0.5 rounded">
                                   Not Found
                                 </span>
                               )}
@@ -3427,7 +3426,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                                     return next;
                                   });
                                 }}
-                                className={`p-1.5 sm:p-2 hover:bg-[#2C2C32] rounded-md sm:rounded-lg border transition-colors ${
+                                className={`p-1 sm:p-2 hover:bg-[#2C2C32] rounded-md sm:rounded-lg border transition-colors ${
                                   expandedHistoryItems.has(idx) 
                                     ? 'bg-[#26262A] text-indigo-300 border-indigo-500/30' 
                                     : 'bg-[#202024] text-[#A0A0A5] hover:text-white border-[#353538]'
@@ -3435,9 +3434,9 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                                 title={expandedHistoryItems.has(idx) ? 'Hide details' : 'Show details'}
                               >
                                 {expandedHistoryItems.has(idx) ? (
-                                  <EyeOff className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                  <EyeOff className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" />
                                 ) : (
-                                  <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                  <Eye className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" />
                                 )}
                               </button>
 
@@ -3448,26 +3447,26 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                                     `${item.customName || targetMember} (${activePresetObj.label})`
                                   );
                                 }}
-                                className="p-1.5 sm:p-2 bg-[#202024] hover:bg-[#2C2C32] text-[#A0A0A5] hover:text-white rounded-md sm:rounded-lg border border-[#353538] transition-colors"
+                                className="p-1 sm:p-2 bg-[#202024] hover:bg-[#2C2C32] text-[#A0A0A5] hover:text-white rounded-md sm:rounded-lg border border-[#353538] transition-colors"
                                 title={`Copy Snippet in ${activePresetObj.label}`}
                               >
-                                <Copy className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-indigo-400" />
+                                <Copy className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 text-indigo-400" />
                               </button>
                             </div>
                           </div>
 
                           {/* Extra Features (Hidden by default) */}
                           {expandedHistoryItems.has(idx) && (
-                            <div className="flex flex-col gap-2 mt-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                            <div className="flex flex-col gap-1.5 mt-1 animate-in fade-in slide-in-from-top-1 duration-200">
                               {(item.comment || item.resolvedViaFallback) && (
-                                <div className="flex flex-col gap-1 px-1.5 sm:px-2.5 py-1.5 bg-[#141416] border border-[#262629] rounded-md sm:rounded-lg">
+                                <div className="flex flex-col gap-0.5 px-1.5 sm:px-2.5 py-1 bg-[#141416] border border-[#262629] rounded-md sm:rounded-lg">
                                   {item.comment && (
-                                    <span className="text-[9px] sm:text-[10px] text-[#8E8E93] italic line-clamp-1.5 sm:p-2">
+                                    <span className="text-[8px] sm:text-[10px] text-[#8E8E93] italic line-clamp-2">
                                       // {item.comment}
                                     </span>
                                   )}
                                   {item.resolvedViaFallback && (
-                                    <span className="text-[9px] sm:text-[10px] text-amber-400/90 font-sans">
+                                    <span className="text-[8px] sm:text-[10px] text-amber-400/90 font-sans">
                                       Matched via fallback ({item.resolvedClassName}.{item.resolvedMemberName})
                                     </span>
                                   )}
@@ -3475,7 +3474,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                               )}
                               
                               {/* Code Style Preview Line */}
-                              <div className="px-1.5 sm:px-2.5 py-1.5 sm:py-2 bg-[#0F0F11] border border-[#262629] rounded-md sm:rounded-lg font-mono text-[10px] sm:text-[11px] text-indigo-200/90 overflow-x-auto whitespace-pre">
+                              <div className="px-1.5 sm:px-2.5 py-1 sm:py-1.5 bg-[#0F0F11] border border-[#262629] rounded-md sm:rounded-lg font-mono text-[8px] sm:text-[11px] text-indigo-200/90 overflow-x-auto whitespace-pre">
                                 {singleSnippet}
                               </div>
                             </div>
@@ -3496,18 +3495,9 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                           {currentFormatted.filename}
                         </span>
                       </div>
-                      <button
-                        onClick={() => {
-                          onCopyText(currentFormatted.code, `${selectedHistoryRecord.profileName} (${activePresetObj.label})`);
-                        }}
-                        className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 bg-[#262629] hover:bg-[#323236] text-[#E2E2E4] hover:text-white rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-semibold border border-[#3A3A3E] transition-colors"
-                      >
-                        <Copy className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-indigo-400" />
-                        <span>Copy File</span>
-                      </button>
                     </div>
 
-                    <pre className="p-3 sm:p-4 font-mono text-[10px] sm:text-xs text-[#D8D8E0] overflow-x-auto max-h-80 sm:max-h-96 overflow-y-auto leading-relaxed selection:bg-indigo-600/40">
+                    <pre className="p-2 sm:p-4 font-mono text-[7px] sm:text-[10px] md:text-xs text-[#D8D8E0] overflow-x-auto max-h-80 sm:max-h-96 overflow-y-auto leading-normal sm:leading-relaxed selection:bg-indigo-600/40">
                       <code>{currentFormatted.code}</code>
                     </pre>
                   </div>
