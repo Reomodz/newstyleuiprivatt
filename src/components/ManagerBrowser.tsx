@@ -22,9 +22,6 @@ import {
   ExternalLink,
   Code2,
   Tag,
-  LayoutGrid,
-  List,
-  Grid3X3,
   SlidersHorizontal,
   RotateCcw,
   Settings2,
@@ -164,56 +161,16 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
 
   const isCompact = browserSettings.density === 'compact';
 
-  // Responsive Toolbar Controls for Tablet & Big Screen
+  // Responsive Settings Button for Tablet & Big Screen
   const renderTabletToolbar = () => (
-    <div className="hidden md:flex items-center gap-1.5 shrink-0">
-      {/* Quick Layout Mode Buttons */}
-      <div className="flex items-center bg-[#18181A] p-0.5 rounded-lg border border-[#333336]">
-        <button
-          onClick={() => updateBrowserSettings({ tabletLayout: 'grid' })}
-          className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-all ${
-            browserSettings.tabletLayout === 'grid'
-              ? 'bg-indigo-600 text-white shadow-sm font-semibold'
-              : 'text-[#8E8E93] hover:text-[#E2E2E4]'
-          }`}
-          title="Tablet & Desktop: Grid Cards (2-3 Cols)"
-        >
-          <LayoutGrid className="w-3 h-3" />
-          <span>Grid</span>
-        </button>
-        <button
-          onClick={() => updateBrowserSettings({ tabletLayout: 'dense' })}
-          className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-all ${
-            browserSettings.tabletLayout === 'dense'
-              ? 'bg-indigo-600 text-white shadow-sm font-semibold'
-              : 'text-[#8E8E93] hover:text-[#E2E2E4]'
-          }`}
-          title="Tablet & Desktop: Dense Grid (3-4 Cols)"
-        >
-          <Grid3X3 className="w-3 h-3" />
-          <span>Dense</span>
-        </button>
-        <button
-          onClick={() => updateBrowserSettings({ tabletLayout: 'list' })}
-          className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-all ${
-            browserSettings.tabletLayout === 'list'
-              ? 'bg-indigo-600 text-white shadow-sm font-semibold'
-              : 'text-[#8E8E93] hover:text-[#E2E2E4]'
-          }`}
-          title="Tablet & Desktop: List View (Full Width)"
-        >
-          <List className="w-3 h-3" />
-          <span>List</span>
-        </button>
-      </div>
-
-      {/* Settings Modal Button */}
+    <div className="hidden md:flex items-center shrink-0">
       <button
         onClick={() => setIsBrowserSettingsModalOpen(true)}
-        className="p-1.5 text-[#8E8E93] hover:text-white bg-[#18181A] hover:bg-[#252528] rounded-lg border border-[#333336] transition-colors"
+        className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-[#A1A1AA] hover:text-white bg-[#18181A] hover:bg-[#252528] rounded-lg border border-[#333336] transition-colors shadow-sm"
         title="Browser Card Settings"
       >
-        <SlidersHorizontal className="w-3.5 h-3.5" />
+        <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" />
+        <span>Card Settings</span>
       </button>
     </div>
   );

@@ -74,11 +74,11 @@ export interface TargetCardViewSettings {
 }
 
 const DEFAULT_TARGET_VIEW_SETTINGS: TargetCardViewSettings = {
-  showFallbacks: true,
-  showClassName: true,
-  showMemberName: true,
+  showFallbacks: false,
+  showClassName: false,
+  showMemberName: false,
   showCustomName: true,
-  showKindBadge: true,
+  showKindBadge: false,
   showComments: true,
   density: 'comfortable',
   tabletLayout: 'grid',
@@ -696,7 +696,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   // Target Card View & Display Settings (Custom Card Options)
   const [cardViewSettings, setCardViewSettings] = useState<TargetCardViewSettings>(() => {
     try {
-      const saved = localStorage.getItem('il2cpp_target_view_settings');
+      const saved = localStorage.getItem('il2cpp_target_view_settings_v2');
       if (saved) {
         return { ...DEFAULT_TARGET_VIEW_SETTINGS, ...JSON.parse(saved) };
       }
@@ -709,7 +709,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   const updateCardViewSettings = (patch: Partial<TargetCardViewSettings>) => {
     setCardViewSettings((prev) => {
       const next = { ...prev, ...patch };
-      localStorage.setItem('il2cpp_target_view_settings', JSON.stringify(next));
+      localStorage.setItem('il2cpp_target_view_settings_v2', JSON.stringify(next));
       return next;
     });
   };
@@ -1344,30 +1344,30 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
                 {/* Active Target Banner */}
                 {cardViewSettings.showTargetBanner && (
-                  <div className="flex flex-col bg-[#1E1E20] border border-[#2D2D30] rounded-xl sm:rounded-2xl p-2.5 sm:p-5 shadow-lg relative overflow-hidden">
-                    <div className={`absolute top-0 left-0 w-full h-1 ${sourceMode === 'live' ? 'bg-indigo-500' : 'bg-sky-500'}`} />
+                  <div className="flex flex-col bg-[#1E1E20] border border-[#2D2D30] rounded-lg sm:rounded-2xl p-2 sm:p-4 md:p-5 shadow-lg relative overflow-hidden">
+                    <div className={`absolute top-0 left-0 w-full h-0.5 sm:h-1 ${sourceMode === 'live' ? 'bg-indigo-500' : 'bg-sky-500'}`} />
                     {sourceMode === 'live' ? (
-                      <div className="flex flex-col gap-1.5 sm:gap-3">
+                      <div className="flex flex-col gap-1 sm:gap-2.5">
                         {currentProcess ? (
                           <div className="flex items-center justify-between gap-1.5 sm:gap-3">
-                            <div className="flex flex-col gap-0.5 sm:gap-1 min-w-0">
-                              <div className="flex items-center gap-1.5 sm:gap-2">
-                                <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                                <span className="text-[10px] sm:text-sm font-semibold text-[#E2E2E4] truncate">
+                            <div className="flex flex-col gap-0.5 min-w-0">
+                              <div className="flex items-center gap-1 sm:gap-2">
+                                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                                <span className="text-[11px] sm:text-sm font-semibold text-[#E2E2E4] truncate">
                                   {currentProcess.appName}
                                 </span>
                                 <span className="text-[8px] sm:text-[10px] font-mono px-1 sm:px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 shrink-0">
                                   PID {currentProcess.pid}
                                 </span>
                               </div>
-                              <div className="text-[9px] sm:text-xs text-[#8E8E93] truncate">
+                              <div className="text-[8px] sm:text-xs text-[#8E8E93] truncate">
                                 Arch: {currentProcess.arch || 'arm64-v8a'} · Unity: {currentProcess.unityVersion || '2022.3'} · Memory mapped
                               </div>
                             </div>
 
                             <button
                               onClick={onOpenProcessPicker}
-                              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-2 bg-[#262629] hover:bg-[#323236] text-indigo-300 hover:text-white border border-[#3A3A3E] rounded-md sm:rounded-xl text-[9px] sm:text-xs font-semibold shrink-0 transition-colors shadow-sm"
+                              className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-0.5 sm:py-1.5 bg-[#262629] hover:bg-[#323236] text-indigo-300 hover:text-white border border-[#3A3A3E] rounded-md sm:rounded-xl text-[9px] sm:text-xs font-semibold shrink-0 transition-colors shadow-sm"
                               title="Switch to another target process"
                             >
                               <RefreshCw className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" />
@@ -1375,22 +1375,22 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                             </button>
                           </div>
                         ) : (
-                          <div className="flex flex-col gap-2 sm:gap-4">
-                            <div className="flex flex-col gap-0.5 sm:gap-1">
-                              <div className="flex items-center gap-1.5 sm:gap-2">
-                                <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-amber-400 shrink-0" />
-                                <span className="text-[10px] sm:text-sm font-semibold text-[#E2E2E4]">
+                          <div className="flex flex-col gap-1 sm:gap-3">
+                            <div className="flex flex-col gap-0.5">
+                              <div className="flex items-center gap-1 sm:gap-2">
+                                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2.5 rounded-full bg-amber-400 shrink-0" />
+                                <span className="text-[11px] sm:text-sm font-semibold text-[#E2E2E4]">
                                   No Live Process Selected
                                 </span>
                               </div>
-                              <div className="text-[9px] sm:text-xs text-[#8E8E93]">
-                                Attach to a running game or process to scan live memory addresses
+                              <div className="text-[8px] sm:text-xs text-[#8E8E93]">
+                                Attach to a running game to scan live memory addresses
                               </div>
                             </div>
 
                             <button
                               onClick={onOpenProcessPicker}
-                              className="w-full px-2 sm:px-4 py-1.5 sm:py-3 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 rounded-lg sm:rounded-xl text-[10px] sm:text-sm font-medium transition-colors"
+                              className="w-full px-2 sm:px-4 py-1 sm:py-2.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 rounded-md sm:rounded-xl text-[10px] sm:text-sm font-medium transition-colors"
                             >
                               Select Process Target
                             </button>
@@ -1398,30 +1398,34 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                         )}
                       </div>
                     ) : (
-                      <div className="flex flex-col gap-2 sm:gap-4">
-                        <div className="flex flex-col gap-1 sm:gap-1.5">
-                          <div className="flex items-center gap-1.5 sm:gap-2">
-                            <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-sky-400" />
-                            <span className="text-[10px] sm:text-sm font-semibold text-[#E2E2E4] truncate">
+                      <div className="flex items-center justify-between gap-1.5 sm:gap-3">
+                        <div className="flex flex-col gap-0.5 min-w-0">
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2.5 rounded-full bg-sky-400 shrink-0" />
+                            <span className="text-[11px] sm:text-sm font-semibold text-[#E2E2E4] truncate">
                               {loadedStorageFileName ? loadedStorageFileName : 'Load dump.cs from Storage'}
                             </span>
+                            {loadedStorageFileName && (
+                              <span className="text-[8px] sm:text-[10px] font-mono px-1 sm:px-2 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20 shrink-0">
+                                Loaded
+                              </span>
+                            )}
                           </div>
-                          {parsedSummary && (
-                            <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-0.5 sm:mt-1">
-                              <span className="text-[8px] sm:text-[10px] font-mono px-1 sm:px-2 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20">
+                          {parsedSummary ? (
+                            <div className="flex flex-wrap gap-1 sm:gap-2 mt-0.5">
+                              <span className="text-[8px] sm:text-[10px] font-mono px-1 sm:px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20">
                                 {parsedSummary.classes} Classes
                               </span>
-                              <span className="text-[8px] sm:text-[10px] font-mono px-1 sm:px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                              <span className="text-[8px] sm:text-[10px] font-mono px-1 sm:px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
                                 {parsedSummary.fields} Fields
                               </span>
-                              <span className="text-[8px] sm:text-[10px] font-mono px-1 sm:px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                              <span className="text-[8px] sm:text-[10px] font-mono px-1 sm:px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20">
                                 {parsedSummary.methods} Methods
                               </span>
                             </div>
-                          )}
-                          {!parsedSummary && (
-                            <div className="text-[9px] sm:text-xs text-[#8E8E93] mt-0.5 sm:mt-1">
-                              Upload or pick a previously generated dump.cs file to extract and inspect offsets offline.
+                          ) : (
+                            <div className="text-[8px] sm:text-xs text-[#8E8E93] truncate">
+                              Upload or pick a previously generated dump.cs file offline
                             </div>
                           )}
                         </div>
@@ -1436,10 +1440,15 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                         <button
                           onClick={() => fileInputRef.current?.click()}
                           disabled={isParsingDump}
-                          className="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-3 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/40 rounded-lg sm:rounded-xl text-[10px] sm:text-sm font-medium transition-colors"
+                          className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-0.5 sm:py-1.5 bg-[#262629] hover:bg-[#323236] text-sky-300 hover:text-white border border-[#3A3A3E] rounded-md sm:rounded-xl text-[9px] sm:text-xs font-semibold shrink-0 transition-colors shadow-sm"
+                          title={loadedStorageFileName ? 'Upload or change dump.cs file' : 'Upload dump.cs file'}
                         >
-                          <Upload className="w-3 h-3 sm:w-4 sm:h-4" />
-                          <span>{isParsingDump ? 'Parsing Dump...' : 'Choose File'}</span>
+                          {loadedStorageFileName ? (
+                            <RefreshCw className={`w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 ${isParsingDump ? 'animate-spin' : ''}`} />
+                          ) : (
+                            <Upload className={`w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 ${isParsingDump ? 'animate-spin' : ''}`} />
+                          )}
+                          <span>{isParsingDump ? 'Parsing...' : loadedStorageFileName ? 'Change' : 'Upload'}</span>
                         </button>
                       </div>
                     )}
@@ -2298,15 +2307,27 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
       {/* Modal: Add Target Field / Class */}
       {isAddTargetModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm overflow-y-auto p-3 sm:p-4 flex justify-center items-start sm:items-center">
-          <div className="bg-[#1E1E20] border border-[#3A3A3E] rounded-xl sm:rounded-2xl p-2.5 sm:p-5 max-w-lg w-full shadow-2xl flex flex-col gap-3 sm:gap-4 animate-in fade-in zoom-in-95 duration-200 mt-8 sm:mt-0 mb-auto sm:my-auto shrink-0 max-h-[80dvh] sm:max-h-[85vh] overflow-y-auto overscroll-contain">
-            <h3 className="text-xs sm:text-base font-semibold text-[#E2E2E4] flex items-center gap-2">
-              <Plus className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-indigo-400" />
-              <span>Add Target to <span className="text-indigo-400">{activeProfile?.name}</span></span>
-            </h3>
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm p-2.5 sm:p-4 flex justify-center items-center">
+          <div className="bg-[#1E1E20] border border-[#3A3A3E] rounded-xl sm:rounded-2xl max-w-lg w-full shadow-2xl flex flex-col max-h-[88dvh] sm:max-h-[85vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="p-3 sm:p-4 border-b border-[#2D2D30] shrink-0 flex items-center justify-between">
+              <h3 className="text-xs sm:text-base font-semibold text-[#E2E2E4] flex items-center gap-2">
+                <Plus className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-indigo-400" />
+                <span>Add Target to <span className="text-indigo-400">{activeProfile?.name}</span></span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsAddTargetModalOpen(false)}
+                className="p-1 rounded-lg text-[#8E8E93] hover:text-white hover:bg-[#2A2A2E] transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[9px] sm:text-xs font-medium text-[#8E8E93] ml-1">Target Type</label>
+            {/* Scrollable Modal Body */}
+            <div className="p-3 sm:p-5 flex-1 overflow-y-auto space-y-3 sm:space-y-4 overscroll-contain pr-2">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] sm:text-xs font-medium text-[#8E8E93] ml-1">Target Type</label>
               <div className="flex items-center gap-3 p-1 bg-[#141416] border border-[#353538] rounded-xl sm:rounded-2xl">
                 <button
                   type="button"
@@ -2423,7 +2444,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               </button>
 
               {showAddFallbacks && (
-                <div className="p-1.5 sm:p-3.5 pt-0 border-t border-[#262629] flex flex-col gap-3 mt-2">
+                <div className="p-1.5 sm:p-3.5 pt-0 border-t border-[#262629] flex flex-col gap-3 mt-2 max-h-56 overflow-y-auto overscroll-contain">
                   <p className="text-[8px] sm:text-[11px] text-[#8E8E93] leading-relaxed">
                     If the game updates and the primary name is missing, the scanner will automatically try these fallbacks.
                   </p>
@@ -2549,16 +2570,19 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-3 mt-2">
+            </div>
+
+            {/* Modal Sticky Footer */}
+            <div className="p-3 sm:p-4 border-t border-[#2D2D30] shrink-0 bg-[#1E1E20] flex items-center justify-end gap-2.5 sm:gap-3">
               <button
                 onClick={() => setIsAddTargetModalOpen(false)}
-                className="px-2.5 sm:px-5 py-1.5 sm:py-2.5 text-[10px] sm:text-sm font-medium text-[#8E8E93] hover:text-white bg-[#262629] rounded-lg sm:rounded-xl transition-colors"
+                className="px-2.5 sm:px-5 py-1.5 sm:py-2 text-[10px] sm:text-sm font-medium text-[#8E8E93] hover:text-white bg-[#262629] rounded-lg sm:rounded-xl transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAddTarget}
-                className="px-2.5 sm:px-5 py-1.5 sm:py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] sm:text-sm font-bold rounded-lg sm:rounded-xl shadow-md shadow-indigo-600/20 transition-colors"
+                className="px-2.5 sm:px-5 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] sm:text-sm font-bold rounded-lg sm:rounded-xl shadow-md shadow-indigo-600/20 transition-colors"
               >
                 Add Target
               </button>
@@ -2569,313 +2593,327 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
       {/* Modal: Edit Target & Fallbacks */}
       {editingTargetItem && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm overflow-y-auto p-3 sm:p-4 flex justify-center items-start sm:items-center">
-          <div className="bg-[#1E1E20] border border-[#3A3A3E] rounded-xl sm:rounded-2xl p-2.5 sm:p-5 max-w-lg w-full shadow-2xl flex flex-col gap-3 sm:gap-4 animate-in fade-in zoom-in-95 duration-200 mt-8 sm:mt-0 mb-auto sm:my-auto shrink-0 max-h-[80dvh] sm:max-h-[85vh] overflow-y-auto overscroll-contain">
-            <div className="flex items-center justify-between pb-2 border-b border-[#2D2D30]">
-              <div className="flex items-center gap-2">
-                <h3 className="text-xs sm:text-base font-semibold text-[#E2E2E4] flex items-center gap-2">
-                  <Pencil className="w-3 h-3 sm:w-4 sm:h-4 text-indigo-400" />
-                  <span>Edit Target</span>
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm p-2.5 sm:p-4 flex justify-center items-center">
+          <div className="bg-[#1E1E20] border border-[#3A3A3E] rounded-xl sm:rounded-2xl max-w-lg w-full shadow-2xl flex flex-col max-h-[88dvh] sm:max-h-[85vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="p-3 sm:p-4 border-b border-[#2D2D30] shrink-0 flex items-center justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                <h3 className="text-xs sm:text-base font-semibold text-[#E2E2E4] flex items-center gap-2 truncate">
+                  <Pencil className="w-3 h-3 sm:w-4 sm:h-4 text-indigo-400 shrink-0" />
+                  <span className="truncate">Edit Target</span>
                 </h3>
-                <span className="text-[9px] sm:text-xs text-indigo-300 font-mono bg-indigo-500/10 px-1.5 sm:px-2 py-0.5 rounded border border-indigo-500/20">
+                <span className="text-[9px] sm:text-xs text-indigo-300 font-mono bg-indigo-500/10 px-1.5 sm:px-2 py-0.5 rounded border border-indigo-500/20 truncate max-w-[110px] sm:max-w-[180px]">
                   {activeProfile?.name}
                 </span>
               </div>
 
               {/* Next / Back navigation in Edit modal */}
-              {activeProfile && activeProfile.items.length > 1 && (
-                <div className="flex items-center gap-1 bg-[#141416] px-1.5 sm:px-2 py-1 rounded-lg sm:rounded-xl border border-[#353538]">
-                  <span className="text-[8px] sm:text-[11px] text-[#8E8E93] font-mono pr-1">
-                    {activeProfile.items.findIndex((i) => i.id === editingTargetItem?.id) + 1}/{activeProfile.items.length}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const curIdx = activeProfile.items.findIndex((i) => i.id === editingTargetItem?.id);
-                      if (curIdx > 0) {
-                        handleOpenEditTarget(activeProfile.items[curIdx - 1]);
-                      } else {
-                        handleOpenEditTarget(activeProfile.items[activeProfile.items.length - 1]);
-                      }
-                    }}
-                    className="p-1 hover:bg-[#262629] text-[#8E8E93] hover:text-white rounded-md sm:rounded-lg transition-colors"
-                    title="Previous Target"
-                  >
-                    <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const curIdx = activeProfile.items.findIndex((i) => i.id === editingTargetItem?.id);
-                      if (curIdx >= 0 && curIdx < activeProfile.items.length - 1) {
-                        handleOpenEditTarget(activeProfile.items[curIdx + 1]);
-                      } else {
-                        handleOpenEditTarget(activeProfile.items[0]);
-                      }
-                    }}
-                    className="p-1 hover:bg-[#262629] text-[#8E8E93] hover:text-white rounded-md sm:rounded-lg transition-colors"
-                    title="Next Target"
-                  >
-                    <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[9px] sm:text-xs font-medium text-[#8E8E93] ml-1">Target Type</label>
-              <div className="flex items-center gap-3 p-1 bg-[#141416] border border-[#353538] rounded-xl sm:rounded-2xl">
+              <div className="flex items-center gap-1.5 shrink-0">
+                {activeProfile && activeProfile.items.length > 1 && (
+                  <div className="flex items-center gap-0.5 bg-[#141416] px-1 sm:px-1.5 py-0.5 rounded-lg border border-[#353538]">
+                    <span className="text-[8px] sm:text-[10px] text-[#8E8E93] font-mono pr-1">
+                      {activeProfile.items.findIndex((i) => i.id === editingTargetItem?.id) + 1}/{activeProfile.items.length}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const curIdx = activeProfile.items.findIndex((i) => i.id === editingTargetItem?.id);
+                        if (curIdx > 0) {
+                          handleOpenEditTarget(activeProfile.items[curIdx - 1]);
+                        } else {
+                          handleOpenEditTarget(activeProfile.items[activeProfile.items.length - 1]);
+                        }
+                      }}
+                      className="p-1 hover:bg-[#262629] text-[#8E8E93] hover:text-white rounded transition-colors"
+                      title="Previous Target"
+                    >
+                      <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const curIdx = activeProfile.items.findIndex((i) => i.id === editingTargetItem?.id);
+                        if (curIdx >= 0 && curIdx < activeProfile.items.length - 1) {
+                          handleOpenEditTarget(activeProfile.items[curIdx + 1]);
+                        } else {
+                          handleOpenEditTarget(activeProfile.items[0]);
+                        }
+                      }}
+                      className="p-1 hover:bg-[#262629] text-[#8E8E93] hover:text-white rounded transition-colors"
+                      title="Next Target"
+                    >
+                      <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                    </button>
+                  </div>
+                )}
                 <button
                   type="button"
-                  onClick={() => setEditTargetKind('FIELD')}
-                  className={`flex-1 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl text-[9px] sm:text-xs font-bold transition-all ${
-                    editTargetKind === 'FIELD'
-                      ? 'bg-amber-500/20 text-amber-400 shadow-sm'
-                      : 'text-[#8E8E93] hover:text-[#E2E2E4]'
-                  }`}
+                  onClick={() => setEditingTargetItem(null)}
+                  className="p-1 rounded-lg text-[#8E8E93] hover:text-white hover:bg-[#2A2A2E] transition-colors"
                 >
-                  Field (Offset)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditTargetKind('METHOD')}
-                  className={`flex-1 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl text-[9px] sm:text-xs font-bold transition-all ${
-                    editTargetKind === 'METHOD'
-                      ? 'bg-emerald-500/20 text-emerald-400 shadow-sm'
-                      : 'text-[#8E8E93] hover:text-[#E2E2E4]'
-                  }`}
-                >
-                  Method (RVA)
+                  <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[9px] sm:text-xs font-medium text-[#8E8E93] ml-1">
-                Custom Name / Display Label (Optional)
-              </label>
-              <input
-                type="text"
-                value={editTargetCustomName}
-                onChange={(e) => setEditTargetCustomName(e.target.value)}
-                placeholder="e.g. PlayerSpeed (Used in code export & display)"
-                className="w-full px-2.5 sm:px-4 py-1.5 sm:py-3 bg-[#141416] border border-[#353538] rounded-xl sm:rounded-2xl text-[10px] sm:text-sm text-[#E2E2E4] focus:outline-none focus:border-indigo-500 font-mono"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[9px] sm:text-xs font-medium text-[#8E8E93] ml-1">Primary Class Name</label>
-              <input
-                type="text"
-                value={editTargetClassName}
-                onChange={(e) => setEditTargetClassName(e.target.value)}
-                placeholder="e.g. PlayerController"
-                className="w-full px-2.5 sm:px-4 py-1.5 sm:py-3 bg-[#141416] border border-[#353538] rounded-xl sm:rounded-2xl text-[10px] sm:text-sm text-[#E2E2E4] focus:outline-none focus:border-indigo-500 font-mono"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[9px] sm:text-xs font-medium text-[#8E8E93] ml-1">
-                Primary {editTargetKind === 'FIELD' ? 'Field Name' : 'Method Name'}
-              </label>
-              <input
-                type="text"
-                value={editTargetMemberName}
-                onChange={(e) => setEditTargetMemberName(e.target.value)}
-                placeholder={editTargetKind === 'FIELD' ? 'e.g. moveSpeed' : 'e.g. Update'}
-                className="w-full px-2.5 sm:px-4 py-1.5 sm:py-3 bg-[#141416] border border-[#353538] rounded-xl sm:rounded-2xl text-[10px] sm:text-sm text-[#E2E2E4] focus:outline-none focus:border-indigo-500 font-mono"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[9px] sm:text-xs font-medium text-[#8E8E93] ml-1">Comment (Optional)</label>
-              <input
-                type="text"
-                value={editTargetComment}
-                onChange={(e) => setEditTargetComment(e.target.value)}
-                placeholder="e.g. Movement multiplier"
-                className="w-full px-2.5 sm:px-4 py-1.5 sm:py-3 bg-[#141416] border border-[#353538] rounded-xl sm:rounded-2xl text-[10px] sm:text-sm text-[#E2E2E4] focus:outline-none focus:border-indigo-500"
-              />
-            </div>
-
-            {/* Fallbacks Configuration (Collapsible with Eye/EyeOff logo) */}
-            <div className="bg-[#141416] rounded-xl sm:rounded-2xl border border-[#353538] overflow-hidden">
-              <button
-                id="btn-toggle-edit-fallbacks"
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setShowEditFallbacks((prev) => !prev);
-                }}
-                className="w-full p-1.5 sm:p-3.5 flex items-center justify-between hover:bg-[#1A1A1E] active:bg-[#18181B] transition-colors cursor-pointer select-none"
-                aria-expanded={showEditFallbacks}
-              >
-                <div className="flex items-center gap-2 text-[9px] sm:text-xs font-semibold text-amber-400">
-                  <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400 shrink-0" />
-                  <span>Fallback / Alternative Names</span>
-                  {(editTargetFallbackClasses.length > 0 || editTargetFallbackMembers.length > 0) && (
-                    <span className="text-[8px] sm:text-[10px] bg-amber-500/20 text-amber-300 px-1.5 sm:px-2 py-0.5 rounded-full font-mono">
-                      {editTargetFallbackClasses.length + editTargetFallbackMembers.length}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-1.5 px-1.5 sm:px-2.5 py-1 rounded-lg sm:rounded-xl bg-[#202024] hover:bg-[#2A2A30] border border-[#3A3A42] text-[9px] sm:text-xs font-medium text-[#D0D0D5] transition-colors shadow-sm">
-                  {showEditFallbacks ? (
-                    <>
-                      <EyeOff className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400" />
-                      <span className="text-amber-300 font-semibold">Hide</span>
-                    </>
-                  ) : (
-                    <>
-                      <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-indigo-400" />
-                      <span className="text-[#E2E2E4] font-semibold">Show</span>
-                    </>
-                  )}
-                  <ChevronDown
-                    className={`w-3 h-3 sm:w-3.5 sm:h-3.5 transition-transform duration-200 ${
-                      showEditFallbacks ? 'rotate-180 text-amber-400' : 'text-[#8E8E93]'
+            {/* Scrollable Modal Body */}
+            <div className="p-3 sm:p-5 flex-1 overflow-y-auto space-y-3 sm:space-y-4 overscroll-contain pr-2">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] sm:text-xs font-medium text-[#8E8E93] ml-1">Target Type</label>
+                <div className="flex items-center gap-3 p-1 bg-[#141416] border border-[#353538] rounded-xl sm:rounded-2xl">
+                  <button
+                    type="button"
+                    onClick={() => setEditTargetKind('FIELD')}
+                    className={`flex-1 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[9px] sm:text-xs font-bold transition-all ${
+                      editTargetKind === 'FIELD'
+                        ? 'bg-amber-500/20 text-amber-400 shadow-sm'
+                        : 'text-[#8E8E93] hover:text-[#E2E2E4]'
                     }`}
-                  />
+                  >
+                    Field (Offset)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditTargetKind('METHOD')}
+                    className={`flex-1 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[9px] sm:text-xs font-bold transition-all ${
+                      editTargetKind === 'METHOD'
+                        ? 'bg-emerald-500/20 text-emerald-400 shadow-sm'
+                        : 'text-[#8E8E93] hover:text-[#E2E2E4]'
+                    }`}
+                  >
+                    Method (RVA)
+                  </button>
                 </div>
-              </button>
+              </div>
 
-              {showEditFallbacks && (
-                <div className="p-1.5 sm:p-3.5 pt-0 border-t border-[#262629] flex flex-col gap-3 mt-2">
-                  <p className="text-[8px] sm:text-[11px] text-[#8E8E93] leading-relaxed">
-                    If the primary name isn't found during a scan, these fallbacks are searched in order.
-                  </p>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] sm:text-xs font-medium text-[#8E8E93] ml-1">
+                  Custom Name / Display Label (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={editTargetCustomName}
+                  onChange={(e) => setEditTargetCustomName(e.target.value)}
+                  placeholder="e.g. PlayerSpeed (Used in code export & display)"
+                  className="w-full px-2.5 sm:px-4 py-1.5 sm:py-2.5 bg-[#141416] border border-[#353538] rounded-xl sm:rounded-2xl text-[10px] sm:text-sm text-[#E2E2E4] focus:outline-none focus:border-indigo-500 font-mono"
+                />
+              </div>
 
-                  {/* Fallback Class Names List */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[8px] sm:text-[11px] font-medium text-[#8E8E93]">
-                      Fallback Class Names
-                    </label>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="text"
-                        value={editTempFallbackClassInput}
-                        onChange={(e) => setEditTempFallbackClassInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && editTempFallbackClassInput.trim()) {
-                            e.preventDefault();
-                            if (!editTargetFallbackClasses.includes(editTempFallbackClassInput.trim())) {
-                              setEditTargetFallbackClasses([...editTargetFallbackClasses, editTempFallbackClassInput.trim()]);
-                            }
-                            setEditTempFallbackClassInput('');
-                          }
-                        }}
-                        placeholder="e.g. PlayerMovement"
-                        className="flex-1 px-1.5 sm:px-3 py-1 sm:py-2 bg-[#1A1A1D] border border-[#353538] rounded-lg sm:rounded-xl text-[9px] sm:text-xs text-[#E2E2E4] focus:outline-none focus:border-indigo-500 font-mono"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (editTempFallbackClassInput.trim()) {
-                            if (!editTargetFallbackClasses.includes(editTempFallbackClassInput.trim())) {
-                              setEditTargetFallbackClasses([...editTargetFallbackClasses, editTempFallbackClassInput.trim()]);
-                            }
-                            setEditTempFallbackClassInput('');
-                          }
-                        }}
-                        className="p-1.5 sm:p-2 bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white rounded-lg sm:rounded-xl border border-indigo-500/40 transition-colors"
-                        title="Add Fallback Class"
-                      >
-                        <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
-                      </button>
-                    </div>
-                    {editTargetFallbackClasses.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 pt-1">
-                        {editTargetFallbackClasses.map((cls, idx) => (
-                          <span
-                            key={idx}
-                            className="inline-flex items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-md sm:rounded-lg bg-[#242428] border border-[#3E3E44] text-[8px] sm:text-[11px] font-mono text-sky-300"
-                          >
-                            {cls}
-                            <button
-                              type="button"
-                              onClick={() => setEditTargetFallbackClasses(editTargetFallbackClasses.filter((_, i) => i !== idx))}
-                              className="text-[#8E8E93] hover:text-red-400 p-0.5"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </span>
-                        ))}
-                      </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] sm:text-xs font-medium text-[#8E8E93] ml-1">Primary Class Name</label>
+                <input
+                  type="text"
+                  value={editTargetClassName}
+                  onChange={(e) => setEditTargetClassName(e.target.value)}
+                  placeholder="e.g. PlayerController"
+                  className="w-full px-2.5 sm:px-4 py-1.5 sm:py-2.5 bg-[#141416] border border-[#353538] rounded-xl sm:rounded-2xl text-[10px] sm:text-sm text-[#E2E2E4] focus:outline-none focus:border-indigo-500 font-mono"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] sm:text-xs font-medium text-[#8E8E93] ml-1">
+                  Primary {editTargetKind === 'FIELD' ? 'Field Name' : 'Method Name'}
+                </label>
+                <input
+                  type="text"
+                  value={editTargetMemberName}
+                  onChange={(e) => setEditTargetMemberName(e.target.value)}
+                  placeholder={editTargetKind === 'FIELD' ? 'e.g. moveSpeed' : 'e.g. Update'}
+                  className="w-full px-2.5 sm:px-4 py-1.5 sm:py-2.5 bg-[#141416] border border-[#353538] rounded-xl sm:rounded-2xl text-[10px] sm:text-sm text-[#E2E2E4] focus:outline-none focus:border-indigo-500 font-mono"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] sm:text-xs font-medium text-[#8E8E93] ml-1">Comment (Optional)</label>
+                <input
+                  type="text"
+                  value={editTargetComment}
+                  onChange={(e) => setEditTargetComment(e.target.value)}
+                  placeholder="e.g. Movement multiplier"
+                  className="w-full px-2.5 sm:px-4 py-1.5 sm:py-2.5 bg-[#141416] border border-[#353538] rounded-xl sm:rounded-2xl text-[10px] sm:text-sm text-[#E2E2E4] focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              {/* Fallbacks Configuration (Collapsible with Eye/EyeOff logo) */}
+              <div className="bg-[#141416] rounded-xl sm:rounded-2xl border border-[#353538] overflow-hidden">
+                <button
+                  id="btn-toggle-edit-fallbacks"
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setShowEditFallbacks((prev) => !prev);
+                  }}
+                  className="w-full p-2 sm:p-3.5 flex items-center justify-between hover:bg-[#1A1A1E] active:bg-[#18181B] transition-colors cursor-pointer select-none"
+                  aria-expanded={showEditFallbacks}
+                >
+                  <div className="flex items-center gap-2 text-[9px] sm:text-xs font-semibold text-amber-400">
+                    <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400 shrink-0" />
+                    <span>Fallback / Alternative Names</span>
+                    {(editTargetFallbackClasses.length > 0 || editTargetFallbackMembers.length > 0) && (
+                      <span className="text-[8px] sm:text-[10px] bg-amber-500/20 text-amber-300 px-1.5 sm:px-2 py-0.5 rounded-full font-mono">
+                        {editTargetFallbackClasses.length + editTargetFallbackMembers.length}
+                      </span>
                     )}
                   </div>
-
-                  {/* Fallback Member Names List */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[8px] sm:text-[11px] font-medium text-[#8E8E93]">
-                      Fallback {editTargetKind === 'FIELD' ? 'Field' : 'Method'} Names
-                    </label>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="text"
-                        value={editTempFallbackMemberInput}
-                        onChange={(e) => setEditTempFallbackMemberInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && editTempFallbackMemberInput.trim()) {
-                            e.preventDefault();
-                            if (!editTargetFallbackMembers.includes(editTempFallbackMemberInput.trim())) {
-                              setEditTargetFallbackMembers([...editTargetFallbackMembers, editTempFallbackMemberInput.trim()]);
-                            }
-                            setEditTempFallbackMemberInput('');
-                          }
-                        }}
-                        placeholder={editTargetKind === 'FIELD' ? 'e.g. speed' : 'e.g. ApplyDamage'}
-                        className="flex-1 px-1.5 sm:px-3 py-1 sm:py-2 bg-[#1A1A1D] border border-[#353538] rounded-lg sm:rounded-xl text-[9px] sm:text-xs text-[#E2E2E4] focus:outline-none focus:border-indigo-500 font-mono"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (editTempFallbackMemberInput.trim()) {
-                            if (!editTargetFallbackMembers.includes(editTempFallbackMemberInput.trim())) {
-                              setEditTargetFallbackMembers([...editTargetFallbackMembers, editTempFallbackMemberInput.trim()]);
-                            }
-                            setEditTempFallbackMemberInput('');
-                          }
-                        }}
-                        className="p-1.5 sm:p-2 bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white rounded-lg sm:rounded-xl border border-indigo-500/40 transition-colors"
-                        title="Add Fallback Member"
-                      >
-                        <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
-                      </button>
-                    </div>
-                    {editTargetFallbackMembers.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 pt-1">
-                        {editTargetFallbackMembers.map((mem, idx) => (
-                          <span
-                            key={idx}
-                            className="inline-flex items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-md sm:rounded-lg bg-[#242428] border border-[#3E3E44] text-[8px] sm:text-[11px] font-mono text-amber-300"
-                          >
-                            {mem}
-                            <button
-                              type="button"
-                              onClick={() => setEditTargetFallbackMembers(editTargetFallbackMembers.filter((_, i) => i !== idx))}
-                              className="text-[#8E8E93] hover:text-red-400 p-0.5"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </span>
-                        ))}
-                      </div>
+                  <div className="flex items-center gap-1.5 px-1.5 sm:px-2.5 py-1 rounded-lg sm:rounded-xl bg-[#202024] hover:bg-[#2A2A30] border border-[#3A3A42] text-[9px] sm:text-xs font-medium text-[#D0D0D5] transition-colors shadow-sm">
+                    {showEditFallbacks ? (
+                      <>
+                        <EyeOff className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400" />
+                        <span className="text-amber-300 font-semibold">Hide</span>
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-indigo-400" />
+                        <span className="text-[#E2E2E4] font-semibold">Show</span>
+                      </>
                     )}
+                    <ChevronDown
+                      className={`w-3 h-3 sm:w-3.5 sm:h-3.5 transition-transform duration-200 ${
+                        showEditFallbacks ? 'rotate-180 text-amber-400' : 'text-[#8E8E93]'
+                      }`}
+                    />
                   </div>
-                </div>
-              )}
+                </button>
+
+                {showEditFallbacks && (
+                  <div className="p-2 sm:p-3.5 pt-0 border-t border-[#262629] flex flex-col gap-3 mt-2 max-h-56 overflow-y-auto overscroll-contain">
+                    <p className="text-[8px] sm:text-[11px] text-[#8E8E93] leading-relaxed">
+                      If the primary name isn't found during a scan, these fallbacks are searched in order.
+                    </p>
+
+                    {/* Fallback Class Names List */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[8px] sm:text-[11px] font-medium text-[#8E8E93]">
+                        Fallback Class Names
+                      </label>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          value={editTempFallbackClassInput}
+                          onChange={(e) => setEditTempFallbackClassInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && editTempFallbackClassInput.trim()) {
+                              e.preventDefault();
+                              if (!editTargetFallbackClasses.includes(editTempFallbackClassInput.trim())) {
+                                setEditTargetFallbackClasses([...editTargetFallbackClasses, editTempFallbackClassInput.trim()]);
+                              }
+                              setEditTempFallbackClassInput('');
+                            }
+                          }}
+                          placeholder="e.g. PlayerMovement"
+                          className="flex-1 px-1.5 sm:px-3 py-1 sm:py-2 bg-[#1A1A1D] border border-[#353538] rounded-lg sm:rounded-xl text-[9px] sm:text-xs text-[#E2E2E4] focus:outline-none focus:border-indigo-500 font-mono"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (editTempFallbackClassInput.trim()) {
+                              if (!editTargetFallbackClasses.includes(editTempFallbackClassInput.trim())) {
+                                setEditTargetFallbackClasses([...editTargetFallbackClasses, editTempFallbackClassInput.trim()]);
+                              }
+                              setEditTempFallbackClassInput('');
+                            }
+                          }}
+                          className="p-1.5 sm:p-2 bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white rounded-lg sm:rounded-xl border border-indigo-500/40 transition-colors"
+                          title="Add Fallback Class"
+                        >
+                          <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+                        </button>
+                      </div>
+                      {editTargetFallbackClasses.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {editTargetFallbackClasses.map((cls, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-md sm:rounded-lg bg-[#242428] border border-[#3E3E44] text-[8px] sm:text-[11px] font-mono text-sky-300"
+                            >
+                              {cls}
+                              <button
+                                type="button"
+                                onClick={() => setEditTargetFallbackClasses(editTargetFallbackClasses.filter((_, i) => i !== idx))}
+                                className="text-[#8E8E93] hover:text-red-400 p-0.5"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Fallback Member Names List */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[8px] sm:text-[11px] font-medium text-[#8E8E93]">
+                        Fallback {editTargetKind === 'FIELD' ? 'Field' : 'Method'} Names
+                      </label>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          value={editTempFallbackMemberInput}
+                          onChange={(e) => setEditTempFallbackMemberInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && editTempFallbackMemberInput.trim()) {
+                              e.preventDefault();
+                              if (!editTargetFallbackMembers.includes(editTempFallbackMemberInput.trim())) {
+                                setEditTargetFallbackMembers([...editTargetFallbackMembers, editTempFallbackMemberInput.trim()]);
+                              }
+                              setEditTempFallbackMemberInput('');
+                            }
+                          }}
+                          placeholder={editTargetKind === 'FIELD' ? 'e.g. speed' : 'e.g. ApplyDamage'}
+                          className="flex-1 px-1.5 sm:px-3 py-1 sm:py-2 bg-[#1A1A1D] border border-[#353538] rounded-lg sm:rounded-xl text-[9px] sm:text-xs text-[#E2E2E4] focus:outline-none focus:border-indigo-500 font-mono"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (editTempFallbackMemberInput.trim()) {
+                              if (!editTargetFallbackMembers.includes(editTempFallbackMemberInput.trim())) {
+                                setEditTargetFallbackMembers([...editTargetFallbackMembers, editTempFallbackMemberInput.trim()]);
+                              }
+                              setEditTempFallbackMemberInput('');
+                            }
+                          }}
+                          className="p-1.5 sm:p-2 bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white rounded-lg sm:rounded-xl border border-indigo-500/40 transition-colors"
+                          title="Add Fallback Member"
+                        >
+                          <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+                        </button>
+                      </div>
+                      {editTargetFallbackMembers.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {editTargetFallbackMembers.map((mem, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-md sm:rounded-lg bg-[#242428] border border-[#3E3E44] text-[8px] sm:text-[11px] font-mono text-amber-300"
+                            >
+                              {mem}
+                              <button
+                                type="button"
+                                onClick={() => setEditTargetFallbackMembers(editTargetFallbackMembers.filter((_, i) => i !== idx))}
+                                className="text-[#8E8E93] hover:text-red-400 p-0.5"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 mt-2">
+            {/* Modal Sticky Footer */}
+            <div className="p-3 sm:p-4 border-t border-[#2D2D30] shrink-0 bg-[#1E1E20] flex items-center justify-end gap-2.5 sm:gap-3">
               <button
                 onClick={() => setEditingTargetItem(null)}
-                className="px-2.5 sm:px-5 py-1.5 sm:py-2.5 text-[10px] sm:text-sm font-medium text-[#8E8E93] hover:text-white bg-[#262629] rounded-lg sm:rounded-xl transition-colors"
+                className="px-2.5 sm:px-5 py-1.5 sm:py-2 text-[10px] sm:text-sm font-medium text-[#8E8E93] hover:text-white bg-[#262629] rounded-lg sm:rounded-xl transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveEditTarget}
-                className="px-2.5 sm:px-5 py-1.5 sm:py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] sm:text-sm font-bold rounded-lg sm:rounded-xl shadow-md shadow-indigo-600/20 transition-colors"
+                className="px-2.5 sm:px-5 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] sm:text-sm font-bold rounded-lg sm:rounded-xl shadow-md shadow-indigo-600/20 transition-colors"
               >
                 Save Changes
               </button>
@@ -2886,20 +2924,20 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
       {/* Modal: View Target Detail Card */}
       {viewingTargetItem && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm overflow-y-auto p-3 sm:p-4 flex justify-center items-start sm:items-center">
-          <div className="bg-[#1E1E20] border border-[#3A3A3E] rounded-xl sm:rounded-2xl p-2.5 sm:p-5 max-w-lg w-full shadow-2xl flex flex-col gap-3 sm:gap-4 animate-in fade-in zoom-in-95 duration-200 mt-8 sm:mt-0 mb-auto sm:my-auto shrink-0 max-h-[80dvh] sm:max-h-[85vh] overflow-y-auto overscroll-contain">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm p-2.5 sm:p-4 flex justify-center items-center">
+          <div className="bg-[#1E1E20] border border-[#3A3A3E] rounded-xl sm:rounded-2xl max-w-lg w-full shadow-2xl flex flex-col max-h-[88dvh] sm:max-h-[85vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             {/* Header: Title, Next/Back & Edit Button */}
-            <div className="flex items-center justify-between pb-3 border-b border-[#2D2D30]">
+            <div className="p-3 sm:p-4 border-b border-[#2D2D30] shrink-0 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Sliders className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-indigo-400" />
+                <Sliders className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-400" />
                 <h3 className="text-xs sm:text-base font-semibold text-[#E2E2E4]">Target Details</h3>
               </div>
 
               <div className="flex items-center gap-2">
                 {/* Previous / Next Switcher */}
                 {activeProfile && activeProfile.items.length > 1 && (
-                  <div className="flex items-center gap-1 bg-[#141416] px-1.5 sm:px-2 py-1 rounded-lg sm:rounded-xl border border-[#353538]">
-                    <span className="text-[8px] sm:text-[11px] text-[#8E8E93] font-mono pr-1">
+                  <div className="flex items-center gap-0.5 bg-[#141416] px-1 sm:px-1.5 py-0.5 rounded-lg border border-[#353538]">
+                    <span className="text-[8px] sm:text-[10px] text-[#8E8E93] font-mono pr-1">
                       {activeProfile.items.findIndex((i) => i.id === viewingTargetItem.id) + 1}/{activeProfile.items.length}
                     </span>
                     <button
@@ -2912,10 +2950,10 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                           setViewingTargetItem(activeProfile.items[activeProfile.items.length - 1]);
                         }
                       }}
-                      className="p-1 hover:bg-[#262629] text-[#8E8E93] hover:text-white rounded-md sm:rounded-lg transition-colors"
+                      className="p-1 hover:bg-[#262629] text-[#8E8E93] hover:text-white rounded transition-colors"
                       title="Previous Target"
                     >
-                      <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                     </button>
                     <button
                       type="button"
@@ -2927,10 +2965,10 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                           setViewingTargetItem(activeProfile.items[0]);
                         }
                       }}
-                      className="p-1 hover:bg-[#262629] text-[#8E8E93] hover:text-white rounded-md sm:rounded-lg transition-colors"
+                      className="p-1 hover:bg-[#262629] text-[#8E8E93] hover:text-white rounded transition-colors"
                       title="Next Target"
                     >
-                      <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                     </button>
                   </div>
                 )}
@@ -2942,16 +2980,23 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                     setViewingTargetItem(null);
                     handleOpenEditTarget(itemToEdit);
                   }}
-                  className="p-1.5 sm:p-2 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/40 rounded-lg sm:rounded-xl transition-colors"
+                  className="p-1 sm:p-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/40 rounded-lg transition-colors"
                   title="Edit Target"
                 >
-                  <Pencil className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <Pencil className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewingTargetItem(null)}
+                  className="p-1 rounded-lg text-[#8E8E93] hover:text-white hover:bg-[#2A2A2E] transition-colors"
+                >
+                  <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            {/* Content Details: Separated Custom Name, Class Name, Field/Method Name, and Big Comment */}
-            <div className="flex flex-col gap-3.5">
+            {/* Content Details Scrollable Area */}
+            <div className="p-3 sm:p-5 flex-1 overflow-y-auto space-y-3.5 overscroll-contain pr-2">
               {/* Custom Name / Label (if present) */}
               {viewingTargetItem.customName && (
                 <div className="bg-[#141416] p-1.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-indigo-500/30 flex flex-col gap-1">
@@ -3101,10 +3146,10 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
             </div>
 
             {/* Action Footer: Done */}
-            <div className="flex items-center justify-end pt-2 border-t border-[#2D2D30]">
+            <div className="p-3 sm:p-4 border-t border-[#2D2D30] shrink-0 bg-[#1E1E20] flex items-center justify-end">
               <button
                 onClick={() => setViewingTargetItem(null)}
-                className="px-2.5 sm:px-5 py-1.5 sm:py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg sm:rounded-xl text-[9px] sm:text-xs font-bold transition-colors shadow-md shadow-indigo-600/20"
+                className="px-2.5 sm:px-5 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold transition-colors shadow-md shadow-indigo-600/20"
               >
                 Done
               </button>
@@ -3674,7 +3719,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                 onClick={() => {
                   setCardViewSettings(DEFAULT_TARGET_VIEW_SETTINGS);
                   try {
-                    localStorage.removeItem('il2cpp_target_view_settings');
+                    localStorage.removeItem('il2cpp_target_view_settings_v2');
                   } catch {}
                   showToast('Reset target card settings to default');
                 }}

@@ -59,8 +59,8 @@ export const ManagerHeader: React.FC<ManagerHeaderProps> = ({
       <div className="h-12 sm:h-14 px-2 sm:px-4 flex items-center justify-between gap-1.5 sm:gap-3">
         {/* App Title & Process Selector */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
-          <div className="hidden sm:flex items-center gap-1.5 md:gap-2 shrink-0">
-            <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-xs md:text-sm">
+          <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
+            <div className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-[10px] sm:text-xs md:text-sm">
               IL2
             </div>
             <span className="font-semibold text-xs md:text-sm lg:text-base tracking-tight hidden md:inline">
