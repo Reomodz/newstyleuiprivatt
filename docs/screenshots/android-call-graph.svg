@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1600" width="100%" height="100%">
+  <defs>
+    <linearGradient id="purpleBtn" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#5B4DF0"/>
+      <stop offset="100%" stop-color="#6F5BFC"/>
+    </linearGradient>
+    <pattern id="dotGrid" width="30" height="30" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.5" fill="#22232E"/>
+    </pattern>
+  </defs>
+
+  <rect width="900" height="1600" rx="36" fill="#0C0D10"/>
+
+  <!-- Status Bar -->
+  <g fill="#A0A0B0" font-family="sans-serif" font-size="22" font-weight="600">
+    <text x="44" y="52">6:26</text>
+    <text x="120" y="52" font-size="19">Sat, Aug 29</text>
+    <circle cx="500" cy="44" r="8" fill="#1E1E24"/>
+    <text x="810" y="52" font-size="20">41%</text>
+    <rect x="855" y="34" width="22" height="14" rx="3" fill="none" stroke="#A0A0B0" stroke-width="2"/>
+    <rect x="857" y="36" width="10" height="10" rx="1.5" fill="#A0A0B0"/>
+  </g>
+
+  <!-- Top Bar -->
+  <rect x="0" y="80" width="900" height="90" fill="#141419" stroke="#22222B" stroke-width="1"/>
+  <rect x="30" y="102" width="60" height="46" rx="12" fill="#4B32A8"/>
+  <text x="60" y="132" fill="#EAEBFA" font-family="sans-serif" font-size="20" font-weight="700" text-anchor="middle">IL2</text>
+  <rect x="105" y="100" width="310" height="50" rx="25" fill="#1A1F26" stroke="#243E38" stroke-width="1.5"/>
+  <circle cx="130" cy="125" r="5" fill="#10B981"/>
+  <text x="150" y="132" fill="#E2E8F0" font-family="sans-serif" font-size="18" font-weight="600">Shadow Realm: Unity 20...</text>
+  <rect x="760" y="100" width="105" height="50" rx="14" fill="url(#purpleBtn)"/>
+  <text x="812" y="132" fill="#FFFFFF" font-family="sans-serif" font-size="18" font-weight="600" text-anchor="middle">Canvas (1)</text>
+
+  <!-- Sub Navigation Bar -->
+  <g transform="translate(40, 190)">
+    <rect x="0" y="0" width="140" height="44" rx="12" fill="#5B4DF0"/>
+    <text x="70" y="28" fill="#FFFFFF" font-family="sans-serif" font-size="18" font-weight="700" text-anchor="middle">Call Graph</text>
+    <rect x="150" y="0" width="140" height="44" rx="12" fill="#1C1E26" stroke="#2C2E3A" stroke-width="1"/>
+    <text x="220" y="28" fill="#94A3B8" font-family="sans-serif" font-size="18" font-weight="600" text-anchor="middle">Disassembly</text>
+  </g>
+
+  <!-- Node Canvas -->
+  <rect x="30" y="250" width="840" height="1150" rx="24" fill="#101116" stroke="#20222D" stroke-width="1.5"/>
+  <rect x="30" y="250" width="840" height="1150" rx="24" fill="url(#dotGrid)"/>
+
+  <!-- Canvas Controls -->
+  <g transform="translate(55, 275)">
+    <rect x="0" y="0" width="300" height="50" rx="14" fill="#161720" stroke="#2D3040" stroke-width="1"/>
+    <text x="30" y="32" fill="#94A3B8" font-size="20">🔍</text>
+    <text x="75" y="32" fill="#94A3B8" font-size="20">➕</text>
+    <text x="120" y="32" fill="#94A3B8" font-size="20">🎯</text>
+    <rect x="160" y="7" width="130" height="36" rx="8" fill="#4338CA"/>
+    <text x="225" y="31" fill="#E0E7FF" font-family="sans-serif" font-size="16" font-weight="700" text-anchor="middle">✨ Auto-Tidy</text>
+  </g>
+
+  <!-- Bezier Connecting Curves -->
+  <path d="M 370 650 C 440 650, 440 500, 500 500" fill="none" stroke="#0284C7" stroke-width="4"/>
+  <polygon points="500,500 488,493 488,507" fill="#0284C7"/>
+  <rect x="400" y="555" width="90" height="26" rx="6" fill="#0C4A6E"/>
+  <text x="445" y="573" fill="#7DD3FC" font-family="monospace" font-size="12" text-anchor="middle">0x0182E418</text>
+
+  <path d="M 370 650 C 440 650, 440 780, 500 780" fill="none" stroke="#0284C7" stroke-width="4"/>
+  <polygon points="500,780 488,773 488,787" fill="#0284C7"/>
+  <rect x="400" y="725" width="90" height="26" rx="6" fill="#0C4A6E"/>
+  <text x="445" y="743" fill="#7DD3FC" font-family="monospace" font-size="12" text-anchor="middle">0x0182E424</text>
+
+  <!-- Root Node (Start) -->
+  <g transform="translate(60, 560)">
+    <rect x="0" y="0" width="310" height="180" rx="16" fill="#181828" stroke="#6366F1" stroke-width="2"/>
+    <rect x="15" y="15" width="55" height="26" rx="6" fill="#3730A3"/>
+    <text x="42" y="33" fill="#E0E7FF" font-family="monospace" font-size="13" font-weight="700" text-anchor="middle">ROOT</text>
+    <text x="80" y="35" fill="#F8FAFC" font-family="sans-serif" font-size="22" font-weight="700">Start</text>
+    <text x="15" y="72" fill="#94A3B8" font-family="monospace" font-size="14">GamePlay.Player.PlayerController</text>
+    <rect x="15" y="85" width="90" height="26" rx="6" fill="#1E1B4B"/>
+    <text x="60" y="103" fill="#818CF8" font-family="monospace" font-size="12" text-anchor="middle">0x182E400</text>
+    <rect x="115" y="85" width="110" height="26" rx="6" fill="#1E1B4B"/>
+    <text x="170" y="103" fill="#818CF8" font-family="monospace" font-size="12" text-anchor="middle">0x7B4282E400</text>
+    <rect x="15" y="125" width="280" height="40" rx="10" fill="#312E81"/>
+    <text x="155" y="150" fill="#E0E7FF" font-family="sans-serif" font-size="16" font-weight="600" text-anchor="middle">Calls (2) ▲</text>
+  </g>
+
+  <!-- Callee Node 1 (Find) -->
+  <g transform="translate(500, 420)">
+    <rect x="0" y="0" width="340" height="160" rx="16" fill="#0F1F2C" stroke="#0284C7" stroke-width="2"/>
+    <circle cx="25" cy="28" r="5" fill="#38BDF8"/>
+    <text x="40" y="35" fill="#F0F9FF" font-family="sans-serif" font-size="22" font-weight="700">Find</text>
+    <text x="25" y="65" fill="#7DD3FC" font-family="monospace" font-size="14">UnityEngine.GameObject</text>
+    <rect x="25" y="80" width="90" height="26" rx="6" fill="#082F49"/>
+    <text x="70" y="98" fill="#38BDF8" font-family="monospace" font-size="12" text-anchor="middle">0x1C20010</text>
+  </g>
+
+  <!-- Callee Node 2 (HandleMovement) -->
+  <g transform="translate(500, 700)">
+    <rect x="0" y="0" width="340" height="160" rx="16" fill="#0F1F2C" stroke="#0284C7" stroke-width="2"/>
+    <circle cx="25" cy="28" r="5" fill="#38BDF8"/>
+    <text x="40" y="35" fill="#F0F9FF" font-family="sans-serif" font-size="22" font-weight="700">HandleMovement</text>
+    <text x="25" y="65" fill="#7DD3FC" font-family="monospace" font-size="14">GamePlay.Player.PlayerController</text>
+    <rect x="25" y="80" width="90" height="26" rx="6" fill="#082F49"/>
+    <text x="70" y="98" fill="#38BDF8" font-family="monospace" font-size="12" text-anchor="middle">0x182E720</text>
+  </g>
+
+  <!-- Bottom Drawer Preview -->
+  <g transform="translate(40, 1420)">
+    <rect x="0" y="0" width="820" height="90" rx="18" fill="#14151B" stroke="#252733" stroke-width="1.5"/>
+    <text x="25" y="42" fill="#F8FAFC" font-family="monospace" font-size="20" font-weight="700">public void Start()</text>
+    <text x="25" y="70" fill="#64748B" font-family="monospace" font-size="15">GamePlay.Player.PlayerController · RVA: 0x182E400</text>
+    <rect x="670" y="22" width="130" height="46" rx="12" fill="url(#purpleBtn)"/>
+    <text x="735" y="51" fill="#FFFFFF" font-family="sans-serif" font-size="17" font-weight="700" text-anchor="middle">Inspect Tab</text>
+  </g>
+
+  <g transform="translate(0, 1550)">
+    <rect x="360" y="18" width="180" height="6" rx="3" fill="#6B7280"/>
+  </g>
+</svg>

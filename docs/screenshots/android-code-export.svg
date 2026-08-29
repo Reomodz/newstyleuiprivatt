@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1600" width="100%" height="100%">
+  <defs>
+    <linearGradient id="purpleBtn" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#5B4DF0"/>
+      <stop offset="100%" stop-color="#6F5BFC"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="900" height="1600" rx="36" fill="#0C0D10"/>
+
+  <!-- Status Bar -->
+  <g fill="#A0A0B0" font-family="sans-serif" font-size="22" font-weight="600">
+    <text x="44" y="52">6:26</text>
+    <text x="120" y="52" font-size="19">Sat, Aug 29</text>
+    <circle cx="500" cy="44" r="8" fill="#1E1E24"/>
+    <text x="810" y="52" font-size="20">41%</text>
+    <rect x="855" y="34" width="22" height="14" rx="3" fill="none" stroke="#A0A0B0" stroke-width="2"/>
+    <rect x="857" y="36" width="10" height="10" rx="1.5" fill="#A0A0B0"/>
+  </g>
+
+  <!-- Modal Container -->
+  <g transform="translate(30, 90)">
+    <rect x="0" y="0" width="840" height="1440" rx="28" fill="#13141A" stroke="#252735" stroke-width="1.5"/>
+
+    <!-- Modal Header -->
+    <text x="35" y="55" fill="#F8FAFC" font-family="sans-serif" font-size="26" font-weight="700">Player &amp; Health Offsets</text>
+    <rect x="35" y="70" width="180" height="30" rx="8" fill="#241E47"/>
+    <text x="45" y="90" fill="#C084FC" font-family="monospace" font-size="15">&lt;/&gt; C++ (constexpr)</text>
+    <text x="230" y="90" fill="#64748B" font-family="monospace" font-size="14">29/8/2026 · com.game.sample (PID 2...)</text>
+
+    <!-- Header Actions -->
+    <g transform="translate(420, 25)">
+      <rect x="0" y="0" width="120" height="46" rx="12" fill="#1E202B" stroke="#333748" stroke-width="1"/>
+      <text x="60" y="28" fill="#E2E8F0" font-family="sans-serif" font-size="15" font-weight="600" text-anchor="middle">❐ Copy Code</text>
+      <rect x="130" y="0" width="140" height="46" rx="12" fill="url(#purpleBtn)"/>
+      <text x="200" y="28" fill="#FFFFFF" font-family="sans-serif" font-size="15" font-weight="700" text-anchor="middle">⬇ Download .h</text>
+      <rect x="280" y="0" width="100" height="46" rx="12" fill="#1E202B" stroke="#333748" stroke-width="1"/>
+      <text x="330" y="28" fill="#94A3B8" font-family="sans-serif" font-size="15" font-weight="600" text-anchor="middle">⚙ Config</text>
+    </g>
+
+    <!-- Filter Pills -->
+    <rect x="35" y="135" width="190" height="42" rx="12" fill="#5B4DF0"/>
+    <text x="130" y="162" fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="700" text-anchor="middle">Scanned Targets (6)</text>
+    <rect x="240" y="135" width="200" height="42" rx="12" fill="#181922" stroke="#2B2D3C" stroke-width="1"/>
+    <text x="340" y="162" fill="#94A3B8" font-family="sans-serif" font-size="16" font-weight="600" text-anchor="middle">🗎 Formatted Code View</text>
+
+    <!-- Target Item 1 (Field) -->
+    <g transform="translate(35, 205)">
+      <rect x="0" y="0" width="770" height="100" rx="16" fill="#171822" stroke="#252736" stroke-width="1.5"/>
+      <text x="25" y="38" fill="#F8FAFC" font-family="monospace" font-size="20" font-weight="700">PlayerMoveSpeed</text>
+      <rect x="205" y="20" width="75" height="24" rx="6" fill="#1E1B4B"/>
+      <text x="242" y="36" fill="#818CF8" font-family="sans-serif" font-size="12" font-weight="600" text-anchor="middle">Custom</text>
+      <text x="25" y="75" fill="#64748B" font-family="monospace" font-size="16">PlayerController . <tspan fill="#38BDF8">moveSpeed</tspan></text>
+      <rect x="335" y="58" width="60" height="24" rx="6" fill="#382806"/>
+      <text x="365" y="75" fill="#F59E0B" font-family="monospace" font-size="12" font-weight="700" text-anchor="middle">FIELD</text>
+
+      <rect x="580" y="30" width="80" height="40" rx="10" fill="#2E2408" stroke="#F59E0B" stroke-width="1"/>
+      <text x="620" y="56" fill="#FBBF24" font-family="monospace" font-size="18" font-weight="700" text-anchor="middle">0x18</text>
+      <rect x="670" y="30" width="80" height="40" rx="10" fill="#1E202B" stroke="#333748" stroke-width="1"/>
+      <text x="710" y="55" fill="#94A3B8" font-size="16" text-anchor="middle">&lt;/&gt; ❐</text>
+    </g>
+
+    <!-- Target Item 2 (Field) -->
+    <g transform="translate(35, 320)">
+      <rect x="0" y="0" width="770" height="100" rx="16" fill="#171822" stroke="#252736" stroke-width="1.5"/>
+      <text x="25" y="38" fill="#F8FAFC" font-family="monospace" font-size="20" font-weight="700">PlayerHealth</text>
+      <rect x="165" y="20" width="75" height="24" rx="6" fill="#1E1B4B"/>
+      <text x="202" y="36" fill="#818CF8" font-family="sans-serif" font-size="12" font-weight="600" text-anchor="middle">Custom</text>
+      <text x="25" y="75" fill="#64748B" font-family="monospace" font-size="16">PlayerController . <tspan fill="#38BDF8">health</tspan></text>
+      <rect x="290" y="58" width="60" height="24" rx="6" fill="#382806"/>
+      <text x="320" y="75" fill="#F59E0B" font-family="monospace" font-size="12" font-weight="700" text-anchor="middle">FIELD</text>
+
+      <rect x="580" y="30" width="80" height="40" rx="10" fill="#2E2408" stroke="#F59E0B" stroke-width="1"/>
+      <text x="620" y="56" fill="#FBBF24" font-family="monospace" font-size="18" font-weight="700" text-anchor="middle">0x20</text>
+      <rect x="670" y="30" width="80" height="40" rx="10" fill="#1E202B" stroke="#333748" stroke-width="1"/>
+      <text x="710" y="55" fill="#94A3B8" font-size="16" text-anchor="middle">&lt;/&gt; ❐</text>
+    </g>
+
+    <!-- Target Item 3 (Hook Method) -->
+    <g transform="translate(35, 435)">
+      <rect x="0" y="0" width="770" height="100" rx="16" fill="#171822" stroke="#252736" stroke-width="1.5"/>
+      <text x="25" y="38" fill="#F8FAFC" font-family="monospace" font-size="20" font-weight="700">TakeDamageHook</text>
+      <rect x="210" y="20" width="75" height="24" rx="6" fill="#1E1B4B"/>
+      <text x="247" y="36" fill="#818CF8" font-family="sans-serif" font-size="12" font-weight="600" text-anchor="middle">Custom</text>
+      <text x="25" y="75" fill="#64748B" font-family="monospace" font-size="16">PlayerController . <tspan fill="#A855F7">TakeDamage</tspan></text>
+      <rect x="330" y="58" width="75" height="24" rx="6" fill="#0E3929"/>
+      <text x="367" y="75" fill="#34D399" font-family="monospace" font-size="12" font-weight="700" text-anchor="middle">METHOD</text>
+
+      <rect x="525" y="30" width="135" height="40" rx="10" fill="#2E2408" stroke="#F59E0B" stroke-width="1"/>
+      <text x="592" y="56" fill="#FBBF24" font-family="monospace" font-size="16" font-weight="700" text-anchor="middle">0x0182EA50</text>
+      <rect x="670" y="30" width="80" height="40" rx="10" fill="#1E202B" stroke="#333748" stroke-width="1"/>
+      <text x="710" y="55" fill="#94A3B8" font-size="16" text-anchor="middle">&lt;/&gt; ❐</text>
+    </g>
+
+    <!-- Bottom Copy All / Close -->
+    <g transform="translate(35, 1340)">
+      <text x="20" y="45" fill="#60A5FA" font-family="sans-serif" font-size="18" font-weight="600">❐ Copy All (C++ (constexpr))</text>
+      <rect x="670" y="15" width="80" height="46" rx="12" fill="#1E202B" stroke="#333748" stroke-width="1"/>
+      <text x="710" y="44" fill="#94A3B8" font-family="sans-serif" font-size="16" font-weight="600" text-anchor="middle">Close</text>
+    </g>
+  </g>
+
+  <g transform="translate(0, 1550)">
+    <rect x="360" y="18" width="180" height="6" rx="3" fill="#6B7280"/>
+  </g>
+</svg>

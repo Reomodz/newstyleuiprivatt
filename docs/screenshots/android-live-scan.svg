@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1600" width="100%" height="100%">
+  <defs>
+    <linearGradient id="androidBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0E0E11"/>
+      <stop offset="100%" stop-color="#141418"/>
+    </linearGradient>
+    <linearGradient id="purpleBtn" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#5B4DF0"/>
+      <stop offset="100%" stop-color="#6F5BFC"/>
+    </linearGradient>
+    <linearGradient id="blueBtn" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <!-- Android Screen Background -->
+  <rect width="900" height="1600" rx="36" fill="#0C0D10"/>
+
+  <!-- Android Status Bar -->
+  <g fill="#A0A0B0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="600">
+    <text x="44" y="52">6:25</text>
+    <text x="120" y="52" font-size="19">Sat, Aug 29</text>
+    <circle cx="500" cy="44" r="8" fill="#1E1E24"/>
+    <text x="810" y="52" font-size="20">41%</text>
+    <rect x="855" y="34" width="22" height="14" rx="3" fill="none" stroke="#A0A0B0" stroke-width="2"/>
+    <rect x="857" y="36" width="10" height="10" rx="1.5" fill="#A0A0B0"/>
+  </g>
+
+  <!-- Top Navigation Header -->
+  <rect x="0" y="80" width="900" height="90" fill="#141419" stroke="#22222B" stroke-width="1"/>
+  
+  <!-- Logo Badge -->
+  <rect x="30" y="102" width="60" height="46" rx="12" fill="#4B32A8"/>
+  <text x="60" y="132" fill="#EAEBFA" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="700" text-anchor="middle">IL2</text>
+
+  <!-- Attached Game Target Pill -->
+  <rect x="105" y="100" width="310" height="50" rx="25" fill="#1A1F26" stroke="#243E38" stroke-width="1.5"/>
+  <circle cx="130" cy="125" r="5" fill="#10B981"/>
+  <text x="150" y="132" fill="#E2E8F0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="600">Shadow Realm: Unity 20...</text>
+
+  <!-- Navigation Buttons (Dashboard / Browser / Hamburger) -->
+  <rect x="605" y="100" width="145" height="50" rx="14" fill="url(#purpleBtn)"/>
+  <text x="677" y="132" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="600" text-anchor="middle">▦ Dashboard</text>
+
+  <rect x="760" y="100" width="105" height="50" rx="14" fill="#1E1E26" stroke="#333342" stroke-width="1"/>
+  <text x="812" y="132" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="600" text-anchor="middle">&lt;/&gt; Browser</text>
+
+  <!-- Section Tabs (Target Setup / Profile / History) -->
+  <g transform="translate(0, 180)">
+    <text x="190" y="45" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="600" text-anchor="middle">⚙ Target Setup</text>
+    <rect x="35" y="65" width="310" height="4" fill="#6366F1" rx="2"/>
+
+    <text x="490" y="45" fill="#64748B" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="500" text-anchor="middle">★ Profile</text>
+    <text x="770" y="45" fill="#64748B" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="500" text-anchor="middle">⏱ History</text>
+    <line x1="0" y1="67" x2="900" y2="67" stroke="#242430" stroke-width="2"/>
+  </g>
+
+  <!-- Live Scan Mode Switcher -->
+  <g transform="translate(40, 280)">
+    <rect x="0" y="0" width="400" height="70" rx="16" fill="url(#purpleBtn)"/>
+    <text x="200" y="44" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="700" text-anchor="middle">⚡ Live Scan</text>
+
+    <rect x="420" y="0" width="400" height="70" rx="16" fill="#181820" stroke="#2B2B38" stroke-width="1.5"/>
+    <text x="620" y="44" fill="#888899" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="600" text-anchor="middle">📁 Storage Dump</text>
+  </g>
+
+  <!-- Active Process Card -->
+  <g transform="translate(40, 380)">
+    <rect x="0" y="0" width="820" height="125" rx="20" fill="#14151B" stroke="#252733" stroke-width="1.5" filter="url(#shadow)"/>
+    <circle cx="45" cy="42" r="7" fill="#10B981"/>
+    <text x="65" y="48" fill="#F1F5F9" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="24" font-weight="700">Shadow Realm: Unity 2022</text>
+    <rect x="365" y="27" width="105" height="30" rx="8" fill="#0D382A"/>
+    <text x="417" y="48" fill="#34D399" font-family="monospace" font-size="16" font-weight="700" text-anchor="middle">PID 14205</text>
+
+    <text x="45" y="92" fill="#64748B" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18">
+      Arch: <tspan fill="#CBD5E1">arm64-v8a</tspan> · Unity: <tspan fill="#CBD5E1">2022.3.21f1</tspan> · Memory mapped
+    </text>
+
+    <rect x="690" y="38" width="105" height="48" rx="14" fill="#1E202A" stroke="#333748" stroke-width="1"/>
+    <text x="742" y="68" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="600" text-anchor="middle">↻ Change</text>
+  </g>
+
+  <!-- Profile Target Selector & Trigger -->
+  <g transform="translate(40, 535)">
+    <rect x="0" y="0" width="580" height="76" rx="18" fill="#15161C" stroke="#2A2C3A" stroke-width="1.5"/>
+    <rect x="0" y="16" width="6" height="44" rx="3" fill="#3B82F6"/>
+    <text x="32" y="47" fill="#E2E8F0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="600">Player &amp; Health Offsets (6 targets)</text>
+    <text x="540" y="48" fill="#94A3B8" font-size="22">▼</text>
+
+    <rect x="600" y="0" width="220" height="76" rx="18" fill="url(#purpleBtn)"/>
+    <text x="710" y="48" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="700" text-anchor="middle">▶ Start Scan</text>
+  </g>
+
+  <!-- Live Scan Console Output -->
+  <g transform="translate(40, 645)">
+    <text x="10" y="26" fill="#10B981" font-family="monospace" font-size="20" font-weight="700">&gt;_</text>
+    <text x="40" y="26" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="600">Live Scan Log</text>
+
+    <rect x="0" y="45" width="820" height="280" rx="18" fill="#0D0E12" stroke="#1E2029" stroke-width="1.5"/>
+    <text x="25" y="95" fill="#64748B" font-family="monospace" font-size="19">00:00:00</text>
+    <text x="140" y="95" fill="#CBD5E1" font-family="monospace" font-size="19">IL2CPP Scanner initialized and ready.</text>
+    <text x="25" y="135" fill="#64748B" font-family="monospace" font-size="19">00:00:01</text>
+    <text x="140" y="135" fill="#38BDF8" font-family="monospace" font-size="19">[Memory] Mapped libil2cpp.so base: 0x7B40000000</text>
+    <text x="25" y="175" fill="#64748B" font-family="monospace" font-size="19">00:00:02</text>
+    <text x="140" y="175" fill="#A78BFA" font-family="monospace" font-size="19">[Resolver] Loaded global-metadata.dat (v29.1)</text>
+    <text x="25" y="215" fill="#64748B" font-family="monospace" font-size="19">00:00:03</text>
+    <text x="140" y="215" fill="#34D399" font-family="monospace" font-size="19">[Success] 6/6 Target pointers resolved perfectly</text>
+  </g>
+
+  <!-- Bottom Android Navigation Bar -->
+  <g transform="translate(0, 1550)">
+    <rect x="360" y="18" width="180" height="6" rx="3" fill="#6B7280"/>
+  </g>
+</svg>
