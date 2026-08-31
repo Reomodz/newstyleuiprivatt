@@ -61,6 +61,14 @@ export const CallGraphView: React.FC<CallGraphViewProps> = ({
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 
+  // Two-finger pinch-to-zoom gesture reference
+  const pinchRef = useRef<{
+    initialDist: number;
+    initialZoom: number;
+    initialPan: { x: number; y: number };
+    graphFocal: { x: number; y: number };
+  } | null>(null);
+
   // Dragging single node
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -570,10 +578,41 @@ export const CallGraphView: React.FC<CallGraphViewProps> = ({
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      // Multi-touch two-finger pinch zoom
+      setIsPanning(false);
+      setDraggingNodeId(null);
+
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const dist = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+
+      const containerRect = containerRef.current?.getBoundingClientRect();
+      const containerLeft = containerRect?.left ?? 0;
+      const containerTop = containerRect?.top ?? 0;
+
+      const screenFocalX = (touch1.clientX + touch2.clientX) / 2 - containerLeft;
+      const screenFocalY = (touch1.clientY + touch2.clientY) / 2 - containerTop;
+
+      // Coordinate in the graph virtual space under the pinch center
+      const graphFocalX = (screenFocalX - pan.x) / zoom;
+      const graphFocalY = (screenFocalY - pan.y) / zoom;
+
+      pinchRef.current = {
+        initialDist: Math.max(dist, 1),
+        initialZoom: zoom,
+        initialPan: { ...pan },
+        graphFocal: { x: graphFocalX, y: graphFocalY },
+      };
+      return;
+    }
+
     if ((e.target as HTMLElement).closest('.graph-node') || (e.target as HTMLElement).closest('.graph-btn')) {
       return;
     }
+
     if (e.touches.length === 1) {
+      pinchRef.current = null;
       setIsPanning(true);
       setPanStart({ x: e.touches[0].clientX - pan.x, y: e.touches[0].clientY - pan.y });
     }
@@ -604,10 +643,35 @@ export const CallGraphView: React.FC<CallGraphViewProps> = ({
 
   const handleTouchMove = useCallback(
     (e: React.TouchEvent) => {
+      if (e.touches.length === 2 && pinchRef.current) {
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        const currentDist = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+        const { initialDist, initialZoom, graphFocal } = pinchRef.current;
+
+        const scale = currentDist / initialDist;
+        const newZoom = Math.min(Math.max(initialZoom * scale, 0.35), 2.5);
+
+        const containerRect = containerRef.current?.getBoundingClientRect();
+        const containerLeft = containerRect?.left ?? 0;
+        const containerTop = containerRect?.top ?? 0;
+
+        const currentFocalX = (touch1.clientX + touch2.clientX) / 2 - containerLeft;
+        const currentFocalY = (touch1.clientY + touch2.clientY) / 2 - containerTop;
+
+        // Keep the graph anchor coordinate under the two fingers
+        const newPanX = currentFocalX - graphFocal.x * newZoom;
+        const newPanY = currentFocalY - graphFocal.y * newZoom;
+
+        setZoom(newZoom);
+        setPan({ x: Math.round(newPanX), y: Math.round(newPanY) });
+        return;
+      }
+
       if (isPanning && e.touches.length === 1) {
         setPan({
-          x: e.touches[0].clientX - panStart.x,
-          y: e.touches[0].clientY - panStart.y,
+          x: Math.round(e.touches[0].clientX - panStart.x),
+          y: Math.round(e.touches[0].clientY - panStart.y),
         });
       } else if (draggingNodeId && e.touches.length === 1) {
         const container = containerRef.current?.getBoundingClientRect();
@@ -635,6 +699,26 @@ export const CallGraphView: React.FC<CallGraphViewProps> = ({
     }
   }, [isPanning, draggingNodeId, nodePositions]);
 
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      if (e.touches.length === 0) {
+        pinchRef.current = null;
+        setIsPanning(false);
+        if (draggingNodeId) {
+          setDraggingNodeId(null);
+          savePositionsToHistory(nodePositions);
+        }
+      } else if (e.touches.length === 1) {
+        // Smoothly transition from two fingers back to single finger pan
+        pinchRef.current = null;
+        if (isPanning) {
+          setPanStart({ x: e.touches[0].clientX - pan.x, y: e.touches[0].clientY - pan.y });
+        }
+      }
+    },
+    [draggingNodeId, isPanning, nodePositions, pan.x, pan.y]
+  );
+
   const handleNodeMouseDown = (e: React.MouseEvent, nodeId: string) => {
     if ((e.target as HTMLElement).closest('button')) return;
     e.stopPropagation();
@@ -656,8 +740,11 @@ export const CallGraphView: React.FC<CallGraphViewProps> = ({
 
   const handleNodeTouchStart = (e: React.TouchEvent, nodeId: string) => {
     if ((e.target as HTMLElement).closest('button')) return;
+    if (e.touches.length > 1) {
+      // Allow multi-finger pinch to bubble to canvas
+      return;
+    }
     e.stopPropagation();
-    if (e.touches.length !== 1) return;
     setSelectedNodeId(nodeId);
     setDraggingNodeId(nodeId);
 
@@ -723,6 +810,9 @@ export const CallGraphView: React.FC<CallGraphViewProps> = ({
         >
           <ZoomIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </button>
+        <span className="text-[10px] sm:text-xs font-mono font-bold text-[#A1A1AA] px-1 select-none min-w-[34px] text-center">
+          {Math.round(zoom * 100)}%
+        </span>
         <button
           onClick={() => setZoom((z) => Math.max(z - 0.15, 0.35))}
           className="p-1.5 sm:p-2 rounded-lg hover:bg-[#28282A] text-[#8E8E93] hover:text-white transition-colors"
@@ -803,7 +893,8 @@ export const CallGraphView: React.FC<CallGraphViewProps> = ({
         onMouseUp={handleMouseUp}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
-        onTouchEnd={handleMouseUp}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
         onWheel={handleWheel}
         className="flex-1 w-full h-full cursor-grab active:cursor-grabbing relative overflow-hidden touch-none"
         style={{
