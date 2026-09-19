@@ -24,6 +24,8 @@ jobs:
   build-android:
     name: Build Android App
     runs-on: ubuntu-latest
+    env:
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx2048m -Dorg.gradle.daemon=false"
 
     steps:
       - name: Checkout Source Code
@@ -41,40 +43,25 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - - name: Setup Android SDK
-  shell: bash
-  env:
-    ANDROID_HOME: /usr/local/lib/android/sdk
-    ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-  run: |
-    set -euxo pipefail
+      - name: Setup Android SDK & Accept Licenses
+        uses: android-actions/setup-android@v3
 
-    if [ -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
-      SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-    elif [ -x "$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager" ]; then
-      SDKMANAGER="$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager"
-    else
-      echo "Android SDK cmdline-tools not found"
-      exit 1
-    fi
+      - name: Accept Android SDK Licenses
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-    echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
-    echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
-
-    yes | "$SDKMANAGER" --licenses >/dev/null || true
-    "$SDKMANAGER" --sdk_root="$ANDROID_HOME" \
-      "platform-tools" \
-      "platforms;android-35" \
-      "build-tools;35.0.0"
+      - name: Setup Gradle Cache & Tooling
+        uses: gradle/actions/setup-gradle@v3
 
       - name: Install Node Dependencies
-        run: npm ci || npm install
+        run: npm install --include=dev
 
       - name: Build Web Application
         run: npm run build
 
       - name: Initialize & Sync Capacitor Android
         run: |
+          mkdir -p dist
           if [ ! -d "android" ]; then
             npx cap add android
           fi
@@ -98,7 +85,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: IL2CppManager-Debug-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: warn
           retention-days: 30
 
@@ -107,7 +94,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: IL2CppManager-Release-APK
-          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
+          path: android/app/build/outputs/apk/release/*.apk
           if-no-files-found: warn
           retention-days: 30
 
@@ -116,6 +103,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: IL2CppManager-Release-AAB
-          path: android/app/build/outputs/bundle/release/app-release.aab
+          path: android/app/build/outputs/bundle/release/*.aab
           if-no-files-found: warn
           retention-days: 30
+
