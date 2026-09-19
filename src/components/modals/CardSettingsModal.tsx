@@ -129,30 +129,16 @@ export const CardSettingsModal: React.FC<CardSettingsModalProps> = ({
                   />
                 </label>
 
-                {/* Show Class Name */}
+                {/* Show Assembly / DLL */}
                 <label className="flex items-center justify-between p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-[#1E1E22] transition-colors cursor-pointer border-t border-[#222226]">
                   <div className="flex flex-col">
-                    <span className="text-[11px] sm:text-xs font-medium text-[#E2E2E4]">Show Class Name</span>
-                    <span className="text-[9px] sm:text-[10px] text-[#8E8E93]">Display class identifier on cards</span>
+                    <span className="text-[11px] sm:text-xs font-medium text-[#E2E2E4]">Show Assembly (.dll)</span>
+                    <span className="text-[9px] sm:text-[10px] text-[#8E8E93]">Display assembly / DLL name tag on cards</span>
                   </div>
                   <input
                     type="checkbox"
-                    checked={config.showClassName}
-                    onChange={(e) => updateConfig({ showClassName: e.target.checked })}
-                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 accent-indigo-600 rounded cursor-pointer shrink-0"
-                  />
-                </label>
-
-                {/* Show Member Name */}
-                <label className="flex items-center justify-between p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-[#1E1E22] transition-colors cursor-pointer border-t border-[#222226]">
-                  <div className="flex flex-col">
-                    <span className="text-[11px] sm:text-xs font-medium text-[#E2E2E4]">Show Field / Method Name</span>
-                    <span className="text-[9px] sm:text-[10px] text-[#8E8E93]">Display target member name</span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={config.showMemberName}
-                    onChange={(e) => updateConfig({ showMemberName: e.target.checked })}
+                    checked={config.showAssemblyName !== false}
+                    onChange={(e) => updateConfig({ showAssemblyName: e.target.checked })}
                     className="w-3.5 h-3.5 sm:w-4 sm:h-4 accent-indigo-600 rounded cursor-pointer shrink-0"
                   />
                 </label>

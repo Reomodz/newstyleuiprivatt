@@ -10,6 +10,8 @@ interface AddTargetModalProps {
   setNewTargetKind: (kind: 'FIELD' | 'METHOD') => void;
   newTargetCustomName: string;
   setNewTargetCustomName: (val: string) => void;
+  newTargetAssemblyName: string;
+  setNewTargetAssemblyName: (val: string) => void;
   newTargetClassName: string;
   setNewTargetClassName: (val: string) => void;
   newTargetMemberName: string;
@@ -31,7 +33,9 @@ interface AddTargetModalProps {
 
 export const AddTargetModal: React.FC<AddTargetModalProps> = ({
   isOpen, onClose, activeProfile, newTargetKind, setNewTargetKind,
-  newTargetCustomName, setNewTargetCustomName, newTargetClassName, setNewTargetClassName,
+  newTargetCustomName, setNewTargetCustomName,
+  newTargetAssemblyName, setNewTargetAssemblyName,
+  newTargetClassName, setNewTargetClassName,
   newTargetMemberName, setNewTargetMemberName, newTargetComment, setNewTargetComment,
   showAddFallbacks, setShowAddFallbacks, tempFallbackClassInput, setTempFallbackClassInput,
   tempFallbackMemberInput, setTempFallbackMemberInput, newTargetFallbackClasses, setNewTargetFallbackClasses,
@@ -100,14 +104,31 @@ export const AddTargetModal: React.FC<AddTargetModalProps> = ({
               />
             </div>
 
+            {/* Assembly / DLL Name */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[9px] sm:text-xs font-medium text-[#8E8E93] ml-1">Class Name</label>
+              <label className="text-[9px] sm:text-xs font-medium text-[#8E8E93] ml-1">
+                Assembly / DLL (.dll) (Optional)
+              </label>
+              <input
+                type="text"
+                value={newTargetAssemblyName}
+                onChange={(e) => setNewTargetAssemblyName(e.target.value)}
+                placeholder="e.g. Assembly-CSharp.dll"
+                className="w-full px-2.5 sm:px-4 py-1.5 sm:py-3 bg-[#141416] border border-[#353538] rounded-xl sm:rounded-2xl text-[10px] sm:text-sm text-[#E2E2E4] focus:outline-none focus:border-indigo-500 font-mono placeholder:text-[#55555A]"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between ml-1">
+                <label className="text-[9px] sm:text-xs font-medium text-[#8E8E93]">Primary Class Name</label>
+                <span className="text-[8px] sm:text-[10px] text-indigo-400 font-mono">Namespace::ClassName</span>
+              </div>
               <input
                 type="text"
                 value={newTargetClassName}
                 onChange={(e) => setNewTargetClassName(e.target.value)}
-                placeholder="e.g. PlayerController"
-                className="w-full px-2.5 sm:px-4 py-1.5 sm:py-3 bg-[#141416] border border-[#353538] rounded-xl sm:rounded-2xl text-[10px] sm:text-sm text-[#E2E2E4] focus:outline-none focus:border-indigo-500 font-mono"
+                placeholder="e.g. COW.GamePlay::CameraControllerBase or PlayerController"
+                className="w-full px-2.5 sm:px-4 py-1.5 sm:py-3 bg-[#141416] border border-[#353538] rounded-xl sm:rounded-2xl text-[10px] sm:text-sm text-[#E2E2E4] focus:outline-none focus:border-indigo-500 font-mono placeholder:text-[#55555A]"
               />
             </div>
 
@@ -201,7 +222,7 @@ export const AddTargetModal: React.FC<AddTargetModalProps> = ({
                             setTempFallbackClassInput('');
                           }
                         }}
-                        placeholder="e.g. PlayerMovement"
+                        placeholder="e.g. COW.GamePlay::CameraController or PlayerMovement"
                         className="flex-1 px-1.5 sm:px-3 py-1 sm:py-2 bg-[#1A1A1D] border border-[#353538] rounded-lg sm:rounded-xl text-[9px] sm:text-xs text-[#E2E2E4] focus:outline-none focus:border-indigo-500 font-mono"
                       />
                       <button

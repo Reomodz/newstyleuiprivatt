@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import {
-  ProcessDescriptor,
   DirectoryLevel,
   BreadcrumbViewData,
   CanvasTabViewData,
@@ -12,18 +11,15 @@ import { MainDashboard } from './components/MainDashboard';
 import { ManagerBrowser } from './components/ManagerBrowser';
 import { CallGraphView } from './components/CallGraphView';
 import { MethodInstructionsView } from './components/MethodInstructionsView';
-import { ProcessPickerModal } from './components/modals/ProcessPickerModal';
-import { DumpModal } from './components/modals/DumpModal';
 import { ManagerDrawer } from './components/ManagerDrawer';
 import { InfoModal } from './components/modals/InfoModal';
 import { Toast } from './components/common/Toast';
 
 export const App: React.FC = () => {
-  // Process State
-  const [currentProcess, setCurrentProcess] = useState<ProcessDescriptor | null>(() =>
-    il2cppEngine.getCurrentProcess()
-  );
-  const [storageDumpName, setStorageDumpName] = useState<string | null>(null);
+  // Storage Dump State
+  const [storageDumpName, setStorageDumpName] = useState<string | null>(() => {
+    return il2cppEngine.getStorageMeta().dumpCsFileName || null;
+  });
 
   // Navigation State
   const [directoryLevel, setDirectoryLevel] = useState<DirectoryLevel | 'CLASS_DETAILS'>(
@@ -41,8 +37,6 @@ export const App: React.FC = () => {
   // UI Panels & Modals State
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isProcessPickerOpen, setIsProcessPickerOpen] = useState(false);
-  const [isDumpModalOpen, setIsDumpModalOpen] = useState(false);
   const [infoModalDest, setInfoModalDest] = useState<ManagerInfoDestination | null>(null);
 
   // Toast feedback
@@ -194,7 +188,6 @@ export const App: React.FC = () => {
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#18181A] text-[#E2E2E4]">
       {/* Header */}
       <ManagerHeader
-        currentProcess={currentProcess}
         storageDumpName={storageDumpName}
         breadcrumbs={breadcrumbs}
         onBreadcrumbClick={handleBreadcrumbClick}
@@ -205,8 +198,6 @@ export const App: React.FC = () => {
           setActiveWorkspace('canvas');
         }}
         onCloseCanvasTab={handleCloseCanvasTab}
-        onOpenProcessPicker={() => setIsProcessPickerOpen(true)}
-        onOpenDumpModal={() => setIsDumpModalOpen(true)}
         onToggleSearch={() => setIsSearchOpen((prev) => !prev)}
         isSearchOpen={isSearchOpen}
         onOpenMenu={() => setIsDrawerOpen(true)}
@@ -218,10 +209,10 @@ export const App: React.FC = () => {
       <main className="flex-1 flex overflow-hidden relative">
         {activeWorkspace === 'dashboard' ? (
           <MainDashboard
-            currentProcess={currentProcess}
+            currentProcess={null}
             storageDumpName={storageDumpName}
             onStorageDumpLoaded={(fileName) => setStorageDumpName(fileName)}
-            onOpenProcessPicker={() => setIsProcessPickerOpen(true)}
+            onOpenProcessPicker={() => {}}
             onNavigateToBrowser={(classIndex) => {
               if (classIndex !== undefined) {
                 handleSelectClass(classIndex);
@@ -237,6 +228,7 @@ export const App: React.FC = () => {
             selectedAssemblyIndex={selectedAssemblyIndex}
             selectedNamespace={selectedNamespace}
             selectedClassIndex={selectedClassIndex}
+            storageDumpName={storageDumpName}
             onSelectAssembly={handleSelectAssembly}
             onSelectNamespace={handleSelectNamespace}
             onSelectClass={handleSelectClass}
@@ -330,25 +322,6 @@ export const App: React.FC = () => {
           </div>
         )}
       </main>
-
-      {/* Process Picker Modal */}
-      <ProcessPickerModal
-        isOpen={isProcessPickerOpen}
-        onClose={() => setIsProcessPickerOpen(false)}
-        onSelectProcess={(proc) => {
-          il2cppEngine.selectProcess(proc.pid);
-          setCurrentProcess(proc);
-          showToast(`Attached to process ${proc.appName} (PID ${proc.pid})`);
-        }}
-        currentProcess={currentProcess}
-      />
-
-      {/* Dump C# Modal */}
-      <DumpModal
-        isOpen={isDumpModalOpen}
-        onClose={() => setIsDumpModalOpen(false)}
-        onCopyText={handleCopyText}
-      />
 
       {/* App Drawer */}
       <ManagerDrawer

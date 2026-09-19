@@ -65,9 +65,6 @@ export const InfoModal: React.FC<InfoModalProps> = ({ destination, onClose }) =>
                   <li>
                     <strong className="text-white">Interactive Call Graph:</strong> Pan, zoom, and expand callers and callees interactively with Bezier connectors.
                   </li>
-                  <li>
-                    <strong className="text-white">Metadata Dump Generator:</strong> Export standard Il2CppDumper-compatible <code className="text-indigo-300">dump.cs</code> headers.
-                  </li>
                 </ul>
               </div>
             </>

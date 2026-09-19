@@ -27,32 +27,34 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
   const isCompact = cardViewSettings.density === 'compact';
 
   return (
-    <div className="max-w-5xl mx-auto w-full p-2.5 sm:p-4 flex flex-col gap-3 sm:gap-4 pb-12">
-      <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+    <div className="max-w-5xl mx-auto w-full p-2 sm:p-3.5 flex flex-col gap-2.5 sm:gap-4 pb-12">
+      <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
         <div className="flex flex-col rounded-xl sm:rounded-2xl border border-[#2D2D30] overflow-hidden shadow-sm">
-          <div className="flex items-center justify-between p-2.5 sm:p-3.5 bg-[#1E1E20] border-b border-[#2D2D30] gap-2 flex-wrap">
-            <span className="flex items-center gap-2 font-semibold text-xs sm:text-sm text-white">
-              <History className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-400" />
-              <span>Scan Logs</span>
+          <div className="flex items-center justify-between p-2.5 sm:p-3 bg-[#1E1E20] border-b border-[#2D2D30] gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="p-1 sm:p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shrink-0">
+                <History className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </div>
+              <span className="font-semibold text-xs sm:text-sm text-white">Scan Logs</span>
               <span className="text-[10px] sm:text-xs font-mono px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
                 {scanHistory.length}
               </span>
-            </span>
+            </div>
 
-            <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="flex items-center gap-1 sm:gap-1.5">
               <button
                 onClick={() => setIsCardSettingsModalOpen(true)}
-                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 bg-[#262629] hover:bg-[#323236] text-[#A0A0A5] hover:text-white border border-[#353538] rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-semibold transition-colors shadow-sm"
+                className="flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 bg-[#262629] hover:bg-[#323236] text-[#A0A0A5] hover:text-white border border-[#353538] rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-semibold transition-colors shadow-sm"
                 title="History Card Settings"
               >
                 <SlidersHorizontal className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-indigo-400" />
-                <span>Options</span>
+                <span className="hidden xs:inline sm:inline">Options</span>
               </button>
 
               {scanHistory.length > 0 && (
                 <button
                   onClick={() => setIsConfirmClearHistoryOpen(true)}
-                  className="text-[10px] sm:text-xs font-semibold px-2 sm:px-3 py-1 sm:py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg sm:rounded-xl transition-colors flex items-center gap-1 sm:gap-1.5"
+                  className="text-[10px] sm:text-xs font-semibold px-2 sm:px-2.5 py-1 sm:py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg sm:rounded-xl transition-colors flex items-center gap-1"
                 >
                   <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   <span>Clear All</span>
@@ -63,14 +65,14 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
 
           <div
             className={`grid grid-cols-1 ${
-              cardViewSettings.tabletLayout === 'grid' ? 'md:grid-cols-2 lg:grid-cols-2' : 'md:grid-cols-1'
-            } gap-2 sm:gap-3 p-2 sm:p-3 bg-[#141416]`}
+              cardViewSettings.tabletLayout === 'grid' ? 'md:grid-cols-2' : 'md:grid-cols-1'
+            } gap-2 sm:gap-2.5 p-2 sm:p-2.5 bg-[#141416]`}
           >
             {scanHistory.length === 0 ? (
-              <div className="p-8 sm:p-10 text-center text-[#8E8E93] flex flex-col items-center col-span-full">
-                <History className="w-9 h-9 text-[#3A3A3E] mb-2.5" />
+              <div className="p-6 sm:p-8 text-center text-[#8E8E93] flex flex-col items-center col-span-full">
+                <History className="w-8 h-8 text-[#3A3A3E] mb-2" />
                 <p className="text-xs sm:text-sm font-medium">No scans recorded yet.</p>
-                <p className="text-[10px] sm:text-xs text-[#6C6C70] mt-1 max-w-[220px]">
+                <p className="text-[10px] sm:text-xs text-[#6C6C70] mt-0.5 max-w-[220px]">
                   Scan a watchlist profile to generate history logs here.
                 </p>
               </div>
@@ -84,24 +86,24 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                     key={rec.id}
                     onClick={() => handleOpenHistoryRecord(rec)}
                     className={`${
-                      isCompact ? 'p-2.5 sm:p-3 gap-1.5' : 'p-3 sm:p-4 gap-2.5'
-                    } rounded-xl sm:rounded-2xl bg-[#1E1E20] hover:bg-[#242428] border border-[#2D2D30] hover:border-[#4A4A50] transition-all cursor-pointer active:scale-[0.99] group flex flex-col shadow-sm`}
+                      isCompact ? 'p-2 sm:p-2.5 gap-1' : 'p-2.5 sm:p-3 gap-1.5'
+                    } rounded-xl bg-[#1E1E20] hover:bg-[#242428] border border-[#2D2D30] hover:border-[#4A4A50] transition-all cursor-pointer active:scale-[0.99] group flex flex-col shadow-sm`}
                   >
-                    <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="font-semibold text-indigo-300 group-hover:text-indigo-200 transition-colors truncate">
+                    <div className="flex items-center justify-between text-xs gap-1.5">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <span className="font-semibold text-xs text-indigo-300 group-hover:text-indigo-200 transition-colors truncate">
                           {rec.profileName}
                         </span>
                         {cardViewSettings.showCodeStyleBadge && (
-                          <span className="flex items-center gap-1 text-[9px] sm:text-[10px] font-mono px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 shrink-0">
-                            <Code2 className="w-3 h-3" />
+                          <span className="flex items-center gap-0.5 text-[8px] sm:text-[9px] font-mono px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 shrink-0">
+                            <Code2 className="w-2.5 h-2.5" />
                             <span>{presetObj.label}</span>
                           </span>
                         )}
                       </div>
 
                       {cardViewSettings.showQuickActions && (
-                        <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                           {/* Direct Copy in Selected Code Style */}
                           <button
                             onClick={(e) => {
@@ -109,10 +111,10 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                               const generated = generateScanHistoryCode(rec, rec.codeStylePreset, rec.customCodeStyleTemplate);
                               onCopyText(generated.code, `${rec.profileName} (${presetObj.label})`);
                             }}
-                            className="p-1.5 bg-[#1C1C20] hover:bg-[#2A2A30] text-[#A0A0A5] hover:text-white rounded-md sm:rounded-lg border border-[#353538] transition-colors"
+                            className="p-1 bg-[#1C1C20] hover:bg-[#2A2A30] text-[#A0A0A5] hover:text-white rounded-md border border-[#353538] transition-colors"
                             title={`Copy All Offsets as ${presetObj.label}`}
                           >
-                            <Copy className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-indigo-400" />
+                            <Copy className="w-3 h-3 text-indigo-400" />
                           </button>
 
                           {/* Direct Download in Selected Code Style */}
@@ -131,10 +133,10 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                               URL.revokeObjectURL(url);
                               showToast(`Downloaded ${generated.filename}`);
                             }}
-                            className="p-1.5 bg-[#1C1C20] hover:bg-[#2A2A30] text-[#A0A0A5] hover:text-white rounded-md sm:rounded-lg border border-[#353538] transition-colors"
+                            className="p-1 bg-[#1C1C20] hover:bg-[#2A2A30] text-[#A0A0A5] hover:text-white rounded-md border border-[#353538] transition-colors"
                             title={`Download ${presetObj.label} File`}
                           >
-                            <Download className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-indigo-400" />
+                            <Download className="w-3 h-3 text-indigo-400" />
                           </button>
 
                           {/* Delete Record */}
@@ -145,45 +147,45 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                               saveHistory(updated);
                               showToast('Scan record deleted');
                             }}
-                            className="p-1.5 text-[#8E8E93] hover:text-red-400 hover:bg-red-500/10 rounded-md sm:rounded-lg transition-colors"
+                            className="p-1 text-[#8E8E93] hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
                             title="Delete this scan log"
                           >
-                            <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                            <Trash2 className="w-3 h-3" />
                           </button>
                         </div>
                       )}
                     </div>
 
                     {cardViewSettings.showMetadata && (
-                      <div className="text-[10px] sm:text-xs text-[#8E8E93] flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                        <span className="bg-[#141416] px-1.5 sm:px-2 py-0.5 rounded border border-[#353538]">
-                          {rec.sourceMode === 'live' ? 'Live Scan' : 'Storage Dump'}
+                      <div className="text-[9px] sm:text-[10px] text-[#8E8E93] flex items-center gap-1.5 flex-wrap">
+                        <span className="bg-[#141416] px-1.5 py-0.2 rounded border border-[#353538]">
+                          {rec.sourceMode === 'live' ? 'Live' : 'Dump'}
                         </span>
-                        <span className="text-emerald-400 font-medium px-1.5 sm:px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+                        <span className="text-emerald-400 font-medium px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/20">
                           {rec.resolvedCount}/{rec.totalTargets} Resolved
                         </span>
-                        <span className="text-[9px] sm:text-[11px] text-[#6C6C70]">
-                          {new Date(rec.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(rec.timestamp).toLocaleDateString()}
+                        <span className="text-[9px] text-[#6C6C70]">
+                          {new Date(rec.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
-                        <span className="text-[9px] sm:text-[11px] text-indigo-400/80 ml-auto flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                          View details & code <ChevronRight className="w-3 h-3" />
+                        <span className="text-[9px] text-indigo-400/80 ml-auto flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          View details <ChevronRight className="w-2.5 h-2.5" />
                         </span>
                       </div>
                     )}
 
                     {cardViewSettings.showOffsetTags && (
-                      <div className="flex flex-wrap gap-1.5 font-mono text-[9px] sm:text-[10px] pt-0.5">
+                      <div className="flex flex-wrap gap-1 font-mono text-[8px] sm:text-[9px] pt-0.5">
                         {rec.items.slice(0, 5).map((it, idx) => (
                           <span
                             key={idx}
-                            className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-[#141416] border border-[#353538] rounded-md sm:rounded-lg text-[#A0A0A5]"
+                            className="px-1.5 py-0.2 bg-[#141416] border border-[#353538] rounded text-[#A0A0A5]"
                           >
                             {it.customName || it.memberName}: <span className="text-amber-300 font-bold">{it.offsetHex || it.rvaHex || 'N/A'}</span>
                           </span>
                         ))}
                         {rec.items.length > 5 && (
-                          <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 text-[#888] bg-[#141416] border border-[#2D2D30] rounded-md sm:rounded-lg">
-                            +{rec.items.length - 5} more
+                          <span className="px-1.5 py-0.2 text-[#888] bg-[#141416] border border-[#2D2D30] rounded">
+                            +{rec.items.length - 5}
                           </span>
                         )}
                       </div>

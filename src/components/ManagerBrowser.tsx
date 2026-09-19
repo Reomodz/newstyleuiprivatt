@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   DirectoryLevel,
   ClassTab,
@@ -10,6 +10,7 @@ import {
   SymbolKind,
 } from '../types';
 import { il2cppEngine } from '../services/il2cppEngine';
+import { VirtualScrollList } from './VirtualScrollList';
 import {
   Folder,
   Layers,
@@ -18,8 +19,6 @@ import {
   ChevronRight,
   Search,
   X,
-  Sparkles,
-  ExternalLink,
   Code2,
   Tag,
   SlidersHorizontal,
@@ -46,10 +45,11 @@ interface ManagerBrowserProps {
   selectedAssemblyIndex: number | null;
   selectedNamespace: string | null;
   selectedClassIndex: number | null;
+  storageDumpName?: string | null;
   onSelectAssembly: (index: number) => void;
   onSelectNamespace: (ns: string) => void;
   onSelectClass: (index: number) => void;
-  onInspectMethod: (classIndex: number, methodIndex: number, mode: 'graph' | 'instructions') => void;
+  onInspectMethod?: (classIndex: number, methodIndex: number, mode: 'graph' | 'instructions') => void;
   onCopyText: (text: string, label: string) => void;
   isSearchOpen: boolean;
   onCloseSearch: () => void;
@@ -60,20 +60,59 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
   selectedAssemblyIndex,
   selectedNamespace,
   selectedClassIndex,
+  storageDumpName,
   onSelectAssembly,
   onSelectNamespace,
   onSelectClass,
-  onInspectMethod,
   onCopyText,
   isSearchOpen,
   onCloseSearch,
 }) => {
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [searchScope, setSearchScope] = useState<'current' | 'everywhere'>('current');
   const [matchMode, setMatchMode] = useState<SearchMatchMode>(SearchMatchMode.CONTAINS);
   const [matchCase, setMatchCase] = useState(false);
-  const [classTab, setClassTab] = useState<ClassTab>(ClassTab.METHODS);
+  const [classTab, setClassTab] = useState<ClassTab>(ClassTab.FIELDS);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Debounce search query to prevent main-thread freezing on 75MB+ dumps
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 150);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  // Scroll to top when navigating levels or switching tabs
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [selectedAssemblyIndex, selectedNamespace, selectedClassIndex, classTab, currentLevel]);
+
+  // Handler to navigate and clear search
+  const handleSelectAssemblyAndClear = (index: number) => {
+    setSearchQuery('');
+    setDebouncedSearchQuery('');
+    if (onCloseSearch) onCloseSearch();
+    onSelectAssembly(index);
+  };
+
+  const handleSelectNamespaceAndClear = (ns: string) => {
+    setSearchQuery('');
+    setDebouncedSearchQuery('');
+    if (onCloseSearch) onCloseSearch();
+    onSelectNamespace(ns);
+  };
+
+  const handleSelectClassAndClear = (index: number) => {
+    setSearchQuery('');
+    setDebouncedSearchQuery('');
+    if (onCloseSearch) onCloseSearch();
+    onSelectClass(index);
+  };
 
   // Browser Card View Settings
   const [browserSettings, setBrowserSettings] = useState<BrowserCardViewSettings>(() => {
@@ -107,12 +146,12 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
     });
   };
 
-  // Queries
-  const assemblies = useMemo(() => il2cppEngine.getAssemblies(), []);
+  // Queries (re-evaluated when storageDumpName or selections change)
+  const assemblies = useMemo(() => il2cppEngine.getAssemblies(), [storageDumpName]);
   const namespaces = useMemo(() => {
     if (selectedAssemblyIndex === null) return [];
     return il2cppEngine.getNamespaces(selectedAssemblyIndex);
-  }, [selectedAssemblyIndex]);
+  }, [selectedAssemblyIndex, storageDumpName]);
 
   const classesInNamespace = useMemo(() => {
     if (selectedAssemblyIndex === null) return [];
@@ -120,34 +159,34 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
       selectedAssemblyIndex,
       selectedNamespace !== null ? selectedNamespace : undefined
     );
-  }, [selectedAssemblyIndex, selectedNamespace]);
+  }, [selectedAssemblyIndex, selectedNamespace, storageDumpName]);
 
   const currentClassInfo: ClassInfoDescriptor | undefined = useMemo(() => {
     if (selectedClassIndex === null) return undefined;
     return il2cppEngine.getClass(selectedClassIndex);
-  }, [selectedClassIndex]);
+  }, [selectedClassIndex, storageDumpName]);
 
   const currentFields: FieldDescriptor[] = useMemo(() => {
     if (selectedClassIndex === null) return [];
     return il2cppEngine.getFields(selectedClassIndex);
-  }, [selectedClassIndex]);
+  }, [selectedClassIndex, storageDumpName]);
 
   const currentMethods: MethodDescriptor[] = useMemo(() => {
     if (selectedClassIndex === null) return [];
     return il2cppEngine.getMethods(selectedClassIndex);
-  }, [selectedClassIndex]);
+  }, [selectedClassIndex, storageDumpName]);
 
-  // Global search results
+  // Global search results (Requires min 2 chars for everywhere search to keep UI fast)
   const globalSearchResults: SymbolSearchDescriptor[] = useMemo(() => {
-    if (searchScope !== 'everywhere' || !searchQuery.trim()) return [];
-    return il2cppEngine.searchEverywhere(searchQuery, matchMode, matchCase);
-  }, [searchScope, searchQuery, matchMode, matchCase]);
+    if (searchScope !== 'everywhere' || !debouncedSearchQuery.trim() || debouncedSearchQuery.trim().length < 2) return [];
+    return il2cppEngine.searchEverywhere(debouncedSearchQuery, matchMode, matchCase);
+  }, [searchScope, debouncedSearchQuery, matchMode, matchCase, storageDumpName]);
 
-  // Filter helper
+  // Filter helper using debounced query for instant smooth typing
   const filterMatch = (text: string | undefined): boolean => {
     if (!text) return false;
-    if (!searchQuery.trim()) return true;
-    const term = matchCase ? searchQuery : searchQuery.toLowerCase();
+    if (!debouncedSearchQuery.trim()) return true;
+    const term = matchCase ? debouncedSearchQuery : debouncedSearchQuery.toLowerCase();
     const val = matchCase ? text : text.toLowerCase();
     return matchMode === SearchMatchMode.EXACT ? val === term : val.includes(term);
   };
@@ -164,6 +203,17 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
     if (layout === 'list') return 'grid grid-cols-1 gap-2 p-2 sm:p-3';
     if (layout === 'dense') return 'grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2 p-2 sm:p-3';
     return 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 p-2 sm:p-3';
+  };
+
+  const getColumnsConfig = (context: 'standard' | 'methods') => {
+    const layout = browserSettings.tabletLayout || 'grid';
+    if (layout === 'list') return 1;
+    if (context === 'methods') {
+      if (layout === 'dense') return { sm: 1, md: 2, lg: 3, xl: 3 };
+      return { sm: 1, md: 2, lg: 2, xl: 2 };
+    }
+    if (layout === 'dense') return { sm: 1, md: 3, lg: 4, xl: 4 };
+    return { sm: 1, md: 2, lg: 3, xl: 3 };
   };
 
   const isCompact = browserSettings.density === 'compact';
@@ -186,10 +236,10 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
     <div className="flex-1 flex flex-col bg-[#242426] text-[#E2E2E4] overflow-hidden">
       {/* Search Dock */}
       {isSearchOpen && (
-        <div className="bg-[#1C1C1E] border-b border-[#353535] p-3 flex flex-col gap-2.5 shadow-md">
-          <div className="flex items-center gap-2">
+        <div className="bg-[#1C1C1E] border-b border-[#353535] p-2 sm:p-3 flex flex-col gap-2 sm:gap-2.5 shadow-md">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#8E8E93]" />
+              <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 text-[#8E8E93]" />
               <input
                 type="text"
                 value={searchQuery}
@@ -200,33 +250,33 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                     : 'Search in current view...'
                 }
                 autoFocus
-                className="w-full bg-[#28282A] border border-[#3A3A3C] focus:border-indigo-500 rounded-lg pl-9 pr-8 py-2 text-xs sm:text-sm text-[#E2E2E4] placeholder-[#8E8E93] outline-none transition-colors"
+                className="w-full bg-[#28282A] border border-[#3A3A3C] focus:border-indigo-500 rounded-lg pl-8 sm:pl-9 pr-7 sm:pr-8 py-1.5 sm:py-2 text-[11px] sm:text-sm text-[#E2E2E4] placeholder-[#8E8E93] outline-none transition-colors"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8E8E93] hover:text-white p-0.5"
+                  className="absolute right-2 sm:right-2.5 top-1/2 -translate-y-1/2 text-[#8E8E93] hover:text-white p-0.5"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 </button>
               )}
             </div>
 
             <button
               onClick={onCloseSearch}
-              className="px-3 py-2 text-xs font-medium text-[#8E8E93] hover:text-white rounded-lg hover:bg-[#28282A] transition-colors"
+              className="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-[#8E8E93] hover:text-white rounded-lg hover:bg-[#28282A] transition-colors shrink-0"
             >
               Cancel
             </button>
           </div>
 
           {/* Search Options Toolbar */}
-          <div className="flex items-center justify-between text-xs text-[#8E8E93]">
+          <div className="flex items-center justify-between text-[10px] sm:text-xs text-[#8E8E93] gap-1">
             {/* Scope tabs */}
             <div className="flex items-center bg-[#28282A] p-0.5 rounded-lg border border-[#3A3A3C]">
               <button
                 onClick={() => setSearchScope('current')}
-                className={`px-3 py-1 rounded-md font-medium transition-colors ${
+                className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-md font-medium transition-colors text-[9.5px] sm:text-xs ${
                   searchScope === 'current'
                     ? 'bg-[#3A3A3C] text-white'
                     : 'hover:text-[#E2E2E4]'
@@ -236,7 +286,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
               </button>
               <button
                 onClick={() => setSearchScope('everywhere')}
-                className={`px-3 py-1 rounded-md font-medium transition-colors ${
+                className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-md font-medium transition-colors text-[9.5px] sm:text-xs ${
                   searchScope === 'everywhere'
                     ? 'bg-[#3A3A3C] text-white'
                     : 'hover:text-[#E2E2E4]'
@@ -247,7 +297,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
             </div>
 
             {/* Match mode options */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <button
                 onClick={() =>
                   setMatchMode(
@@ -256,7 +306,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                       : SearchMatchMode.CONTAINS
                   )
                 }
-                className={`px-2.5 py-1 rounded-md border text-[11px] transition-colors ${
+                className={`px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-md border text-[9.5px] sm:text-[11px] transition-colors ${
                   matchMode === SearchMatchMode.EXACT
                     ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
                     : 'border-[#3A3A3C] hover:text-[#E2E2E4]'
@@ -266,7 +316,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
               </button>
               <button
                 onClick={() => setMatchCase(!matchCase)}
-                className={`px-2 py-1 rounded-md border text-[11px] font-mono transition-colors ${
+                className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md border text-[9.5px] sm:text-[11px] font-mono transition-colors ${
                   matchCase
                     ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
                     : 'border-[#3A3A3C] hover:text-[#E2E2E4]'
@@ -281,37 +331,46 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
         {/* Global search results mode */}
         {isSearchOpen && searchScope === 'everywhere' && searchQuery.trim() ? (
           <div>
-            <div className="px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold text-[#8E8E93] border-b border-[#353535] bg-[#202020]/60 uppercase tracking-wider flex items-center justify-between">
-              <span>Search Results · {globalSearchResults.length} found</span>
+            <div className="px-2.5 sm:px-4 py-1.5 sm:py-2.5 text-[10px] sm:text-xs font-semibold text-[#8E8E93] border-b border-[#353535] bg-[#202020]/60 uppercase tracking-wider flex items-center justify-between">
+              <span>Search Results · {globalSearchResults.length.toLocaleString()} found</span>
               {renderTabletToolbar()}
             </div>
-            {globalSearchResults.length === 0 ? (
-              <div className="p-8 text-center text-xs sm:text-sm text-[#8E8E93]">
+            {searchQuery.trim().length < 2 ? (
+              <div className="p-6 sm:p-8 text-center text-xs sm:text-sm text-[#8E8E93]">
+                Type at least 2 characters to search everywhere across all assemblies...
+              </div>
+            ) : globalSearchResults.length === 0 ? (
+              <div className="p-6 sm:p-8 text-center text-xs sm:text-sm text-[#8E8E93]">
                 No classes, fields, or methods match "{searchQuery}"
               </div>
             ) : (
-              <div className={getGridClasses('standard')}>
-                {globalSearchResults.map((res) => (
+              <VirtualScrollList
+                items={globalSearchResults}
+                scrollContainerRef={scrollContainerRef}
+                estimatedItemHeight={isCompact ? 46 : 64}
+                columns={getColumnsConfig('standard')}
+                gridClassName={getGridClasses('standard')}
+                renderItem={(res) => (
                   <div
                     key={res.id}
                     onClick={() => {
+                      setSearchQuery('');
+                      setDebouncedSearchQuery('');
+                      if (onCloseSearch) onCloseSearch();
                       onSelectClass(res.classIndex);
-                      if (res.kind === SymbolKind.METHOD) {
-                        onInspectMethod(res.classIndex, res.memberIndex, 'graph');
-                      }
                     }}
                     className={`${
-                      isCompact ? 'p-2 sm:p-2.5' : 'p-3 sm:p-4'
-                    } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] hover:bg-[#2C2C2E] md:hover:to-[#1F1F24] border border-[#353535] md:border-[#38383E] hover:border-indigo-500/40 rounded-xl cursor-pointer flex items-center justify-between group transition-all shadow-sm`}
+                      isCompact ? 'p-1.5 sm:p-2.5' : 'p-2.5 sm:p-4'
+                    } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] hover:bg-[#2C2C2E] md:hover:to-[#1F1F24] border border-[#353535] md:border-[#38383E] hover:border-indigo-500/40 rounded-lg sm:rounded-xl cursor-pointer flex items-center justify-between group transition-all shadow-sm`}
                   >
-                    <div className="min-w-0 pr-3">
-                      <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+                    <div className="min-w-0 pr-2 sm:pr-3">
+                      <div className="flex items-center gap-1 sm:gap-2 mb-0.5 sm:mb-1">
                         <span
-                          className={`px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider ${
+                          className={`px-1 sm:px-1.5 py-0.2 sm:py-0.5 rounded text-[8px] sm:text-[10px] font-semibold uppercase tracking-wider ${
                             res.kind === SymbolKind.CLASS
                               ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
                               : res.kind === SymbolKind.METHOD
@@ -321,166 +380,242 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                         >
                           {SymbolKind[res.kind]}
                         </span>
-                        <span className="font-medium text-xs sm:text-sm text-white group-hover:text-indigo-300 transition-colors truncate">
+                        <span className="font-medium text-[11px] sm:text-sm text-white group-hover:text-indigo-300 transition-colors truncate">
                           {res.name}
                         </span>
                       </div>
                       {browserSettings.showMetadata && (
-                        <div className="text-[11px] sm:text-xs text-[#8E8E93] truncate font-mono-code">
+                        <div className="text-[9.5px] sm:text-xs text-[#8E8E93] truncate font-mono-code">
                           {res.ownerName} · {res.assemblyName}
                         </div>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                    <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                      {res.kind === SymbolKind.CLASS && (() => {
+                        const counts = il2cppEngine.getClassCounts(res.classIndex);
+                        return (
+                          <div className="flex items-center gap-1 sm:gap-1.5 font-mono-code text-[8.5px] sm:text-xs">
+                            <span
+                              className="w-[36px] sm:w-[86px] py-0.2 sm:py-0.5 text-center inline-flex items-center justify-center rounded bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 whitespace-nowrap font-medium"
+                              title={`${counts.fieldCount} Fields`}
+                            >
+                              <span>{counts.fieldCount}</span>
+                              <span className="hidden sm:inline">&nbsp;{counts.fieldCount === 1 ? 'field' : 'fields'}</span>
+                              <span className="sm:hidden">&nbsp;f</span>
+                            </span>
+                            <span
+                              className="w-[36px] sm:w-[86px] py-0.2 sm:py-0.5 text-center inline-flex items-center justify-center rounded bg-blue-500/10 border border-blue-500/25 text-blue-300 whitespace-nowrap font-medium"
+                              title={`${counts.methodCount} Methods`}
+                            >
+                              <span>{counts.methodCount}</span>
+                              <span className="hidden sm:inline">&nbsp;{counts.methodCount === 1 ? 'method' : 'methods'}</span>
+                              <span className="sm:hidden">&nbsp;m</span>
+                            </span>
+                          </div>
+                        );
+                      })()}
                       {browserSettings.showRvaLabels && res.rvaLabel && (
-                        <span className="font-mono-code text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-[#1C1C1E] border border-[#353535] rounded text-indigo-300">
+                        <span className="font-mono-code text-[9px] sm:text-xs px-1 sm:px-2 py-0.2 sm:py-0.5 bg-[#1C1C1E] border border-[#353535] rounded text-indigo-300">
                           {res.rvaLabel}
                         </span>
                       )}
                       {browserSettings.showRvaLabels && res.offsetLabel && (
-                        <span className="font-mono-code text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-[#1C1C1E] border border-[#353535] rounded text-emerald-300">
+                        <span className="font-mono-code text-[9px] sm:text-xs px-1 sm:px-2 py-0.2 sm:py-0.5 bg-[#1C1C1E] border border-[#353535] rounded text-emerald-300">
                           {res.offsetLabel}
                         </span>
                       )}
-                      <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#8E8E93] group-hover:translate-x-0.5 transition-transform" />
+                      <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-[#8E8E93] group-hover:translate-x-0.5 transition-transform" />
                     </div>
                   </div>
-                ))}
-              </div>
+                )}
+              />
             )}
           </div>
         ) : currentLevel === DirectoryLevel.ASSEMBLIES ? (
           /* Level 1: Assemblies List */
           <div>
-            <div className="px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold text-[#8E8E93] border-b border-[#353535] bg-[#202020]/60 uppercase tracking-wider flex items-center justify-between">
-              <span>Assemblies · {assemblies.length}</span>
+            <div className="px-2.5 sm:px-4 py-1.5 sm:py-2.5 text-[10px] sm:text-xs font-semibold text-[#8E8E93] border-b border-[#353535] bg-[#202020]/60 uppercase tracking-wider flex items-center justify-between">
+              <span>Assemblies · {assemblies.length.toLocaleString()}</span>
               {renderTabletToolbar()}
             </div>
-            <div className={getGridClasses('standard')}>
-              {assemblies
-                .filter((a) => filterMatch(a.name))
-                .map((asm) => (
-                  <div
-                    key={asm.index}
-                    onClick={() => onSelectAssembly(asm.index)}
-                    className={`flex items-center justify-between ${
-                      isCompact ? 'p-2.5 sm:p-3' : 'p-3.5 sm:p-4'
-                    } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] hover:bg-[#2C2C2E] md:hover:to-[#1F1F24] border border-[#353535] md:border-[#38383E] hover:border-indigo-500/40 rounded-xl cursor-pointer group transition-all shadow-sm`}
-                  >
-                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
-                        <Layers className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-medium text-xs sm:text-sm text-[#E2E2E4] group-hover:text-white transition-colors truncate">
-                          {asm.name}
+            {(() => {
+              const matched = assemblies.filter((a) => filterMatch(a.name));
+              return (
+                <VirtualScrollList
+                  items={matched}
+                  scrollContainerRef={scrollContainerRef}
+                  estimatedItemHeight={isCompact ? 42 : 56}
+                  columns={getColumnsConfig('standard')}
+                  gridClassName={getGridClasses('standard')}
+                  renderItem={(asm) => (
+                    <div
+                      key={asm.index}
+                      onClick={() => handleSelectAssemblyAndClear(asm.index)}
+                      className={`flex items-center justify-between ${
+                        isCompact ? 'p-1.5 sm:p-2.5' : 'p-2.5 sm:p-3.5'
+                      } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] hover:bg-[#2C2C2E] md:hover:to-[#1F1F24] border border-[#353535] md:border-[#38383E] hover:border-indigo-500/40 rounded-lg sm:rounded-xl cursor-pointer group transition-all shadow-sm`}
+                    >
+                      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+                          <Layers className="w-3 h-3 sm:w-4 sm:h-4" />
                         </div>
-                        {browserSettings.showMetadata && (
-                          <div className="text-[11px] sm:text-xs text-[#8E8E93]">
-                            {asm.classCount || 0} classes
+                        <div className="min-w-0">
+                          <div className="font-medium text-[11px] sm:text-sm text-[#E2E2E4] group-hover:text-white transition-colors truncate">
+                            {asm.name}
                           </div>
-                        )}
+                          {browserSettings.showMetadata && (
+                            <div className="text-[9.5px] sm:text-xs text-[#8E8E93]">
+                              {asm.classCount || 0} classes
+                            </div>
+                          )}
+                        </div>
                       </div>
+                      <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-[#8E8E93] group-hover:translate-x-0.5 transition-transform shrink-0" />
                     </div>
-                    <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#8E8E93] group-hover:translate-x-0.5 transition-transform shrink-0" />
-                  </div>
-                ))}
-            </div>
+                  )}
+                />
+              );
+            })()}
           </div>
         ) : currentLevel === DirectoryLevel.NAMESPACES ? (
           /* Level 2: Namespaces & Global Classes */
           <div>
-            <div className="px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold text-[#8E8E93] border-b border-[#353535] bg-[#202020]/60 uppercase tracking-wider flex items-center justify-between">
-              <span>Namespaces · {namespaces.length}</span>
+            <div className="px-2.5 sm:px-4 py-1.5 sm:py-2.5 text-[10px] sm:text-xs font-semibold text-[#8E8E93] border-b border-[#353535] bg-[#202020]/60 uppercase tracking-wider flex items-center justify-between">
+              <span>Namespaces · {namespaces.length.toLocaleString()}</span>
               {renderTabletToolbar()}
             </div>
-            <div className={getGridClasses('standard')}>
-              {namespaces
-                .filter((ns) => filterMatch(ns.name || 'global'))
-                .map((ns) => (
-                  <div
-                    key={ns.index}
-                    onClick={() => onSelectNamespace(ns.name)}
-                    className={`flex items-center justify-between ${
-                      isCompact ? 'p-2.5 sm:p-3' : 'p-3.5 sm:p-4'
-                    } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] hover:bg-[#2C2C2E] md:hover:to-[#1F1F24] border border-[#353535] md:border-[#38383E] hover:border-amber-500/40 rounded-xl cursor-pointer group transition-all shadow-sm`}
-                  >
-                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
-                        <Folder className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-medium text-xs sm:text-sm text-[#E2E2E4] group-hover:text-white transition-colors truncate">
-                          {ns.name || '(global namespace)'}
+            {(() => {
+              const matched = namespaces.filter((ns) => filterMatch(ns.name || 'global'));
+              return (
+                <VirtualScrollList
+                  items={matched}
+                  scrollContainerRef={scrollContainerRef}
+                  estimatedItemHeight={isCompact ? 42 : 56}
+                  columns={getColumnsConfig('standard')}
+                  gridClassName={getGridClasses('standard')}
+                  renderItem={(ns) => (
+                    <div
+                      key={ns.index}
+                      onClick={() => handleSelectNamespaceAndClear(ns.name)}
+                      className={`flex items-center justify-between ${
+                        isCompact ? 'p-1.5 sm:p-2.5' : 'p-2.5 sm:p-3.5'
+                      } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] hover:bg-[#2C2C2E] md:hover:to-[#1F1F24] border border-[#353535] md:border-[#38383E] hover:border-amber-500/40 rounded-lg sm:rounded-xl cursor-pointer group transition-all shadow-sm`}
+                    >
+                      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
+                          <Folder className="w-3 h-3 sm:w-4 sm:h-4" />
                         </div>
-                        {browserSettings.showMetadata && (
-                          <div className="text-[11px] sm:text-xs text-[#8E8E93]">
-                            {ns.classCount || 0} classes
+                        <div className="min-w-0">
+                          <div className="font-medium text-[11px] sm:text-sm text-[#E2E2E4] group-hover:text-white transition-colors truncate">
+                            {ns.name || '(global namespace)'}
                           </div>
-                        )}
+                          {browserSettings.showMetadata && (
+                            <div className="text-[9.5px] sm:text-xs text-[#8E8E93]">
+                              {ns.classCount || 0} classes
+                            </div>
+                          )}
+                        </div>
                       </div>
+                      <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-[#8E8E93] group-hover:translate-x-0.5 transition-transform shrink-0" />
                     </div>
-                    <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#8E8E93] group-hover:translate-x-0.5 transition-transform shrink-0" />
-                  </div>
-                ))}
-            </div>
+                  )}
+                />
+              );
+            })()}
           </div>
         ) : currentLevel === DirectoryLevel.CLASSES ? (
           /* Level 3: Classes in Selected Namespace */
           <div>
-            <div className="px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold text-[#8E8E93] border-b border-[#353535] bg-[#202020]/60 uppercase tracking-wider flex items-center justify-between">
-              <span>Classes · {classesInNamespace.length}</span>
+            <div className="px-2.5 sm:px-4 py-1.5 sm:py-2.5 text-[10px] sm:text-xs font-semibold text-[#8E8E93] border-b border-[#353535] bg-[#202020]/60 uppercase tracking-wider flex items-center justify-between">
+              <span>Classes · {classesInNamespace.length.toLocaleString()}</span>
               {renderTabletToolbar()}
             </div>
-            <div className={getGridClasses('standard')}>
-              {classesInNamespace
-                .filter((c) => filterMatch(c.name))
-                .map((cls) => (
-                  <div
-                    key={cls.index}
-                    onClick={() => onSelectClass(cls.index)}
-                    className={`flex items-center justify-between ${
-                      isCompact ? 'p-2.5 sm:p-3' : 'p-3.5 sm:p-4'
-                    } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] hover:bg-[#2C2C2E] md:hover:to-[#1F1F24] border border-[#353535] md:border-[#38383E] hover:border-purple-500/40 rounded-xl cursor-pointer group transition-all shadow-sm`}
-                  >
-                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
-                        <Box className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-medium text-xs sm:text-sm text-[#E2E2E4] group-hover:text-white transition-colors truncate">
-                          {cls.name}
-                        </div>
-                        {browserSettings.showMetadata && (
-                          <div className="text-[11px] sm:text-xs text-[#8E8E93] truncate">
-                            {cls.parentType?.name ? `: ${cls.parentType.name}` : cls.namespaceName || 'global'}
+            {(() => {
+              const matchedClasses = classesInNamespace.filter(
+                (c) =>
+                  filterMatch(c.name) ||
+                  filterMatch(c.namespaceName ? `${c.namespaceName}.${c.name}` : undefined)
+              );
+
+              return (
+                <VirtualScrollList
+                  items={matchedClasses}
+                  scrollContainerRef={scrollContainerRef}
+                  estimatedItemHeight={isCompact ? 42 : 56}
+                  columns={getColumnsConfig('standard')}
+                  gridClassName={getGridClasses('standard')}
+                  renderItem={(cls) => {
+                    const counts = il2cppEngine.getClassCounts(cls.index);
+                    return (
+                      <div
+                        key={cls.index}
+                        onClick={() => handleSelectClassAndClear(cls.index)}
+                        className={`flex items-center justify-between ${
+                          isCompact ? 'p-1.5 sm:p-2.5' : 'p-2.5 sm:p-3.5'
+                        } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] hover:bg-[#2C2C2E] md:hover:to-[#1F1F24] border border-[#353535] md:border-[#38383E] hover:border-purple-500/40 rounded-lg sm:rounded-xl cursor-pointer group transition-all shadow-sm`}
+                      >
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0 pr-1.5 sm:pr-2">
+                          <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
+                            <Box className="w-3 h-3 sm:w-4 sm:h-4" />
                           </div>
-                        )}
+                          <div className="min-w-0">
+                            <div className="font-medium text-[11px] sm:text-sm text-[#E2E2E4] group-hover:text-white transition-colors truncate">
+                              {cls.name}
+                            </div>
+                            {browserSettings.showMetadata && (
+                              <div className="text-[9.5px] sm:text-xs text-[#8E8E93] truncate">
+                                {cls.parentType?.name ? `: ${cls.parentType.name}` : cls.namespaceName || 'global'}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                          <div className="flex items-center gap-1 sm:gap-1.5 font-mono-code text-[8.5px] sm:text-xs">
+                            <span
+                              className="w-[36px] sm:w-[86px] py-0.2 sm:py-0.5 text-center inline-flex items-center justify-center rounded bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 font-medium whitespace-nowrap"
+                              title={`${counts.fieldCount} Fields`}
+                            >
+                              <span>{counts.fieldCount}</span>
+                              <span className="hidden sm:inline">&nbsp;{counts.fieldCount === 1 ? 'field' : 'fields'}</span>
+                              <span className="sm:hidden">&nbsp;f</span>
+                            </span>
+                            <span
+                              className="w-[36px] sm:w-[86px] py-0.2 sm:py-0.5 text-center inline-flex items-center justify-center rounded bg-blue-500/10 border border-blue-500/25 text-blue-300 font-medium whitespace-nowrap"
+                              title={`${counts.methodCount} Methods`}
+                            >
+                              <span>{counts.methodCount}</span>
+                              <span className="hidden sm:inline">&nbsp;{counts.methodCount === 1 ? 'method' : 'methods'}</span>
+                              <span className="sm:hidden">&nbsp;m</span>
+                            </span>
+                          </div>
+                          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-[#8E8E93] group-hover:translate-x-0.5 transition-transform shrink-0" />
+                        </div>
                       </div>
-                    </div>
-                    <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#8E8E93] group-hover:translate-x-0.5 transition-transform shrink-0" />
-                  </div>
-                ))}
-            </div>
+                    );
+                  }}
+                />
+              );
+            })()}
           </div>
         ) : (
           /* Level 4: Class Details View */
           currentClassInfo && (
             <div className="flex flex-col">
               {/* Class Header Banner */}
-              <div className="p-3 sm:p-4 bg-[#1C1C1E] border-b border-[#353535]">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+              <div className="p-2.5 sm:p-4 bg-[#1C1C1E] border-b border-[#353535]">
+                <div className="flex items-start justify-between gap-2 sm:gap-4">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <span className="px-1.5 sm:px-2 py-0.2 sm:py-0.5 rounded text-[9px] sm:text-[10px] font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30">
                         CLASS
                       </span>
-                      <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                      <h2 className="text-xs sm:text-base md:text-lg font-bold text-white tracking-tight truncate">
                         {currentClassInfo.name}
                       </h2>
                     </div>
-                    <div className="text-xs text-[#8E8E93] mt-1 font-mono-code">
+                    <div className="text-[10px] sm:text-xs text-[#8E8E93] mt-0.5 sm:mt-1 font-mono-code truncate">
                       {currentClassInfo.namespaceName
                         ? `${currentClassInfo.namespaceName}.${currentClassInfo.name}`
                         : currentClassInfo.name}{' '}
@@ -488,7 +623,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                     <button
                       onClick={() =>
                         onCopyText(
@@ -498,30 +633,34 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                           'Class Full Name'
                         )
                       }
-                      className="p-1.5 sm:p-2 rounded-lg text-[#8E8E93] hover:text-white hover:bg-[#28282A] border border-[#353535]"
+                      className="p-1 sm:p-2 rounded-lg text-[#8E8E93] hover:text-white hover:bg-[#28282A] border border-[#353535]"
                       title="Copy full class name"
                     >
-                      <Copy className="w-3.5 h-3.5" />
+                      <Copy className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                     </button>
                   </div>
                 </div>
 
                 {/* Class Metadata Badges */}
                 {browserSettings.showMetadata && (
-                  <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2.5 sm:mt-3 text-xs text-[#8E8E93]">
+                  <div className="flex flex-wrap gap-1 sm:gap-2 mt-1.5 sm:mt-3 text-xs text-[#8E8E93]">
                     {currentClassInfo.parentType?.name && (
-                      <div className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded bg-[#28282A] border border-[#353535] font-mono-code text-[10px] sm:text-[11px]">
+                      <div className="px-1.5 sm:px-2.5 py-0.2 sm:py-1 rounded bg-[#28282A] border border-[#353535] font-mono-code text-[9px] sm:text-[11px]">
                         Base: <span className="text-[#E2E2E4]">{currentClassInfo.parentType.name}</span>
                       </div>
                     )}
-                    {currentClassInfo.sizes && (
-                      <div className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded bg-[#28282A] border border-[#353535] font-mono-code text-[10px] sm:text-[11px]">
-                        Size: <span className="text-[#E2E2E4]">0x{currentClassInfo.sizes.instanceSize.toString(16)}</span>
-                      </div>
+                    {currentClassInfo.typeInfoHex && (
+                      <button
+                        onClick={() =>
+                          onCopyText(currentClassInfo.typeInfoHex!, 'Class TypeInfo')
+                        }
+                        className="flex items-center gap-1 px-1.5 sm:px-2.5 py-0.2 sm:py-1 rounded bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 font-mono-code text-[9px] sm:text-[11px] text-purple-300 transition-colors"
+                        title="Copy TypeInfo Pointer"
+                      >
+                        <span>TypeInfo: {currentClassInfo.typeInfoHex}</span>
+                        <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-purple-400" />
+                      </button>
                     )}
-                    <div className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded bg-[#28282A] border border-[#353535] font-mono-code text-[10px] sm:text-[11px]">
-                      Token: <span className="text-[#E2E2E4]">0x{currentClassInfo.token.toString(16)}</span>
-                    </div>
                   </div>
                 )}
               </div>
@@ -530,26 +669,26 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
               <div className="flex items-center justify-between border-b border-[#353535] bg-[#1E1E20] sticky top-0 z-10 pr-2">
                 <div className="flex flex-1">
                   <button
-                    onClick={() => setClassTab(ClassTab.METHODS)}
-                    className={`flex-1 py-2.5 sm:py-3 text-xs font-semibold flex items-center justify-center gap-1.5 sm:gap-2 border-b-2 transition-colors ${
-                      classTab === ClassTab.METHODS
-                        ? 'border-indigo-500 text-white bg-[#242426]'
-                        : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4]'
-                    }`}
-                  >
-                    <Code2 className="w-3.5 h-3.5" />
-                    <span>METHODS ({currentMethods.length})</span>
-                  </button>
-                  <button
                     onClick={() => setClassTab(ClassTab.FIELDS)}
-                    className={`flex-1 py-2.5 sm:py-3 text-xs font-semibold flex items-center justify-center gap-1.5 sm:gap-2 border-b-2 transition-colors ${
+                    className={`flex-1 py-1.5 sm:py-3 text-[10px] sm:text-xs font-semibold flex items-center justify-center gap-1 sm:gap-2 border-b-2 transition-colors ${
                       classTab === ClassTab.FIELDS
                         ? 'border-indigo-500 text-white bg-[#242426]'
                         : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4]'
                     }`}
                   >
-                    <Tag className="w-3.5 h-3.5" />
+                    <Tag className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                     <span>FIELDS ({currentFields.length})</span>
+                  </button>
+                  <button
+                    onClick={() => setClassTab(ClassTab.METHODS)}
+                    className={`flex-1 py-1.5 sm:py-3 text-[10px] sm:text-xs font-semibold flex items-center justify-center gap-1 sm:gap-2 border-b-2 transition-colors ${
+                      classTab === ClassTab.METHODS
+                        ? 'border-indigo-500 text-white bg-[#242426]'
+                        : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4]'
+                    }`}
+                  >
+                    <Code2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                    <span>METHODS ({currentMethods.length})</span>
                   </button>
                 </div>
 
@@ -557,153 +696,146 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                 {renderTabletToolbar()}
               </div>
 
-              {/* Tab Content: Methods List */}
-              {classTab === ClassTab.METHODS && (
-                <div className={getGridClasses('methods')}>
-                  {currentMethods.length === 0 ? (
-                    <div className="p-8 col-span-full text-center text-xs sm:text-sm text-[#8E8E93]">
-                      This class declares no methods.
+              {/* Tab Content: Fields List */}
+              {classTab === ClassTab.FIELDS && (
+                <div>
+                  {currentFields.length === 0 ? (
+                    <div className="p-6 sm:p-8 text-center text-xs sm:text-sm text-[#8E8E93]">
+                      This class declares no fields.
                     </div>
-                  ) : (
-                      currentMethods
-                      .filter((m) => filterMatch(m.name) || filterMatch(m.signature))
-                      .map((method) => (
-                        <div
-                          key={method.index}
-                          className={`${
-                            isCompact ? 'p-2.5 sm:p-3' : 'p-3.5 sm:p-4'
-                          } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] border border-[#353535] md:border-[#38383E] rounded-xl hover:bg-[#2A2A2D] md:hover:to-[#1F1F24] transition-all flex flex-col justify-between group shadow-sm`}
-                        >
-                          <div className="min-w-0 flex-1">
-                            {/* Line 1: Method Signature / Name */}
-                            <div className="font-semibold text-xs sm:text-sm text-white font-mono-code tracking-tight break-words leading-snug">
-                              {method.signature || method.name}
+                  ) : (() => {
+                    const matchedFields = currentFields.filter(
+                      (f) => filterMatch(f.name) || filterMatch(f.typeName)
+                    );
+
+                    return (
+                      <VirtualScrollList
+                        items={matchedFields}
+                        scrollContainerRef={scrollContainerRef}
+                        estimatedItemHeight={isCompact ? 40 : 54}
+                        columns={getColumnsConfig('standard')}
+                        gridClassName={getGridClasses('standard')}
+                        renderItem={(field) => (
+                          <div
+                            key={field.index}
+                            className={`${
+                              isCompact ? 'p-1.5 sm:p-2.5' : 'p-2.5 sm:p-3.5'
+                            } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] border border-[#353535] md:border-[#38383E] rounded-lg sm:rounded-xl hover:bg-[#2A2A2D] md:hover:to-[#1F1F24] transition-all flex items-center justify-between gap-1.5 sm:gap-3 group shadow-sm`}
+                          >
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1 sm:gap-2 font-mono-code text-[11px] sm:text-sm">
+                                {field.isStatic && (
+                                  <span className="px-1 sm:px-1.5 py-0.2 rounded text-[8px] sm:text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                    STATIC
+                                  </span>
+                                )}
+                                <span className="font-semibold text-white truncate">{field.name}</span>
+                              </div>
+                              {browserSettings.showMetadata && (
+                                <div className="text-[9.5px] sm:text-xs text-[#8E8E93] font-mono-code mt-0.5 truncate">
+                                  {field.typeName || 'object'}
+                                </div>
+                              )}
                             </div>
 
-                            {/* Line 2: RVA and VA Pills */}
-                            {browserSettings.showRvaLabels && (method.rva || method.address) && (
-                              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-2 text-xs font-mono-code">
-                                {method.rva && (
-                                  <button
-                                    onClick={() =>
-                                      onCopyText(
-                                        `0x${method.rva!.toString(16).toUpperCase()}`,
-                                        'RVA'
-                                      )
-                                    }
-                                    className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#1C1C1E] hover:bg-[#353535] text-indigo-300 border border-indigo-500/30 transition-colors text-[10px] sm:text-xs font-medium"
-                                    title="Copy RVA"
-                                  >
-                                    <span>RVA: 0x{method.rva.toString(16).toUpperCase()}</span>
-                                    <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#8E8E93]" />
-                                  </button>
-                                )}
-                                {method.address && (
-                                  <button
-                                    onClick={() =>
-                                      onCopyText(
-                                        `0x${method.address!.toString(16).toUpperCase()}`,
-                                        'VA'
-                                      )
-                                    }
-                                    className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#1C1C1E] hover:bg-[#353535] text-sky-300 border border-sky-500/30 transition-colors text-[10px] sm:text-xs font-medium"
-                                    title="Copy VA"
-                                  >
-                                    <span>VA: 0x{method.address.toString(16).toUpperCase()}</span>
-                                    <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#8E8E93]" />
-                                  </button>
-                                )}
-                              </div>
-                            )}
+                            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                              {field.offset !== undefined && (
+                                <button
+                                  onClick={() =>
+                                    onCopyText(
+                                      `0x${field.offset!.toString(16)}`,
+                                      'Field Offset'
+                                    )
+                                  }
+                                  className="flex items-center gap-1 px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded bg-[#1C1C1E] hover:bg-[#353535] text-emerald-300 font-mono-code text-[9.5px] sm:text-xs border border-[#353535] transition-colors"
+                                  title="Copy offset"
+                                >
+                                  <span>0x{field.offset.toString(16)}</span>
+                                  <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#8E8E93]" />
+                                </button>
+                              )}
+                            </div>
                           </div>
-
-                          {/* Line 3: Quick Method Actions (Call Graph + Disasm) */}
-                          <div className="grid grid-cols-2 gap-2 mt-3 pt-2.5 border-t border-[#303034]">
-                            <button
-                              onClick={() =>
-                                onInspectMethod(currentClassInfo.index, method.index, 'graph')
-                              }
-                              className="flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 text-[11px] sm:text-xs font-medium transition-colors shadow-sm"
-                              title="Trace Call Graph"
-                            >
-                              <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                              <span className="truncate">Call Graph</span>
-                            </button>
-
-                            <button
-                              onClick={() =>
-                                onInspectMethod(
-                                  currentClassInfo.index,
-                                  method.index,
-                                  'instructions'
-                                )
-                              }
-                              className="flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg bg-[#2D2D30] hover:bg-[#3A3A3E] text-[#E2E2E4] hover:text-white border border-[#444448] text-[11px] sm:text-xs font-medium transition-colors shadow-sm"
-                              title="Disassemble Instructions"
-                            >
-                              <ExternalLink className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                              <span className="truncate">Disasm</span>
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                  )}
+                        )}
+                      />
+                    );
+                  })()}
                 </div>
               )}
 
-              {/* Tab Content: Fields List */}
-              {classTab === ClassTab.FIELDS && (
-                <div className={getGridClasses('standard')}>
-                  {currentFields.length === 0 ? (
-                    <div className="p-8 col-span-full text-center text-xs sm:text-sm text-[#8E8E93]">
-                      This class declares no fields.
+              {/* Tab Content: Methods List */}
+              {classTab === ClassTab.METHODS && (
+                <div>
+                  {currentMethods.length === 0 ? (
+                    <div className="p-6 sm:p-8 text-center text-xs sm:text-sm text-[#8E8E93]">
+                      This class declares no methods.
                     </div>
-                  ) : (
-                    currentFields
-                      .filter((f) => filterMatch(f.name) || filterMatch(f.typeName))
-                      .map((field) => (
-                        <div
-                          key={field.index}
-                          className={`${
-                            isCompact ? 'p-2.5 sm:p-3' : 'p-3.5 sm:p-4'
-                          } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] border border-[#353535] md:border-[#38383E] rounded-xl hover:bg-[#2A2A2D] md:hover:to-[#1F1F24] transition-all flex items-center justify-between gap-2.5 sm:gap-3 group shadow-sm`}
-                        >
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5 sm:gap-2 font-mono-code text-xs sm:text-sm">
-                              {field.isStatic && (
-                                <span className="px-1.5 py-0.2 rounded text-[9px] sm:text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                                  STATIC
-                                </span>
-                              )}
-                              <span className="font-semibold text-white truncate">{field.name}</span>
-                            </div>
-                            {browserSettings.showMetadata && (
-                              <div className="text-[11px] sm:text-xs text-[#8E8E93] font-mono-code mt-0.5 truncate">
-                                {field.typeName || 'object'}
-                              </div>
-                            )}
-                          </div>
+                  ) : (() => {
+                    const matchedMethods = currentMethods.filter(
+                      (m) => filterMatch(m.name) || filterMatch(m.signature)
+                    );
 
-                          <div className="flex items-center gap-2 shrink-0">
-                            {field.offset !== undefined && (
-                              <button
-                                onClick={() =>
-                                  onCopyText(
-                                    `0x${field.offset!.toString(16)}`,
-                                    'Field Offset'
-                                  )
-                                }
-                                className="flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded bg-[#1C1C1E] hover:bg-[#353535] text-emerald-300 font-mono-code text-[11px] sm:text-xs border border-[#353535] transition-colors"
-                                title="Copy offset"
-                              >
-                                <span>Offset: 0x{field.offset.toString(16)}</span>
-                                <Copy className="w-3 h-3 text-[#8E8E93]" />
-                              </button>
-                            )}
+                    return (
+                      <VirtualScrollList
+                        items={matchedMethods}
+                        scrollContainerRef={scrollContainerRef}
+                        estimatedItemHeight={isCompact ? 52 : 70}
+                        columns={getColumnsConfig('methods')}
+                        gridClassName={getGridClasses('methods')}
+                        renderItem={(method) => (
+                          <div
+                            key={method.index}
+                            className={`${
+                              isCompact ? 'p-1.5 sm:p-2.5' : 'p-2.5 sm:p-3.5'
+                            } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] border border-[#353535] md:border-[#38383E] rounded-lg sm:rounded-xl hover:bg-[#2A2A2D] md:hover:to-[#1F1F24] transition-all flex flex-col justify-between group shadow-sm`}
+                          >
+                            <div className="min-w-0 flex-1">
+                              {/* Line 1: Method Signature / Name */}
+                              <div className="font-semibold text-[11px] sm:text-sm text-white font-mono-code tracking-tight break-words leading-snug">
+                                {method.signature || method.name}
+                              </div>
+
+                              {/* Line 2: RVA and TypeInfo Pills */}
+                              {browserSettings.showRvaLabels && (method.rva || method.typeInfoHex) && (
+                                <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-1 sm:mt-2 text-xs font-mono-code">
+                                  {method.rva && (
+                                    <button
+                                      onClick={() =>
+                                        onCopyText(
+                                          `0x${method.rva!.toString(16).toUpperCase()}`,
+                                          'RVA'
+                                        )
+                                      }
+                                      className="flex items-center gap-1 px-1.5 sm:px-2 py-0.2 sm:py-0.5 rounded bg-[#1C1C1E] hover:bg-[#353535] text-indigo-300 border border-indigo-500/30 transition-colors text-[9px] sm:text-xs font-medium"
+                                      title="Copy RVA"
+                                    >
+                                      <span>RVA: 0x{method.rva.toString(16).toUpperCase()}</span>
+                                      <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#8E8E93]" />
+                                    </button>
+                                  )}
+                                  {method.typeInfoHex && (
+                                    <button
+                                      onClick={() =>
+                                        onCopyText(
+                                          method.typeInfoHex!,
+                                          'Method TypeInfo'
+                                        )
+                                      }
+                                      className="flex items-center gap-1 px-1.5 sm:px-2 py-0.2 sm:py-0.5 rounded bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 transition-colors text-[9px] sm:text-xs font-medium"
+                                      title="Copy Method TypeInfo"
+                                    >
+                                      <span>TypeInfo: {method.typeInfoHex}</span>
+                                      <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-purple-400" />
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))
-                  )}
+                        )}
+                      />
+                    );
+                  })()}
                 </div>
               )}
             </div>

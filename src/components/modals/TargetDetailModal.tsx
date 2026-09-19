@@ -85,6 +85,9 @@ export const TargetDetailModal: React.FC<TargetDetailModalProps> = ({
                 >
                   {viewingTargetItem.kind}
                 </span>
+                <span className="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded font-mono bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 shrink-0">
+                  {viewingTargetItem.resolvedAssemblyName || viewingTargetItem.assemblyName || 'Assembly-CSharp.dll'}
+                </span>
                 {viewingTargetItem.resolvedViaFallback && (
                   <span className="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20 shrink-0">
                     Fallback Match
@@ -134,8 +137,27 @@ export const TargetDetailModal: React.FC<TargetDetailModalProps> = ({
         {/* Modal Scrollable Body */}
         <div className="p-3.5 sm:p-5 flex-1 overflow-y-auto space-y-3.5 overscroll-contain text-[11px] sm:text-xs">
           
-          {/* Target Class & Target Method/Field Details */}
+          {/* Target Assembly, Class & Method/Field Details */}
           <div className="p-3.5 rounded-xl bg-[#141417] border border-[#27272B] space-y-3">
+            {/* Assembly / DLL info */}
+            <div className="flex flex-col gap-1 p-2.5 rounded-lg bg-[#18181C] border border-[#26262B]">
+              <div className="flex items-center justify-between">
+                <span className="text-[#8E8E93] uppercase text-[9px] font-semibold tracking-wider flex items-center gap-1.5">
+                  <span>Assembly Module (.dll)</span>
+                </span>
+                <button
+                  onClick={() => handleCopy(viewingTargetItem.resolvedAssemblyName || viewingTargetItem.assemblyName || 'Assembly-CSharp.dll', 'Assembly / DLL', 'dll')}
+                  className="text-[#A1A1AA] hover:text-indigo-300 transition-colors"
+                  title="Copy Assembly (.dll)"
+                >
+                  {copiedKey === 'dll' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                </button>
+              </div>
+              <span className="text-indigo-300 font-mono text-xs font-semibold truncate select-all">
+                {viewingTargetItem.resolvedAssemblyName || viewingTargetItem.assemblyName || 'Assembly-CSharp.dll'}
+              </span>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[10px] sm:text-xs">
               
               {/* Class Name */}

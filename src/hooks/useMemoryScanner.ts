@@ -82,35 +82,87 @@ export function useMemoryScanner(initialHistory: ScanHistoryRecord[]) {
         let matchedMethod: any | undefined;
         let matchedClassName = '';
         let matchedMemberName = '';
+        let matchedAssemblyName = '';
 
         for (const cName of candidateClasses) {
-          const foundCls = allClasses.find((c) => c.name.toLowerCase() === cName.toLowerCase());
-          if (!foundCls) continue;
+          const isClassMatching = (c: typeof allClasses[0]) => {
+            const cleanInput = cName.trim().toLowerCase();
+            const cNameLower = c.name.toLowerCase();
+            const nsLower = (c.namespaceName && c.namespaceName !== '-' ? c.namespaceName : '').toLowerCase();
 
-          if (item.kind === 'FIELD') {
-            const fields = il2cppEngine.getFields(foundCls.index);
-            for (const mName of candidateMembers) {
-              const foundF = fields.find((f) => f.name.toLowerCase() === mName.toLowerCase());
-              if (foundF && foundF.offset !== undefined) {
-                matchedClass = foundCls;
-                matchedField = foundF;
-                matchedClassName = foundCls.name;
-                matchedMemberName = foundF.name;
-                break;
+            // 1. Direct class name match
+            if (cNameLower === cleanInput) return true;
+
+            // 2. Namespace::ClassName match (e.g. COW.GamePlay::CameraControllerBase)
+            if (cleanInput.includes('::')) {
+              const parts = cleanInput.split('::').map((p) => p.trim());
+              if (parts.length === 2) {
+                const [nsPart, namePart] = parts;
+                return cNameLower === namePart && (nsLower === nsPart || (!nsLower && !nsPart));
               }
             }
-          } else {
-            const methods = il2cppEngine.getMethods(foundCls.index);
-            for (const mName of candidateMembers) {
-              const foundM = methods.find((m) => m.name.toLowerCase() === mName.toLowerCase());
-              if (foundM) {
-                matchedClass = foundCls;
-                matchedMethod = foundM;
-                matchedClassName = foundCls.name;
-                matchedMemberName = foundM.name;
-                break;
+
+            // 3. Namespace.ClassName match (e.g. COW.GamePlay.CameraControllerBase)
+            if (nsLower) {
+              if (`${nsLower}::${cNameLower}` === cleanInput) return true;
+              if (`${nsLower}.${cNameLower}` === cleanInput) return true;
+            }
+
+            return false;
+          };
+
+          // If assemblyName is provided on target, prioritize classes from that assembly
+          const matchingClasses = allClasses.filter((c) => {
+            if (!isClassMatching(c)) return false;
+            if (item.assemblyName?.trim()) {
+              const targetDll = item.assemblyName.trim().toLowerCase();
+              const asm = allAssemblies.find((a) => a.index === c.assemblyIndex);
+              const asmName = (c.assemblyName || asm?.name || '').toLowerCase();
+              return asmName.includes(targetDll) || targetDll.includes(asmName);
+            }
+            return true;
+          });
+
+          // Fall back to any class match if strict assembly match didn't yield
+          const candidateClassList = matchingClasses.length > 0
+            ? matchingClasses
+            : allClasses.filter((c) => isClassMatching(c));
+
+          for (const foundCls of candidateClassList) {
+            const formattedResolvedClassName = foundCls.namespaceName && foundCls.namespaceName !== '-'
+              ? `${foundCls.namespaceName}::${foundCls.name}`
+              : foundCls.name;
+
+            if (item.kind === 'FIELD') {
+              const fields = il2cppEngine.getFields(foundCls.index);
+              for (const mName of candidateMembers) {
+                const foundF = fields.find((f) => f.name.toLowerCase() === mName.toLowerCase());
+                if (foundF && foundF.offset !== undefined) {
+                  matchedClass = foundCls;
+                  matchedField = foundF;
+                  matchedClassName = formattedResolvedClassName;
+                  matchedMemberName = foundF.name;
+                  const asm = allAssemblies.find((a) => a.index === foundCls.assemblyIndex);
+                  matchedAssemblyName = foundCls.assemblyName || asm?.name || 'Assembly-CSharp.dll';
+                  break;
+                }
+              }
+            } else {
+              const methods = il2cppEngine.getMethods(foundCls.index);
+              for (const mName of candidateMembers) {
+                const foundM = methods.find((m) => m.name.toLowerCase() === mName.toLowerCase());
+                if (foundM) {
+                  matchedClass = foundCls;
+                  matchedMethod = foundM;
+                  matchedClassName = formattedResolvedClassName;
+                  matchedMemberName = foundM.name;
+                  const asm = allAssemblies.find((a) => a.index === foundCls.assemblyIndex);
+                  matchedAssemblyName = foundCls.assemblyName || asm?.name || 'Assembly-CSharp.dll';
+                  break;
+                }
               }
             }
+            if (matchedClass) break;
           }
 
           if (matchedClass) break;
@@ -124,6 +176,7 @@ export function useMemoryScanner(initialHistory: ScanHistoryRecord[]) {
             resolvedViaFallback: false,
             resolvedClassName: undefined,
             resolvedMemberName: undefined,
+            resolvedAssemblyName: undefined,
             offsetHex: undefined,
             rvaHex: undefined,
             vaHex: undefined,
@@ -139,9 +192,9 @@ export function useMemoryScanner(initialHistory: ScanHistoryRecord[]) {
         if (item.kind === 'FIELD' && matchedField) {
           const offsetHex = `0x${matchedField.offset.toString(16).toUpperCase()}`;
           if (isFallbackUsed) {
-            addLog(`[FALLBACK] ${item.className}.${item.memberName} -> Matched ${matchedClassName}.${matchedMemberName} @ ${offsetHex}`, 'success');
+            addLog(`[FALLBACK] [${matchedAssemblyName}] ${item.className}.${item.memberName} -> Matched ${matchedClassName}.${matchedMemberName} @ ${offsetHex}`, 'success');
           } else {
-            addLog(`[MATCH] ${matchedClassName}.${matchedMemberName} -> Offset: ${offsetHex}`, 'success');
+            addLog(`[MATCH] [${matchedAssemblyName}] ${matchedClassName}.${matchedMemberName} -> Offset: ${offsetHex}`, 'success');
           }
 
           return {
@@ -150,6 +203,8 @@ export function useMemoryScanner(initialHistory: ScanHistoryRecord[]) {
             resolvedViaFallback: isFallbackUsed,
             resolvedClassName: matchedClassName,
             resolvedMemberName: matchedMemberName,
+            resolvedAssemblyName: matchedAssemblyName,
+            assemblyName: item.assemblyName || matchedAssemblyName,
             offsetHex,
             typeName: matchedField.typeName || 'object',
             classIndex: matchedClass.index,
@@ -160,9 +215,9 @@ export function useMemoryScanner(initialHistory: ScanHistoryRecord[]) {
           const rvaStr = matchedMethod.rva ? `0x${matchedMethod.rva.toString(16).toUpperCase()}` : '0x0';
           const vaStr = matchedMethod.address ? `0x${matchedMethod.address.toString(16).toUpperCase()}` : '0x0';
           if (isFallbackUsed) {
-            addLog(`[FALLBACK] ${item.className}.${item.memberName} -> Matched ${matchedClassName}.${matchedMemberName} @ RVA ${rvaStr}`, 'success');
+            addLog(`[FALLBACK] [${matchedAssemblyName}] ${item.className}.${item.memberName} -> Matched ${matchedClassName}.${matchedMemberName} @ RVA ${rvaStr}`, 'success');
           } else {
-            addLog(`[MATCH] ${matchedClassName}.${matchedMemberName} -> RVA: ${rvaStr}`, 'success');
+            addLog(`[MATCH] [${matchedAssemblyName}] ${matchedClassName}.${matchedMemberName} -> RVA: ${rvaStr}`, 'success');
           }
 
           return {
@@ -171,6 +226,8 @@ export function useMemoryScanner(initialHistory: ScanHistoryRecord[]) {
             resolvedViaFallback: isFallbackUsed,
             resolvedClassName: matchedClassName,
             resolvedMemberName: matchedMemberName,
+            resolvedAssemblyName: matchedAssemblyName,
+            assemblyName: item.assemblyName || matchedAssemblyName,
             rvaHex: rvaStr,
             vaHex: vaStr,
             signature: matchedMethod.signature,
@@ -210,6 +267,7 @@ export function useMemoryScanner(initialHistory: ScanHistoryRecord[]) {
         items: scannedItems.map((i) => ({
           id: i.id,
           customName: i.customName,
+          assemblyName: i.assemblyName,
           className: i.className,
           memberName: i.memberName,
           kind: i.kind,
@@ -222,6 +280,7 @@ export function useMemoryScanner(initialHistory: ScanHistoryRecord[]) {
           resolvedViaFallback: i.resolvedViaFallback,
           resolvedClassName: i.resolvedClassName,
           resolvedMemberName: i.resolvedMemberName,
+          resolvedAssemblyName: i.resolvedAssemblyName,
           classIndex: i.classIndex,
           memberIndex: i.memberIndex,
           resolved: i.resolved,

@@ -8,9 +8,11 @@ interface EditTargetModalProps {
   activeProfile: WatchlistProfile | undefined;
   editingTargetItem: WatchlistTargetItem | null;
   editTargetKind: 'FIELD' | 'METHOD';
-  setEditTargetKind: (kind: 'FIELD' | 'METHOD') => void;
+  setEditTargetKind?: (kind: 'FIELD' | 'METHOD') => void;
   editTargetCustomName: string;
   setEditTargetCustomName: (val: string) => void;
+  editTargetAssemblyName?: string;
+  setEditTargetAssemblyName?: (val: string) => void;
   editTargetClassName: string;
   setEditTargetClassName: (val: string) => void;
   editTargetMemberName: string;
@@ -32,8 +34,10 @@ interface EditTargetModalProps {
 }
 
 export const EditTargetModal: React.FC<EditTargetModalProps> = ({
-  isOpen, onClose, activeProfile, editingTargetItem, editTargetKind, setEditTargetKind,
-  editTargetCustomName, setEditTargetCustomName, editTargetClassName, setEditTargetClassName,
+  isOpen, onClose, activeProfile, editingTargetItem, editTargetKind,
+  editTargetCustomName, setEditTargetCustomName,
+  editTargetAssemblyName = '', setEditTargetAssemblyName,
+  editTargetClassName, setEditTargetClassName,
   editTargetMemberName, setEditTargetMemberName, editTargetComment, setEditTargetComment,
   showEditFallbacks, setShowEditFallbacks, editTempFallbackClassInput, setEditTempFallbackClassInput,
   editTempFallbackMemberInput, setEditTempFallbackMemberInput, editTargetFallbackClasses, setEditTargetFallbackClasses,
@@ -51,8 +55,14 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
                   <Pencil className="w-3 h-3 sm:w-4 sm:h-4 text-indigo-400 shrink-0" />
                   <span className="truncate">Edit Target</span>
                 </h3>
-                <span className="text-[9px] sm:text-xs text-indigo-300 font-mono bg-indigo-500/10 px-1.5 sm:px-2 py-0.5 rounded border border-indigo-500/20 truncate max-w-[110px] sm:max-w-[180px]">
-                  {activeProfile?.name}
+                <span
+                  className={`text-[9px] sm:text-xs font-mono font-semibold px-2 py-0.5 rounded border ${
+                    editTargetKind === 'FIELD'
+                      ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                      : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                  }`}
+                >
+                  {editTargetKind === 'FIELD' ? 'FIELD' : 'METHOD'}
                 </span>
               </div>
 
@@ -108,34 +118,6 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
             {/* Scrollable Modal Body */}
             <div className="p-3 sm:p-5 flex-1 overflow-y-auto space-y-3 sm:space-y-4 overscroll-contain pr-2">
               <div className="flex flex-col gap-1.5">
-                <label className="text-[9px] sm:text-xs font-medium text-[#8E8E93] ml-1">Target Type</label>
-                <div className="flex items-center gap-3 p-1 bg-[#141416] border border-[#353538] rounded-xl sm:rounded-2xl">
-                  <button
-                    type="button"
-                    onClick={() => setEditTargetKind('FIELD')}
-                    className={`flex-1 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[9px] sm:text-xs font-bold transition-all ${
-                      editTargetKind === 'FIELD'
-                        ? 'bg-amber-500/20 text-amber-400 shadow-sm'
-                        : 'text-[#8E8E93] hover:text-[#E2E2E4]'
-                    }`}
-                  >
-                    Field (Offset)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditTargetKind('METHOD')}
-                    className={`flex-1 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[9px] sm:text-xs font-bold transition-all ${
-                      editTargetKind === 'METHOD'
-                        ? 'bg-emerald-500/20 text-emerald-400 shadow-sm'
-                        : 'text-[#8E8E93] hover:text-[#E2E2E4]'
-                    }`}
-                  >
-                    Method (RVA)
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
                 <label className="text-[9px] sm:text-xs font-medium text-[#8E8E93] ml-1">
                   Custom Name / Display Label (Optional)
                 </label>
@@ -148,14 +130,31 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
                 />
               </div>
 
+              {/* Assembly / DLL Name */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[9px] sm:text-xs font-medium text-[#8E8E93] ml-1">Primary Class Name</label>
+                <label className="text-[9px] sm:text-xs font-medium text-[#8E8E93] ml-1">
+                  Assembly / DLL (.dll) (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={editTargetAssemblyName}
+                  onChange={(e) => setEditTargetAssemblyName && setEditTargetAssemblyName(e.target.value)}
+                  placeholder="e.g. Assembly-CSharp.dll"
+                  className="w-full px-2.5 sm:px-4 py-1.5 sm:py-2.5 bg-[#141416] border border-[#353538] rounded-xl sm:rounded-2xl text-[10px] sm:text-sm text-[#E2E2E4] focus:outline-none focus:border-indigo-500 font-mono placeholder:text-[#55555A]"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between ml-1">
+                  <label className="text-[9px] sm:text-xs font-medium text-[#8E8E93]">Primary Class Name</label>
+                  <span className="text-[8px] sm:text-[10px] text-indigo-400 font-mono">Namespace::ClassName</span>
+                </div>
                 <input
                   type="text"
                   value={editTargetClassName}
                   onChange={(e) => setEditTargetClassName(e.target.value)}
-                  placeholder="e.g. PlayerController"
-                  className="w-full px-2.5 sm:px-4 py-1.5 sm:py-2.5 bg-[#141416] border border-[#353538] rounded-xl sm:rounded-2xl text-[10px] sm:text-sm text-[#E2E2E4] focus:outline-none focus:border-indigo-500 font-mono"
+                  placeholder="e.g. COW.GamePlay::CameraControllerBase or PlayerController"
+                  className="w-full px-2.5 sm:px-4 py-1.5 sm:py-2.5 bg-[#141416] border border-[#353538] rounded-xl sm:rounded-2xl text-[10px] sm:text-sm text-[#E2E2E4] focus:outline-none focus:border-indigo-500 font-mono placeholder:text-[#55555A]"
                 />
               </div>
 
@@ -249,7 +248,7 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
                               setEditTempFallbackClassInput('');
                             }
                           }}
-                          placeholder="e.g. PlayerMovement"
+                          placeholder="e.g. COW.GamePlay::CameraController or PlayerMovement"
                           className="flex-1 px-1.5 sm:px-3 py-1 sm:py-2 bg-[#1A1A1D] border border-[#353538] rounded-lg sm:rounded-xl text-[9px] sm:text-xs text-[#E2E2E4] focus:outline-none focus:border-indigo-500 font-mono"
                         />
                         <button

@@ -20,7 +20,6 @@ import { useMemoryScanner } from '../hooks/useMemoryScanner';
 
 import {
   ProcessDescriptor,
-  TargetSourceMode,
   WatchlistProfile,
   WatchlistTargetItem,
   ScanHistoryRecord,
@@ -37,40 +36,36 @@ import { il2cppEngine } from '../services/il2cppEngine';
 import { DEFAULT_SCAN_HISTORY, DEFAULT_PROFILES } from '../data/tempData';
 
 interface MainDashboardProps {
-  currentProcess: ProcessDescriptor | null;
+  currentProcess?: ProcessDescriptor | null;
   storageDumpName?: string | null;
   onStorageDumpLoaded?: (fileName: string | null) => void;
-  onOpenProcessPicker: () => void;
+  onOpenProcessPicker?: () => void;
   onNavigateToBrowser?: (classIndex?: number) => void;
   onCopyText: (text: string, label: string) => void;
   showToast: (msg: string) => void;
 }
 
-
-
-
 export const MainDashboard: React.FC<MainDashboardProps> = ({
   currentProcess,
   storageDumpName,
   onStorageDumpLoaded,
-  onOpenProcessPicker,
   onCopyText,
   showToast,
 }) => {
   // Dashboard Navigation State
   const [activeTab, setActiveTab] = useState<'target' | 'watchlist' | 'history'>('target');
 
-  // Source Selection Mode: 'live' (Target Process) or 'storage' (dump.cs / file storage)
-  const [sourceMode, setSourceMode] = useState<TargetSourceMode>('live');
-
-  // Storage dump upload state
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Storage dump state
+  const [storageMeta, setStorageMeta] = useState(() => il2cppEngine.getStorageMeta());
   const [loadedStorageFileName, setLoadedStorageFileName] = useState<string | null>(storageDumpName || null);
+  const [loadedHeaderFileName, setLoadedHeaderFileName] = useState<string | null>(null);
   const [isParsingDump, setIsParsingDump] = useState(false);
+  const [parseProgress, setParseProgress] = useState<import('../types').DumpParseProgress | null>(null);
   const [parsedSummary, setParsedSummary] = useState<{
     classes: number;
     methods: number;
     fields: number;
+    typeInfos?: number;
   } | null>(null);
 
   // Profiles State
@@ -116,6 +111,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
   const [isAddTargetModalOpen, setIsAddTargetModalOpen] = useState(false);
   const [newTargetCustomName, setNewTargetCustomName] = useState('');
+  const [newTargetAssemblyName, setNewTargetAssemblyName] = useState('');
   const [newTargetClassName, setNewTargetClassName] = useState('');
   const [newTargetMemberName, setNewTargetMemberName] = useState('');
   const [newTargetKind, setNewTargetKind] = useState<'FIELD' | 'METHOD'>('FIELD');
@@ -128,6 +124,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   // Edit Target Modal State
   const [editingTargetItem, setEditingTargetItem] = useState<WatchlistTargetItem | null>(null);
   const [editTargetCustomName, setEditTargetCustomName] = useState('');
+  const [editTargetAssemblyName, setEditTargetAssemblyName] = useState('');
   const [editTargetClassName, setEditTargetClassName] = useState('');
   const [editTargetMemberName, setEditTargetMemberName] = useState('');
   const [editTargetKind, setEditTargetKind] = useState<'FIELD' | 'METHOD'>('FIELD');
@@ -204,48 +201,96 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   // History Clear All Confirmation Modal State
   const [isConfirmClearHistoryOpen, setIsConfirmClearHistoryOpen] = useState(false);
 
-
-
   const handleScanProfile = useCallback(() => {
     doScanProfile(
       activeProfile,
-      sourceMode,
-      currentProcess,
+      'storage',
+      currentProcess || null,
       loadedStorageFileName,
       profiles,
       saveProfiles,
       showToast
     );
-  }, [doScanProfile, activeProfile, sourceMode, currentProcess, loadedStorageFileName, profiles, saveProfiles, showToast]);
+  }, [doScanProfile, activeProfile, currentProcess, loadedStorageFileName, profiles, saveProfiles, showToast]);
 
   // Handle Storage dump.cs File Upload
-  const handleDumpFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const handleDumpCsUpload = async (file: File) => {
     setIsParsingDump(true);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const content = event.target?.result as string;
-        const result = il2cppEngine.parseDumpCsText(content, file.name);
-        setLoadedStorageFileName(file.name);
-        if (onStorageDumpLoaded) {
-          onStorageDumpLoaded(file.name);
-        }
-        setParsedSummary({
-          classes: result.classesCount,
-          methods: result.methodsCount,
-          fields: result.fieldsCount,
-        });
-        setIsParsingDump(false);
-        showToast(`Loaded ${file.name} (${result.classesCount} classes parsed)`);
-      } catch (err) {
-        setIsParsingDump(false);
-        showToast('Failed to parse dump file');
+    setParseProgress({
+      fileName: file.name,
+      fileSizeMb: Number((file.size / (1024 * 1024)).toFixed(2)),
+      percent: 0,
+      processedBytes: 0,
+      totalBytes: file.size,
+      classesCount: 0,
+      methodsCount: 0,
+      fieldsCount: 0,
+      stage: `Preparing to stream ${file.name} (${Number((file.size / (1024 * 1024)).toFixed(2))} MB)...`,
+    });
+
+    try {
+      const result = await il2cppEngine.parseDumpCsFile(file, (progress) => {
+        setParseProgress(progress);
+      });
+      setLoadedStorageFileName(file.name);
+      const updatedMeta = il2cppEngine.getStorageMeta();
+      setStorageMeta(updatedMeta);
+      if (onStorageDumpLoaded) {
+        onStorageDumpLoaded(file.name);
       }
-    };
-    reader.readAsText(file);
+      setParsedSummary({
+        classes: result.classesCount,
+        methods: result.methodsCount,
+        fields: result.fieldsCount,
+        typeInfos: updatedMeta.totalTypeInfos,
+      });
+      setIsParsingDump(false);
+      setParseProgress(null);
+      showToast(`Parsed ${file.name} (${Number((file.size / (1024 * 1024)).toFixed(2))} MB): ${result.classesCount.toLocaleString()} classes, ${result.methodsCount.toLocaleString()} methods`);
+    } catch (err) {
+      setIsParsingDump(false);
+      setParseProgress(null);
+      showToast('Failed to parse dump.cs file');
+    }
+  };
+
+  // Handle Storage il2cpp.h File Upload
+  const handleIl2cppHUpload = async (file: File) => {
+    setIsParsingDump(true);
+    setParseProgress({
+      fileName: file.name,
+      fileSizeMb: Number((file.size / (1024 * 1024)).toFixed(2)),
+      percent: 0,
+      processedBytes: 0,
+      totalBytes: file.size,
+      classesCount: storageMeta.totalClasses,
+      methodsCount: storageMeta.totalMethods,
+      fieldsCount: storageMeta.totalFields,
+      typeInfosCount: 0,
+      stage: `Preparing to stream ${file.name} (${Number((file.size / (1024 * 1024)).toFixed(2))} MB)...`,
+    });
+
+    try {
+      const result = await il2cppEngine.parseIl2cppHFile(file, (progress) => {
+        setParseProgress(progress);
+      });
+      setLoadedHeaderFileName(file.name);
+      const updatedMeta = il2cppEngine.getStorageMeta();
+      setStorageMeta(updatedMeta);
+      setParsedSummary((prev) => ({
+        classes: prev?.classes ?? updatedMeta.totalClasses,
+        methods: prev?.methods ?? updatedMeta.totalMethods,
+        fields: prev?.fields ?? updatedMeta.totalFields,
+        typeInfos: updatedMeta.totalTypeInfos,
+      }));
+      setIsParsingDump(false);
+      setParseProgress(null);
+      showToast(`Linked ${file.name} (${Number((file.size / (1024 * 1024)).toFixed(2))} MB): ${result.typeInfosCount.toLocaleString()} TypeInfos & ${result.methodsLinked.toLocaleString()} methods linked`);
+    } catch (err) {
+      setIsParsingDump(false);
+      setParseProgress(null);
+      showToast('Failed to parse il2cpp.h file');
+    }
   };
 
   // Create Profile
@@ -324,6 +369,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         customCodeStyleTemplate: prof.customCodeStyleTemplate,
         items: prof.items.map((item) => ({
           customName: item.customName,
+          assemblyName: item.assemblyName,
           className: item.className,
           memberName: item.memberName,
           kind: item.kind,
@@ -383,6 +429,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           items: profileData.items.map((it: any, idx: number) => ({
             id: `t_${Date.now()}_${idx}`,
             customName: it.customName || undefined,
+            assemblyName: it.assemblyName || undefined,
             className: it.className || '',
             memberName: it.memberName || '',
             kind: it.kind === 'METHOD' ? 'METHOD' : 'FIELD',
@@ -427,6 +474,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   const handleOpenEditTarget = (item: WatchlistTargetItem) => {
     setEditingTargetItem(item);
     setEditTargetCustomName(item.customName || '');
+    setEditTargetAssemblyName(item.assemblyName || item.resolvedAssemblyName || '');
     setEditTargetClassName(item.className);
     setEditTargetMemberName(item.memberName);
     setEditTargetKind(item.kind);
@@ -448,6 +496,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     const updatedItem: WatchlistTargetItem = {
       ...editingTargetItem,
       customName: editTargetCustomName.trim() || undefined,
+      assemblyName: editTargetAssemblyName.trim() || undefined,
       className: editTargetClassName.trim(),
       memberName: editTargetMemberName.trim(),
       kind: editTargetKind,
@@ -462,6 +511,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
       resolvedViaFallback: false,
       resolvedClassName: undefined,
       resolvedMemberName: undefined,
+      resolvedAssemblyName: undefined,
     };
 
     const nextProfiles = profiles.map((p) =>
@@ -486,6 +536,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     const newItem: WatchlistTargetItem = {
       id: `t_${Date.now()}`,
       customName: newTargetCustomName.trim() || undefined,
+      assemblyName: newTargetAssemblyName.trim() || undefined,
       className: newTargetClassName.trim(),
       memberName: newTargetMemberName.trim(),
       kind: newTargetKind,
@@ -500,6 +551,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     saveProfiles(nextProfiles);
 
     setNewTargetCustomName('');
+    setNewTargetAssemblyName('');
     setNewTargetClassName('');
     setNewTargetMemberName('');
     setNewTargetComment('');
@@ -530,6 +582,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     return activeProfile.items.filter(
       (i) =>
         (i.customName && i.customName.toLowerCase().includes(lowerFilter)) ||
+        (i.assemblyName && i.assemblyName.toLowerCase().includes(lowerFilter)) ||
+        (i.resolvedAssemblyName && i.resolvedAssemblyName.toLowerCase().includes(lowerFilter)) ||
         i.className.toLowerCase().includes(lowerFilter) ||
         i.memberName.toLowerCase().includes(lowerFilter) ||
         (i.comment && i.comment.toLowerCase().includes(lowerFilter))
@@ -539,33 +593,33 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   return (
     <div className="flex-1 flex flex-col h-full bg-[#18181A] text-[#E2E2E4] overflow-hidden relative">
       {/* Top Tab Navigation (Responsive Bar / Card Style on Tablet & Big Screen) */}
-      <div className="bg-[#1E1E20] border-b border-[#2D2D30] px-2 sm:px-4 pt-1.5 sm:pt-2 pb-1.5 shrink-0">
+      <div className="bg-[#1E1E20] border-b border-[#2D2D30] px-1.5 sm:px-4 pt-1 sm:pt-2 pb-1 shrink-0">
         <div className="max-w-5xl mx-auto flex md:bg-[#141416] md:p-1 md:rounded-2xl md:border md:border-[#2D2D30] md:shadow-inner">
           <button
             onClick={() => setActiveTab('target')}
-            className={`flex-1 py-1.5 sm:py-2.5 md:py-2 text-[11px] sm:text-xs md:text-sm font-semibold transition-all border-b-2 md:border-b-0 md:rounded-xl flex justify-center items-center gap-1.5 sm:gap-2 ${
+            className={`flex-1 py-1.5 sm:py-2.5 md:py-2 text-[10px] sm:text-xs md:text-sm font-semibold transition-all border-b-2 md:border-b-0 md:rounded-xl flex justify-center items-center gap-1 sm:gap-2 ${
               activeTab === 'target'
                 ? 'border-indigo-500 text-indigo-400 md:bg-indigo-600 md:text-white md:shadow-md'
                 : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4] md:hover:bg-[#1C1C1F]'
             }`}
           >
             <Cpu className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span>Target Setup</span>
+            <span>Storage Dump</span>
           </button>
           <button
             onClick={() => setActiveTab('watchlist')}
-            className={`flex-1 py-1.5 sm:py-2.5 md:py-2 text-[11px] sm:text-xs md:text-sm font-semibold transition-all border-b-2 md:border-b-0 md:rounded-xl flex justify-center items-center gap-1.5 sm:gap-2 ${
+            className={`flex-1 py-1.5 sm:py-2.5 md:py-2 text-[10px] sm:text-xs md:text-sm font-semibold transition-all border-b-2 md:border-b-0 md:rounded-xl flex justify-center items-center gap-1 sm:gap-2 ${
               activeTab === 'watchlist'
                 ? 'border-indigo-500 text-indigo-400 md:bg-indigo-600 md:text-white md:shadow-md'
                 : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4] md:hover:bg-[#1C1C1F]'
             }`}
           >
             <BookmarkPlus className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span>Profile</span>
+            <span>Profiles & Offsets</span>
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`flex-1 py-1.5 sm:py-2.5 md:py-2 text-[11px] sm:text-xs md:text-sm font-semibold transition-all border-b-2 md:border-b-0 md:rounded-xl flex justify-center items-center gap-1.5 sm:gap-2 ${
+            className={`flex-1 py-1.5 sm:py-2.5 md:py-2 text-[10px] sm:text-xs md:text-sm font-semibold transition-all border-b-2 md:border-b-0 md:rounded-xl flex justify-center items-center gap-1 sm:gap-2 ${
               activeTab === 'history'
                 ? 'border-indigo-500 text-indigo-400 md:bg-indigo-600 md:text-white md:shadow-md'
                 : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4] md:hover:bg-[#1C1C1F]'
@@ -578,20 +632,19 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
       </div>
 
       <div className="flex-1 overflow-y-auto w-full">
-        <div className="max-w-5xl mx-auto w-full p-2.5 sm:p-4 flex flex-col gap-3 sm:gap-6 pb-24">
-          {/* TAB 1: TARGET SETUP */}
+        <div className="max-w-5xl mx-auto w-full p-2 sm:p-4 flex flex-col gap-2.5 sm:gap-6 pb-20 sm:pb-24">
+          {/* TAB 1: STORAGE DUMP SETUP */}
           {activeTab === 'target' && (
             <DashboardHeader
-              sourceMode={sourceMode}
-              setSourceMode={setSourceMode}
               cardViewSettings={cardViewSettings}
-              currentProcess={currentProcess}
-              onOpenProcessPicker={onOpenProcessPicker}
               loadedStorageFileName={loadedStorageFileName}
+              loadedHeaderFileName={loadedHeaderFileName}
               parsedSummary={parsedSummary}
-              fileInputRef={fileInputRef}
-              handleDumpFileUpload={handleDumpFileUpload}
+              storageMeta={storageMeta}
+              onDumpCsUploaded={handleDumpCsUpload}
+              onIl2cppHUploaded={handleIl2cppHUpload}
               isParsingDump={isParsingDump}
+              parseProgress={parseProgress}
               activeProfileId={activeProfileId}
               setActiveProfileId={setActiveProfileId}
               profiles={profiles}
@@ -684,6 +737,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         setNewTargetKind={setNewTargetKind}
         newTargetCustomName={newTargetCustomName}
         setNewTargetCustomName={setNewTargetCustomName}
+        newTargetAssemblyName={newTargetAssemblyName}
+        setNewTargetAssemblyName={setNewTargetAssemblyName}
         newTargetClassName={newTargetClassName}
         setNewTargetClassName={setNewTargetClassName}
         newTargetMemberName={newTargetMemberName}
@@ -711,6 +766,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         setEditTargetKind={setEditTargetKind}
         editTargetCustomName={editTargetCustomName}
         setEditTargetCustomName={setEditTargetCustomName}
+        editTargetAssemblyName={editTargetAssemblyName}
+        setEditTargetAssemblyName={setEditTargetAssemblyName}
         editTargetClassName={editTargetClassName}
         setEditTargetClassName={setEditTargetClassName}
         editTargetMemberName={editTargetMemberName}

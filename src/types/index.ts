@@ -18,19 +18,6 @@ export enum MemberKind {
   INTERFACE = 6,
 }
 
-export enum MethodAnalysisSection {
-  INSTRUCTIONS = 0,
-  CALLS = 1,
-  CALLERS = 2,
-}
-
-export enum MethodAnalysisStatus {
-  COMPLETE = 0,
-  PARTIAL_CONTROL_FLOW = 1,
-  PARTIAL_LIMIT = 2,
-  UNAVAILABLE = 3,
-}
-
 export enum InstructionFlowKind {
   NONE = 0,
   DIRECT_CALL = 1,
@@ -44,34 +31,15 @@ export enum InstructionAddressMode {
   VA = 'VA',
 }
 
-export enum MethodCopyTarget {
-  RVA = 'RVA',
-  VA = 'VA',
-  SIGNATURE = 'SIGNATURE',
-  NAME = 'NAME',
-  OFFSET = 'OFFSET',
-}
-
 export enum ClassTab {
   FIELDS = 'FIELDS',
   METHODS = 'METHODS',
-}
-
-export enum CallGraphDirection {
-  CALLS = 'CALLS',
-  CALLERS = 'CALLERS',
 }
 
 export enum DirectoryLevel {
   ASSEMBLIES = 'ASSEMBLIES',
   NAMESPACES = 'NAMESPACES',
   CLASSES = 'CLASSES',
-}
-
-export enum BrowserEntryKind {
-  ASSEMBLY = 'ASSEMBLY',
-  NAMESPACE = 'NAMESPACE',
-  CLASS = 'CLASS',
 }
 
 export interface ProcessDescriptor {
@@ -129,6 +97,7 @@ export interface ClassInfoDescriptor {
   parentType?: TypeReferenceDescriptor;
   declaringType?: TypeReferenceDescriptor;
   sizes?: TypeSizeDescriptor;
+  typeInfoHex?: string;
 }
 
 export interface FieldDescriptor {
@@ -151,6 +120,7 @@ export interface MethodDescriptor {
   parameters?: { name: string; type: string }[];
   address?: number;
   rva?: number;
+  typeInfoHex?: string;
   isStatic?: boolean;
 }
 
@@ -191,33 +161,19 @@ export interface SymbolSearchDescriptor {
   offsetLabel?: string;
   rvaLabel?: string;
   addressLabel?: string;
+  typeInfoLabel?: string;
 }
 
-export interface BrowserEntryViewData {
-  id: string;
-  kind: BrowserEntryKind;
-  label: string;
-  secondaryLabel?: string;
-  index: number;
-}
-
-export interface FieldViewData {
-  id: number;
-  name: string;
-  typeLabel: string;
-  offsetLabel?: string;
-  isStatic?: boolean;
-}
-
-export interface MethodViewData {
-  id: number;
-  classIndex: number;
-  name: string;
-  signature?: string;
-  rvaLabel?: string;
-  addressLabel?: string;
-  rva?: number;
-  address?: number;
+export interface StorageDumpMeta {
+  dumpCsFileName?: string | null;
+  il2cppHFileName?: string | null;
+  baseAddressHex?: string;
+  staticFieldsOffsetHex?: string;
+  totalClasses: number;
+  totalMethods: number;
+  totalFields: number;
+  totalTypeInfos: number;
+  loadedAt: number;
 }
 
 export interface CanvasTabViewData {
@@ -270,13 +226,14 @@ export interface BreadcrumbViewData {
   targetIndex?: number;
 }
 
-export type ManagerInfoDestination = 'about' | 'credits' | 'licenses' | 'dump';
+export type ManagerInfoDestination = 'about' | 'credits' | 'licenses';
 
 export type TargetSourceMode = 'live' | 'storage';
 
 export interface WatchlistTargetItem {
   id: string;
   customName?: string;
+  assemblyName?: string;
   className: string;
   memberName: string;
   kind: 'FIELD' | 'METHOD';
@@ -288,6 +245,7 @@ export interface WatchlistTargetItem {
   resolvedViaFallback?: boolean;
   resolvedClassName?: string;
   resolvedMemberName?: string;
+  resolvedAssemblyName?: string;
   offsetHex?: string;
   rvaHex?: string;
   vaHex?: string;
@@ -332,6 +290,7 @@ export interface ScanHistoryRecord {
   items: {
     id?: string;
     customName?: string;
+    assemblyName?: string;
     className: string;
     memberName: string;
     kind: 'FIELD' | 'METHOD';
@@ -344,6 +303,7 @@ export interface ScanHistoryRecord {
     resolvedViaFallback?: boolean;
     resolvedClassName?: string;
     resolvedMemberName?: string;
+    resolvedAssemblyName?: string;
     classIndex?: number;
     memberIndex?: number;
     resolved?: boolean;
@@ -374,9 +334,8 @@ export const DEFAULT_PROFILE_VIEW_SETTINGS: ProfileCardViewSettings = {
 
 export interface TargetCardViewSettings {
   showFallbacks: boolean;
-  showClassName: boolean;
-  showMemberName: boolean;
   showCustomName: boolean;
+  showAssemblyName?: boolean;
   showKindBadge: boolean;
   showComments: boolean;
   density: 'compact' | 'comfortable';
@@ -387,9 +346,8 @@ export interface TargetCardViewSettings {
 
 export const DEFAULT_TARGET_VIEW_SETTINGS: TargetCardViewSettings = {
   showFallbacks: false,
-  showClassName: false,
-  showMemberName: false,
   showCustomName: true,
+  showAssemblyName: true,
   showKindBadge: false,
   showComments: true,
   density: 'compact',
@@ -415,3 +373,16 @@ export const DEFAULT_HISTORY_VIEW_SETTINGS: HistoryCardViewSettings = {
   showOffsetTags: false,
   showQuickActions: true,
 };
+
+export interface DumpParseProgress {
+  fileName: string;
+  fileSizeMb: number;
+  percent: number;
+  processedBytes: number;
+  totalBytes: number;
+  classesCount: number;
+  methodsCount: number;
+  fieldsCount: number;
+  typeInfosCount?: number;
+  stage: string;
+}
