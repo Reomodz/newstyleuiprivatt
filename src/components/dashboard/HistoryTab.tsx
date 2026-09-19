@@ -2,6 +2,7 @@ import React from 'react';
 import { History, Code2, Copy, Download, Trash2, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import { ScanHistoryRecord, HistoryCardViewSettings } from '../../types';
 import { CODE_STYLE_PRESETS, generateScanHistoryCode } from '../../services/formatters';
+import { ConfirmDialog } from '../ui';
 
 interface HistoryTabProps {
   scanHistory: ScanHistoryRecord[];
@@ -25,6 +26,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
   setIsCardSettingsModalOpen,
 }) => {
   const isCompact = cardViewSettings.density === 'compact';
+  const [recordToDelete, setRecordToDelete] = React.useState<ScanHistoryRecord | null>(null);
 
   return (
     <div className="max-w-5xl mx-auto w-full p-2 sm:p-3.5 flex flex-col gap-2.5 sm:gap-4 pb-12">
@@ -143,9 +145,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              const updated = scanHistory.filter((item) => item.id !== rec.id);
-                              saveHistory(updated);
-                              showToast('Scan record deleted');
+                              setRecordToDelete(rec);
                             }}
                             className="p-1 text-[#8E8E93] hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
                             title="Delete this scan log"
@@ -197,6 +197,36 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Delete Scan Log Confirmation Alert Modal */}
+      <ConfirmDialog
+        isOpen={Boolean(recordToDelete)}
+        onClose={() => setRecordToDelete(null)}
+        onConfirm={() => {
+          if (!recordToDelete) return;
+          const updated = scanHistory.filter((item) => item.id !== recordToDelete.id);
+          saveHistory(updated);
+          showToast('Scan log deleted');
+        }}
+        title="Delete Scan Log?"
+        subtitle={
+          recordToDelete
+            ? `${recordToDelete.profileName} • ${new Date(recordToDelete.timestamp).toLocaleDateString()} ${new Date(recordToDelete.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+            : undefined
+        }
+        description={
+          recordToDelete ? (
+            <>
+              Do you want to delete this scan log? This will permanently remove the record with{' '}
+              <span className="text-emerald-400 font-semibold">
+                {recordToDelete.resolvedCount}/{recordToDelete.totalTargets}
+              </span>{' '}
+              resolved targets.
+            </>
+          ) : null
+        }
+        confirmText="Delete Log"
+      />
     </div>
   );
 };

@@ -233,7 +233,10 @@ export type TargetSourceMode = 'live' | 'storage';
 export interface WatchlistTargetItem {
   id: string;
   customName?: string;
+  groupName?: string;
+  subGroupName?: string;
   assemblyName?: string;
+  namespaceName?: string;
   className: string;
   memberName: string;
   kind: 'FIELD' | 'METHOD';
@@ -274,6 +277,7 @@ export interface WatchlistProfile {
   items: WatchlistTargetItem[];
   codeStylePreset?: CodeStylePreset;
   customCodeStyleTemplate?: string;
+  groupOrder?: string[];
 }
 
 export interface ScanHistoryRecord {
@@ -290,6 +294,8 @@ export interface ScanHistoryRecord {
   items: {
     id?: string;
     customName?: string;
+    groupName?: string;
+    subGroupName?: string;
     assemblyName?: string;
     className: string;
     memberName: string;
@@ -338,6 +344,7 @@ export interface TargetCardViewSettings {
   showAssemblyName?: boolean;
   showKindBadge: boolean;
   showComments: boolean;
+  showGroups?: boolean;
   density: 'compact' | 'comfortable';
   tabletLayout?: 'grid' | 'list';
   showTargetBanner?: boolean;
@@ -350,6 +357,7 @@ export const DEFAULT_TARGET_VIEW_SETTINGS: TargetCardViewSettings = {
   showAssemblyName: true,
   showKindBadge: false,
   showComments: true,
+  showGroups: true,
   density: 'compact',
   tabletLayout: 'list',
   showTargetBanner: true,
@@ -385,4 +393,15 @@ export interface DumpParseProgress {
   fieldsCount: number;
   typeInfosCount?: number;
   stage: string;
+}
+
+export interface TargetSubGroup {
+  subGroupName: string | null;
+  items: WatchlistTargetItem[];
+}
+
+export interface TargetGroup {
+  groupName: string | null;
+  subGroups: TargetSubGroup[];
+  totalCount: number;
 }

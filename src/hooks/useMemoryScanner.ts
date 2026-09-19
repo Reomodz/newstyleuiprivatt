@@ -267,6 +267,8 @@ export function useMemoryScanner(initialHistory: ScanHistoryRecord[]) {
         items: scannedItems.map((i) => ({
           id: i.id,
           customName: i.customName,
+          groupName: i.groupName,
+          subGroupName: i.subGroupName,
           assemblyName: i.assemblyName,
           className: i.className,
           memberName: i.memberName,

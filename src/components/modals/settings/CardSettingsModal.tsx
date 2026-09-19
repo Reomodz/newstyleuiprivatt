@@ -1,6 +1,6 @@
 import React from 'react';
 import { Settings2, X, RotateCcw } from 'lucide-react';
-import { TargetCardViewSettings, DEFAULT_TARGET_VIEW_SETTINGS } from '../../types';
+import { TargetCardViewSettings, DEFAULT_TARGET_VIEW_SETTINGS } from '../../../types';
 
 interface CardSettingsModalProps {
   isOpen: boolean;
@@ -181,6 +181,20 @@ export const CardSettingsModal: React.FC<CardSettingsModalProps> = ({
                     type="checkbox"
                     checked={config.showComments}
                     onChange={(e) => updateConfig({ showComments: e.target.checked })}
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 accent-indigo-600 rounded cursor-pointer shrink-0"
+                  />
+                </label>
+
+                {/* Show Groups & Sub-groups */}
+                <label className="flex items-center justify-between p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-[#1E1E22] transition-colors cursor-pointer border-t border-[#222226]">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] sm:text-xs font-medium text-[#E2E2E4]">Group Sections & Hierarchy</span>
+                    <span className="text-[9px] sm:text-[10px] text-[#8E8E93]">Organize cards into collapsible groups and sub-groups</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={config.showGroups !== false}
+                    onChange={(e) => updateConfig({ showGroups: e.target.checked })}
                     className="w-3.5 h-3.5 sm:w-4 sm:h-4 accent-indigo-600 rounded cursor-pointer shrink-0"
                   />
                 </label>

@@ -8,6 +8,8 @@ import {
   FieldDescriptor,
   SymbolSearchDescriptor,
   SymbolKind,
+  WatchlistProfile,
+  WatchlistTargetItem,
 } from '../types';
 import { il2cppEngine } from '../services/il2cppEngine';
 import { VirtualScrollList } from './VirtualScrollList';
@@ -24,7 +26,25 @@ import {
   SlidersHorizontal,
   RotateCcw,
   Settings2,
+  BookmarkPlus,
+  Check,
+  Target,
 } from 'lucide-react';
+import { BrowserSaveTargetModal } from './modals/targets/BrowserSaveTargetModal';
+
+export interface SelectedBrowserMember {
+  kind: 'FIELD' | 'METHOD';
+  className: string;
+  namespaceName?: string;
+  memberName: string;
+  assemblyName?: string;
+  typeName?: string;
+  signature?: string;
+  offset?: number;
+  rva?: number;
+  field?: FieldDescriptor;
+  method?: MethodDescriptor;
+}
 
 export interface BrowserCardViewSettings {
   tabletLayout: 'grid' | 'dense' | 'list';
@@ -46,6 +66,8 @@ interface ManagerBrowserProps {
   selectedNamespace: string | null;
   selectedClassIndex: number | null;
   storageDumpName?: string | null;
+  initialClassTab?: 'FIELD' | 'METHOD';
+  scrollToMember?: { memberName: string; kind: 'FIELD' | 'METHOD' } | null;
   onSelectAssembly: (index: number) => void;
   onSelectNamespace: (ns: string) => void;
   onSelectClass: (index: number) => void;
@@ -53,6 +75,13 @@ interface ManagerBrowserProps {
   onCopyText: (text: string, label: string) => void;
   isSearchOpen: boolean;
   onCloseSearch: () => void;
+  profiles?: WatchlistProfile[];
+  activeProfile?: WatchlistProfile;
+  activeProfileId?: string;
+  onSetActiveProfileId?: (id: string) => void;
+  onSaveTargetToProfile?: (target: Omit<WatchlistTargetItem, 'id'>, profileId?: string) => void;
+  onSwitchWorkspace?: (workspace: 'dashboard' | 'browser' | 'canvas') => void;
+  showToast?: (msg: string) => void;
 }
 
 export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
@@ -61,12 +90,20 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
   selectedNamespace,
   selectedClassIndex,
   storageDumpName,
+  initialClassTab,
+  scrollToMember,
   onSelectAssembly,
   onSelectNamespace,
   onSelectClass,
+  onInspectMethod,
   onCopyText,
   isSearchOpen,
   onCloseSearch,
+  profiles,
+  activeProfile,
+  activeProfileId,
+  onSaveTargetToProfile,
+  showToast,
 }) => {
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -77,6 +114,28 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
   const [classTab, setClassTab] = useState<ClassTab>(ClassTab.FIELDS);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  // Selected Target state for Profile Target Saving & Selection Mode
+  const [selectedTarget, setSelectedTarget] = useState<SelectedBrowserMember | null>(null);
+  const [isTargetSelectionActive, setIsTargetSelectionActive] = useState(false);
+
+  // Edit Target UI Modal states
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [targetEditKind, setTargetEditKind] = useState<'FIELD' | 'METHOD'>('FIELD');
+  const [targetEditAssemblyName, setTargetEditAssemblyName] = useState('');
+  const [targetEditNamespace, setTargetEditNamespace] = useState('');
+  const [targetEditClassName, setTargetEditClassName] = useState('');
+  const [targetEditMemberName, setTargetEditMemberName] = useState('');
+  const [targetEditCustomName, setTargetEditCustomName] = useState('');
+  const [targetEditGroupName, setTargetEditGroupName] = useState('');
+  const [targetEditComment, setTargetEditComment] = useState('');
+  const [targetEditProfileId, setTargetEditProfileId] = useState('');
+
+  // Clear selected target & selection mode when navigating away
+  useEffect(() => {
+    setSelectedTarget(null);
+    setIsTargetSelectionActive(false);
+  }, [selectedClassIndex, currentLevel, classTab]);
+
   // Debounce search query to prevent main-thread freezing on 75MB+ dumps
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -85,9 +144,16 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
+  // Auto switch tab based on initialClassTab when navigating from target card or modal
+  useEffect(() => {
+    if (initialClassTab) {
+      setClassTab(initialClassTab === 'METHOD' ? ClassTab.METHODS : ClassTab.FIELDS);
+    }
+  }, [initialClassTab, selectedClassIndex]);
+
   // Scroll to top when navigating levels or switching tabs
   useEffect(() => {
-    if (scrollContainerRef.current) {
+    if (scrollContainerRef.current && !scrollToMember) {
       scrollContainerRef.current.scrollTop = 0;
     }
   }, [selectedAssemblyIndex, selectedNamespace, selectedClassIndex, classTab, currentLevel]);
@@ -176,6 +242,33 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
     return il2cppEngine.getMethods(selectedClassIndex);
   }, [selectedClassIndex, storageDumpName]);
 
+  // Auto-scroll down to targeted member in list when scrollToMember is provided
+  useEffect(() => {
+    if (!scrollToMember || selectedClassIndex === null) return;
+    const targetKind = scrollToMember.kind;
+    const targetName = scrollToMember.memberName.toLowerCase();
+
+    // Auto set class tab
+    setClassTab(targetKind === 'METHOD' ? ClassTab.METHODS : ClassTab.FIELDS);
+
+    const timer = setTimeout(() => {
+      if (!scrollContainerRef.current) return;
+      const list = targetKind === 'METHOD' ? currentMethods : currentFields;
+      const idx = list.findIndex((m) => m.name.toLowerCase() === targetName);
+      if (idx !== -1) {
+        const isCompact = browserSettings.density === 'compact';
+        const rowHeight = isCompact ? 40 : 54;
+        const targetScrollTop = Math.max(0, idx * rowHeight - 40);
+        scrollContainerRef.current.scrollTo({
+          top: targetScrollTop,
+          behavior: 'smooth',
+        });
+      }
+    }, 120);
+
+    return () => clearTimeout(timer);
+  }, [scrollToMember, selectedClassIndex, currentFields, currentMethods, browserSettings.density]);
+
   // Global search results (Requires min 2 chars for everywhere search to keep UI fast)
   const globalSearchResults: SymbolSearchDescriptor[] = useMemo(() => {
     if (searchScope !== 'everywhere' || !debouncedSearchQuery.trim() || debouncedSearchQuery.trim().length < 2) return [];
@@ -217,6 +310,100 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
   };
 
   const isCompact = browserSettings.density === 'compact';
+
+  // Helper to determine if a member is already saved in active profile
+  const isTargetSavedInProfile = (
+    className: string,
+    memberName: string,
+    kind: 'FIELD' | 'METHOD'
+  ): boolean => {
+    if (!activeProfile || !activeProfile.items) return false;
+    return activeProfile.items.some(
+      (t) =>
+        t.className.toLowerCase() === className.toLowerCase() &&
+        t.memberName.toLowerCase() === memberName.toLowerCase() &&
+        t.kind === kind
+    );
+  };
+
+  const savedTargetsInCurrentClass = useMemo(() => {
+    if (!currentClassInfo || !activeProfile || !activeProfile.items) return 0;
+    return activeProfile.items.filter(
+      (t) => t.className.toLowerCase() === currentClassInfo.name.toLowerCase()
+    ).length;
+  }, [currentClassInfo, activeProfile]);
+
+  const availableGroups = useMemo(() => {
+    if (!activeProfile?.items) return [];
+    const grps = new Set<string>();
+    activeProfile.items.forEach((it) => {
+      if (it.groupName) grps.add(it.groupName);
+    });
+    return Array.from(grps);
+  }, [activeProfile]);
+
+  const handleOpenSaveTargetModal = (member?: SelectedBrowserMember) => {
+    const target = member || selectedTarget;
+    if (!target) return;
+    setTargetEditKind(target.kind);
+    setTargetEditAssemblyName(target.assemblyName || currentClassInfo?.assemblyName || '');
+    const ns = target.namespaceName || currentClassInfo?.namespaceName || '';
+    const cls = target.className || currentClassInfo?.name || '';
+    setTargetEditNamespace(ns);
+    setTargetEditClassName(ns ? `${ns}::${cls}` : cls);
+    setTargetEditMemberName(target.memberName);
+    setTargetEditCustomName(target.memberName);
+    setTargetEditGroupName('');
+    setTargetEditComment('');
+    setTargetEditProfileId(activeProfileId || (profiles && profiles[0]?.id) || '');
+    setIsSaveModalOpen(true);
+  };
+
+  const handleConfirmSaveTarget = () => {
+    if (!targetEditClassName.trim() || !targetEditMemberName.trim()) {
+      if (showToast) showToast('Class and member names are required');
+      return;
+    }
+    if (!onSaveTargetToProfile) {
+      if (showToast) showToast('Target saving is not available');
+      return;
+    }
+
+    let parsedNs = targetEditNamespace.trim() || undefined;
+    let parsedClass = targetEditClassName.trim();
+    if (parsedClass.includes('::')) {
+      const parts = parsedClass.split('::');
+      parsedNs = parts[0].trim() || undefined;
+      parsedClass = parts.slice(1).join('::').trim();
+    }
+
+    const itemToSave: Omit<WatchlistTargetItem, 'id'> = {
+      customName: targetEditCustomName.trim() || undefined,
+      assemblyName: targetEditAssemblyName.trim() || undefined,
+      namespaceName: parsedNs,
+      className: parsedClass,
+      memberName: targetEditMemberName.trim(),
+      kind: targetEditKind,
+      groupName: targetEditGroupName.trim() || undefined,
+      comment: targetEditComment.trim() || undefined,
+      typeName: selectedTarget?.typeName,
+      signature: selectedTarget?.signature,
+      resolved: true,
+      resolvedClassName: parsedClass,
+      resolvedMemberName: targetEditMemberName.trim(),
+      resolvedAssemblyName: targetEditAssemblyName.trim() || undefined,
+      // Zero-offset persistence: No offsetHex, rvaHex, or vaHex saved
+      offsetHex: undefined,
+      rvaHex: undefined,
+      vaHex: undefined,
+      lastScannedAt: Date.now(),
+    };
+
+    onSaveTargetToProfile(itemToSave, targetEditProfileId);
+    setIsSaveModalOpen(false);
+    setSelectedTarget(null);
+    setIsTargetSelectionActive(false);
+  };
 
   // Responsive Settings Button for Tablet & Big Screen
   const renderTabletToolbar = () => (
@@ -425,6 +612,45 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                           {res.offsetLabel}
                         </span>
                       )}
+
+                      {/* Target Quick Save Button in Global Search */}
+                      {(res.kind === SymbolKind.FIELD || res.kind === SymbolKind.METHOD) && (() => {
+                        const isGlobalSaved = isTargetSavedInProfile(
+                          res.ownerName,
+                          res.name,
+                          res.kind === SymbolKind.FIELD ? 'FIELD' : 'METHOD'
+                        );
+                        return isGlobalSaved ? (
+                          <span
+                            className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/25 text-[9px] sm:text-[10.5px] font-medium shrink-0"
+                            title="Saved in profile target"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-400" />
+                            <span className="hidden sm:inline">Saved</span>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenSaveTargetModal({
+                                kind: res.kind === SymbolKind.FIELD ? 'FIELD' : 'METHOD',
+                                className: res.ownerName,
+                                memberName: res.name,
+                                assemblyName: res.assemblyName,
+                                signature: res.signature,
+                              });
+                            }}
+                            className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded bg-indigo-600/20 hover:bg-indigo-600/35 text-indigo-300 hover:text-white border border-indigo-500/30 transition-all text-[9px] sm:text-[10.5px] font-semibold shrink-0 active:scale-95"
+                            title={`Save ${res.name} to profile targets`}
+                          >
+                            <BookmarkPlus className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-indigo-400" />
+                            <span>+ Target</span>
+                          </button>
+                        );
+                      })()}
+
                       <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-[#8E8E93] group-hover:translate-x-0.5 transition-transform" />
                     </div>
                   </div>
@@ -624,6 +850,15 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                   </div>
 
                   <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                    {savedTargetsInCurrentClass > 0 && (
+                      <span
+                        className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 font-mono text-[9px] sm:text-[10px] font-medium"
+                        title={`${savedTargetsInCurrentClass} target(s) saved from this class in ${activeProfile?.name || 'profile'}`}
+                      >
+                        <Target className="w-2.5 h-2.5 text-indigo-400" />
+                        <span>{savedTargetsInCurrentClass} in targets</span>
+                      </span>
+                    )}
                     <button
                       onClick={() =>
                         onCopyText(
@@ -715,48 +950,97 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                         estimatedItemHeight={isCompact ? 40 : 54}
                         columns={getColumnsConfig('standard')}
                         gridClassName={getGridClasses('standard')}
-                        renderItem={(field) => (
-                          <div
-                            key={field.index}
-                            className={`${
-                              isCompact ? 'p-1.5 sm:p-2.5' : 'p-2.5 sm:p-3.5'
-                            } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] border border-[#353535] md:border-[#38383E] rounded-lg sm:rounded-xl hover:bg-[#2A2A2D] md:hover:to-[#1F1F24] transition-all flex items-center justify-between gap-1.5 sm:gap-3 group shadow-sm`}
-                          >
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1 sm:gap-2 font-mono-code text-[11px] sm:text-sm">
-                                {field.isStatic && (
-                                  <span className="px-1 sm:px-1.5 py-0.2 rounded text-[8px] sm:text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                                    STATIC
-                                  </span>
-                                )}
-                                <span className="font-semibold text-white truncate">{field.name}</span>
-                              </div>
-                              {browserSettings.showMetadata && (
-                                <div className="text-[9.5px] sm:text-xs text-[#8E8E93] font-mono-code mt-0.5 truncate">
-                                  {field.typeName || 'object'}
-                                </div>
-                              )}
-                            </div>
+                        renderItem={(field) => {
+                          const isSelected =
+                            selectedTarget?.kind === 'FIELD' &&
+                            selectedTarget.className.toLowerCase() === currentClassInfo.name.toLowerCase() &&
+                            selectedTarget.memberName.toLowerCase() === field.name.toLowerCase();
+                          const isSaved = isTargetSavedInProfile(currentClassInfo.name, field.name, 'FIELD');
 
-                            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                              {field.offset !== undefined && (
-                                <button
-                                  onClick={() =>
-                                    onCopyText(
-                                      `0x${field.offset!.toString(16)}`,
-                                      'Field Offset'
-                                    )
-                                  }
-                                  className="flex items-center gap-1 px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded bg-[#1C1C1E] hover:bg-[#353535] text-emerald-300 font-mono-code text-[9.5px] sm:text-xs border border-[#353535] transition-colors"
-                                  title="Copy offset"
-                                >
-                                  <span>0x{field.offset.toString(16)}</span>
-                                  <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#8E8E93]" />
-                                </button>
-                              )}
+                          return (
+                            <div
+                              key={field.index}
+                              onClick={() => {
+                                setSelectedTarget({
+                                  kind: 'FIELD',
+                                  className: currentClassInfo.name,
+                                  namespaceName: currentClassInfo.namespaceName,
+                                  memberName: field.name,
+                                  assemblyName: currentClassInfo.assemblyName,
+                                  typeName: field.typeName,
+                                  field,
+                                });
+                                setIsTargetSelectionActive(true);
+                              }}
+                              className={`${
+                                isCompact ? 'p-1.5 sm:p-2.5' : 'p-2.5 sm:p-3.5'
+                              } ${
+                                isSelected
+                                  ? 'bg-[#25252E] border-indigo-500 ring-2 ring-indigo-500/50 shadow-lg shadow-indigo-950/40'
+                                  : isTargetSelectionActive
+                                  ? 'bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] border-[#353535] md:border-[#38383E] hover:border-indigo-500/60 hover:bg-[#25252B]'
+                                  : 'bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] border-[#353535] md:border-[#38383E] hover:bg-[#2A2A2D] md:hover:to-[#1F1F24]'
+                              } border rounded-lg sm:rounded-xl transition-all flex items-center justify-between gap-1.5 sm:gap-3 group shadow-sm cursor-pointer`}
+                            >
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1 sm:gap-2 font-mono-code text-[11px] sm:text-sm">
+                                  {field.isStatic && (
+                                    <span className="px-1 sm:px-1.5 py-0.2 rounded text-[8px] sm:text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                      STATIC
+                                    </span>
+                                  )}
+                                  <span className={`font-semibold truncate ${isSelected ? 'text-indigo-200' : 'text-white'}`}>
+                                    {field.name}
+                                  </span>
+                                </div>
+                                {browserSettings.showMetadata && (
+                                  <div className="text-[9.5px] sm:text-xs text-[#8E8E93] font-mono-code mt-0.5 truncate">
+                                    {field.typeName || 'object'}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                                {field.offset !== undefined && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onCopyText(
+                                        `0x${field.offset!.toString(16)}`,
+                                        'Field Offset'
+                                      );
+                                    }}
+                                    className="flex items-center gap-1 px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded bg-[#1C1C1E] hover:bg-[#353535] text-emerald-300 font-mono-code text-[9.5px] sm:text-xs border border-[#353535] transition-colors"
+                                    title="Copy offset"
+                                  >
+                                    <span>0x{field.offset.toString(16)}</span>
+                                    <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#8E8E93]" />
+                                  </button>
+                                )}
+
+                                {/* Target Selected / Saved Status */}
+                                {isSelected ? (
+                                  <span
+                                    className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 text-[9.5px] sm:text-xs font-semibold shrink-0"
+                                    title="Selected for target saving"
+                                  >
+                                    <Target className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-indigo-400" />
+                                    <span className="hidden xs:inline">Selected</span>
+                                  </span>
+                                ) : isSaved ? (
+                                  <span
+                                    className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/25 text-[9.5px] sm:text-xs font-medium shrink-0"
+                                    title={`Saved in profile "${activeProfile?.name || 'Active'}"`}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-400" />
+                                    <span className="hidden xs:inline">Saved</span>
+                                  </span>
+                                ) : null}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          );
+                        }}
                       />
                     );
                   })()}
@@ -782,57 +1066,135 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                         estimatedItemHeight={isCompact ? 52 : 70}
                         columns={getColumnsConfig('methods')}
                         gridClassName={getGridClasses('methods')}
-                        renderItem={(method) => (
-                          <div
-                            key={method.index}
-                            className={`${
-                              isCompact ? 'p-1.5 sm:p-2.5' : 'p-2.5 sm:p-3.5'
-                            } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] border border-[#353535] md:border-[#38383E] rounded-lg sm:rounded-xl hover:bg-[#2A2A2D] md:hover:to-[#1F1F24] transition-all flex flex-col justify-between group shadow-sm`}
-                          >
-                            <div className="min-w-0 flex-1">
-                              {/* Line 1: Method Signature / Name */}
-                              <div className="font-semibold text-[11px] sm:text-sm text-white font-mono-code tracking-tight break-words leading-snug">
-                                {method.signature || method.name}
-                              </div>
+                        renderItem={(method) => {
+                          const isSelected =
+                            selectedTarget?.kind === 'METHOD' &&
+                            selectedTarget.className.toLowerCase() === currentClassInfo.name.toLowerCase() &&
+                            selectedTarget.memberName.toLowerCase() === method.name.toLowerCase();
+                          const isSaved = isTargetSavedInProfile(currentClassInfo.name, method.name, 'METHOD');
 
-                              {/* Line 2: RVA and TypeInfo Pills */}
-                              {browserSettings.showRvaLabels && (method.rva || method.typeInfoHex) && (
-                                <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-1 sm:mt-2 text-xs font-mono-code">
-                                  {method.rva && (
-                                    <button
-                                      onClick={() =>
-                                        onCopyText(
-                                          `0x${method.rva!.toString(16).toUpperCase()}`,
-                                          'RVA'
-                                        )
-                                      }
-                                      className="flex items-center gap-1 px-1.5 sm:px-2 py-0.2 sm:py-0.5 rounded bg-[#1C1C1E] hover:bg-[#353535] text-indigo-300 border border-indigo-500/30 transition-colors text-[9px] sm:text-xs font-medium"
-                                      title="Copy RVA"
+                          return (
+                            <div
+                              key={method.index}
+                              onClick={() => {
+                                setSelectedTarget({
+                                  kind: 'METHOD',
+                                  className: currentClassInfo.name,
+                                  namespaceName: currentClassInfo.namespaceName,
+                                  memberName: method.name,
+                                  assemblyName: currentClassInfo.assemblyName,
+                                  signature: method.signature,
+                                  method,
+                                });
+                                setIsTargetSelectionActive(true);
+                              }}
+                              className={`${
+                                isCompact ? 'p-1.5 sm:p-2.5' : 'p-2.5 sm:p-3.5'
+                              } ${
+                                isSelected
+                                  ? 'bg-[#25252E] border-indigo-500 ring-2 ring-indigo-500/50 shadow-lg shadow-indigo-950/40'
+                                  : isTargetSelectionActive
+                                  ? 'bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] border-[#353535] md:border-[#38383E] hover:border-indigo-500/60 hover:bg-[#25252B]'
+                                  : 'bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] border-[#353535] md:border-[#38383E] hover:bg-[#2A2A2D] md:hover:to-[#1F1F24]'
+                              } border rounded-lg sm:rounded-xl transition-all flex flex-col justify-between group shadow-sm cursor-pointer`}
+                            >
+                              <div className="min-w-0 flex-1">
+                                {/* Line 1: Method Signature / Name and Target Status */}
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className={`font-semibold text-[11px] sm:text-sm font-mono-code tracking-tight break-words leading-snug flex-1 ${
+                                    isSelected ? 'text-indigo-200' : 'text-white'
+                                  }`}>
+                                    {method.signature || method.name}
+                                  </div>
+
+                                  {/* Target Selected / Saved Status */}
+                                  {isSelected ? (
+                                    <span
+                                      className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 text-[9.5px] sm:text-xs font-semibold shrink-0"
+                                      title="Selected for target saving"
                                     >
-                                      <span>RVA: 0x{method.rva.toString(16).toUpperCase()}</span>
-                                      <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#8E8E93]" />
-                                    </button>
-                                  )}
-                                  {method.typeInfoHex && (
-                                    <button
-                                      onClick={() =>
-                                        onCopyText(
-                                          method.typeInfoHex!,
-                                          'Method TypeInfo'
-                                        )
-                                      }
-                                      className="flex items-center gap-1 px-1.5 sm:px-2 py-0.2 sm:py-0.5 rounded bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 transition-colors text-[9px] sm:text-xs font-medium"
-                                      title="Copy Method TypeInfo"
+                                      <Target className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-indigo-400" />
+                                      <span className="hidden xs:inline">Selected</span>
+                                    </span>
+                                  ) : isSaved ? (
+                                    <span
+                                      className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/25 text-[9.5px] sm:text-xs font-medium shrink-0"
+                                      title={`Saved in profile "${activeProfile?.name || 'Active'}"`}
+                                      onClick={(e) => e.stopPropagation()}
                                     >
-                                      <span>TypeInfo: {method.typeInfoHex}</span>
-                                      <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-purple-400" />
-                                    </button>
-                                  )}
+                                      <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-400" />
+                                      <span className="hidden xs:inline">Saved</span>
+                                    </span>
+                                  ) : null}
                                 </div>
-                              )}
+
+                                {/* Line 2: RVA and TypeInfo Pills */}
+                                {browserSettings.showRvaLabels && (method.rva || method.typeInfoHex) && (
+                                  <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-1 sm:mt-2 text-xs font-mono-code">
+                                    {method.rva && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onCopyText(
+                                            `0x${method.rva!.toString(16).toUpperCase()}`,
+                                            'RVA'
+                                          );
+                                        }}
+                                        className="flex items-center gap-1 px-1.5 sm:px-2 py-0.2 sm:py-0.5 rounded bg-[#1C1C1E] hover:bg-[#353535] text-indigo-300 border border-indigo-500/30 transition-colors text-[9px] sm:text-xs font-medium"
+                                        title="Copy RVA"
+                                      >
+                                        <span>RVA: 0x{method.rva.toString(16).toUpperCase()}</span>
+                                        <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#8E8E93]" />
+                                      </button>
+                                    )}
+                                    {method.typeInfoHex && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onCopyText(
+                                            method.typeInfoHex!,
+                                            'Method TypeInfo'
+                                          );
+                                        }}
+                                        className="flex items-center gap-1 px-1.5 sm:px-2 py-0.2 sm:py-0.5 rounded bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 transition-colors text-[9px] sm:text-xs font-medium"
+                                        title="Copy Method TypeInfo"
+                                      >
+                                        <span>TypeInfo: {method.typeInfoHex}</span>
+                                        <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-purple-400" />
+                                      </button>
+                                    )}
+                                    {onInspectMethod && selectedClassIndex !== null && (
+                                      <div className="flex items-center gap-1 ml-auto">
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            onInspectMethod(selectedClassIndex, method.index, 'graph');
+                                          }}
+                                          className="px-1.5 py-0.5 rounded bg-[#252528] hover:bg-[#323236] text-[#A1A1AA] hover:text-white border border-[#3A3A3E] text-[9px] transition-colors"
+                                          title="Inspect Call Graph"
+                                        >
+                                          Graph
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            onInspectMethod(selectedClassIndex, method.index, 'instructions');
+                                          }}
+                                          className="px-1.5 py-0.5 rounded bg-[#252528] hover:bg-[#323236] text-[#A1A1AA] hover:text-white border border-[#3A3A3E] text-[9px] transition-colors"
+                                          title="Inspect Disassembly"
+                                        >
+                                          Disasm
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          );
+                        }}
                       />
                     );
                   })()}
@@ -999,6 +1361,125 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
           </div>
         </div>
       )}
+
+      {/* Floating Target Logo & Selection Actions (Bottom-Right, Fields & Methods only) */}
+      {Boolean(currentClassInfo && (classTab === ClassTab.FIELDS || classTab === ClassTab.METHODS)) && (
+        <div className="fixed bottom-3 right-3 sm:bottom-6 sm:right-6 z-40 flex items-center gap-1.5 sm:gap-2 max-w-[calc(100vw-24px)]">
+          {/* Left-Side Expanding Effects Panel */}
+          {isTargetSelectionActive && (
+            <div className="flex items-center gap-1 sm:gap-2 bg-[#1C1C20]/95 backdrop-blur-md border border-[#3A3A42] p-1 sm:p-2 rounded-xl sm:rounded-2xl shadow-2xl animate-in slide-in-from-right-4 fade-in duration-200 min-w-0">
+              {/* Selected Target Badge / Status Info */}
+              <div className="flex items-center gap-1 px-1.5 sm:px-2.5 py-1 sm:py-1.5 bg-[#131315] rounded-lg sm:rounded-xl border border-[#2B2B30] max-w-[100px] sm:max-w-[240px] truncate">
+                {selectedTarget ? (
+                  <div className="flex items-center gap-1 min-w-0">
+                    <span
+                      className={`text-[8px] sm:text-[8.5px] font-mono font-bold px-1 py-0.2 rounded shrink-0 border ${
+                        selectedTarget.kind === 'FIELD'
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                          : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                      }`}
+                    >
+                      {selectedTarget.kind === 'FIELD' ? 'FLD' : 'MTH'}
+                    </span>
+                    <span className="text-[10px] sm:text-xs font-semibold text-white font-mono truncate" title={selectedTarget.memberName}>
+                      {selectedTarget.memberName}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 text-[10px] sm:text-xs text-[#9E9EA4] whitespace-nowrap truncate">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse shrink-0" />
+                    <span>
+                      Tap a {classTab === ClassTab.FIELDS ? 'field' : 'method'}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Cancel Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedTarget(null);
+                  setIsTargetSelectionActive(false);
+                }}
+                className="flex items-center gap-0.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-medium bg-[#25252A] hover:bg-[#2F2F36] text-[#A1A1A8] hover:text-white border border-[#3A3A42] transition-colors shrink-0 cursor-pointer"
+                title="Cancel selection mode"
+              >
+                <X className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span>Cancel</span>
+              </button>
+
+              {/* Save Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!selectedTarget) return;
+                  handleOpenSaveTargetModal();
+                }}
+                disabled={!selectedTarget}
+                className={`flex items-center gap-0.5 sm:gap-1.5 px-2 sm:px-3.5 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold transition-all shadow-md shrink-0 ${
+                  selectedTarget
+                    ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30 hover:shadow-indigo-600/50 active:scale-95 cursor-pointer'
+                    : 'bg-[#25252A] text-[#636369] border border-[#323238] cursor-not-allowed'
+                }`}
+                title={selectedTarget ? `Save "${selectedTarget.memberName}" to Target Profile` : 'Select a member first'}
+              >
+                <BookmarkPlus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span>Save</span>
+              </button>
+            </div>
+          )}
+
+          {/* Floating Target Logo Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsTargetSelectionActive((prev) => !prev);
+            }}
+            className={`w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-200 border cursor-pointer active:scale-95 shrink-0 ${
+              isTargetSelectionActive
+                ? 'bg-indigo-600 border-indigo-400 text-white ring-2 sm:ring-4 ring-indigo-500/25 shadow-indigo-600/50'
+                : 'bg-[#202024] hover:bg-[#28282D] border-[#3E3E46] text-indigo-400 hover:text-indigo-300 hover:border-indigo-500/50 shadow-black/60'
+            }`}
+            title={
+              isTargetSelectionActive
+                ? 'Target selection mode is active (click to close)'
+                : 'Click to select field or method and save to profile targets'
+            }
+          >
+            <Target
+              className={`w-4 h-4 sm:w-6 sm:h-6 transition-transform duration-200 ${
+                isTargetSelectionActive ? 'scale-110' : ''
+              }`}
+            />
+          </button>
+        </div>
+      )}
+
+      {/* Edit Target UI Modal for saving to profile */}
+      <BrowserSaveTargetModal
+        isOpen={isSaveModalOpen}
+        onClose={() => setIsSaveModalOpen(false)}
+        targetKind={targetEditKind}
+        setTargetKind={setTargetEditKind}
+        assemblyName={targetEditAssemblyName}
+        setAssemblyName={setTargetEditAssemblyName}
+        className={targetEditClassName}
+        setClassName={setTargetEditClassName}
+        memberName={targetEditMemberName}
+        setMemberName={setTargetEditMemberName}
+        customName={targetEditCustomName}
+        setCustomName={setTargetEditCustomName}
+        groupName={targetEditGroupName}
+        setGroupName={setTargetEditGroupName}
+        comment={targetEditComment}
+        setComment={setTargetEditComment}
+        selectedProfileId={targetEditProfileId}
+        setSelectedProfileId={setTargetEditProfileId}
+        profiles={profiles}
+        availableGroups={availableGroups}
+        onSave={handleConfirmSaveTarget}
+      />
     </div>
   );
 };

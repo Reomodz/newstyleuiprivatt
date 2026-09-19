@@ -44,7 +44,7 @@ Trace method caller/callee execution flow with dynamic touch-draggable Bezier gr
 </p>
 
 ### 4. Multi-Format Code & C# Dump Exporter
-Export resolved offsets into clean code snippets across multiple formats (C++ constexpr headers, C# structs, Il2CppType definitions, Frida JavaScript hooks, Cheat Engine `.CT` tables) or generate complete Il2CppDumper-compatible C# dumps.
+Export resolved offsets into clean code snippets across multiple formats (C++ constexpr headers, C# structs, Cheat Engine tables, Custom Template formats) or generate complete Il2CppDumper-compatible C# dumps.
 
 <p align="center">
   <img src="docs/screenshots/android-code-export.svg" width="48%" alt="Android Code Style Exporter">
@@ -54,12 +54,13 @@ Export resolved offsets into clean code snippets across multiple formats (C++ co
 
 ---
 
-## ⚡ Android App Features
+## ⚡ Recent Enhancements & Android Features
 
-- **Mobile Process & Target Management:**
+- **Mobile Process & Target Watchlist Engine:**
   - Attach to active Unity game processes by package name or PID.
-  - Organize reverse-engineering targets into modular profiles with customizable aliases and fallbacks.
-  - Stream live scanning logs with memory-mapped `libil2cpp.so` base address resolution.
+  - Organize reverse-engineering targets into modular profiles with custom aliases, comments, groups, subgroups, and fallback resolution chains.
+  - Stream live scanning logs with memory-mapped `libil2cpp.so` base address resolution and single-tap max log modal expander in screen center.
+  - Clean target cards displaying raw resolved hex offsets (`0x1A0`) and member titles without cluttered prefixes.
 
 - **Touch-Optimized Metadata Explorer:**
   - Browse assemblies, namespaces, TypeDef sizes, fields, and method RVAs.
@@ -69,9 +70,21 @@ Export resolved offsets into clean code snippets across multiple formats (C++ co
   - Interactive Bezier call graphs with drag, pinch-to-zoom, and Auto-Tidy canvas positioning.
   - Native ARM64 disassembler detailing opcodes (`STP`, `LDR`, `CMP`, `BL`, `RET`), registers, and branch targets.
 
-- **Header & Script Generator:**
-  - Multi-language offset exporter (C++, C#, Frida, Cheat Engine, Custom Templates).
-  - Complete `dump.cs` C# metadata export with single-tap clipboard copy and file download.
+- **Screen-Centered Code Exporter & Custom Template Generator:**
+  - Fast, screen-centered history detail modal presenting full **Formatted Code Output**.
+  - Multi-language offset exporter (C++ constexpr headers, C# constants/fields, Cheat Engine INI, Custom Templates).
+  - Advanced **Custom Template Generator** supporting dynamic tag placeholders:
+    - `+{name}` - Custom or member identifier
+    - `+{offset}` - Resolved field offset or method RVA hex
+    - `+{rva}` - Method RVA hex
+    - `+{member}` - Clean member symbol name
+    - `+{group}` - Target group name
+    - `+{subgroup}` - Target subgroup name
+    - `+{kind}` - Symbol target kind (FIELD or METHOD)
+    - `+{type}` - Field/Return type declaration
+    - `+{comment}` - Target developer notes
+    - `+\n` - Multiline line breaks
+  - Uniform dark-themed **Download Full** export action matching the **Copy Code** control.
 
 - **Offline-First Persistence:**
   - 100% offline functionality on Android device storage with JSON backup and restore.

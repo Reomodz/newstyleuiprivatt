@@ -19,7 +19,7 @@ export function VirtualScrollList<T>({
   estimatedItemHeight = 72,
   columns = 1,
   gridClassName = '',
-  overscan = 4,
+  overscan = 8,
   scrollContainerRef,
   emptyMessage,
   className = '',
@@ -90,9 +90,9 @@ export function VirtualScrollList<T>({
   const totalCount = items.length;
 
   // Calculate row virtualization
-  const { visibleItems, startIndex, topPadding, bottomPadding } = useMemo(() => {
+  const { visibleItems, startIndex, topPadding, totalHeight } = useMemo(() => {
     if (totalCount === 0) {
-      return { visibleItems: [], startIndex: 0, topPadding: 0, bottomPadding: 0 };
+      return { visibleItems: [], startIndex: 0, topPadding: 0, totalHeight: 0 };
     }
 
     const rowHeight = estimatedItemHeight;
@@ -109,13 +109,13 @@ export function VirtualScrollList<T>({
     const endIdx = Math.min(totalCount, endRow * currentColumns);
 
     const topPad = startRow * rowHeight;
-    const bottomPad = Math.max(0, (totalRows - endRow) * rowHeight);
+    const totHeight = totalRows * rowHeight;
 
     return {
       visibleItems: items.slice(startIdx, endIdx),
       startIndex: startIdx,
       topPadding: topPad,
-      bottomPadding: bottomPad,
+      totalHeight: totHeight,
     };
   }, [items, totalCount, currentColumns, scrollTop, viewportHeight, estimatedItemHeight, overscan]);
 
@@ -124,19 +124,19 @@ export function VirtualScrollList<T>({
   }
 
   return (
-    <div ref={containerRef} className={`w-full ${className}`}>
-      <div style={{ height: `${topPadding}px` }} aria-hidden="true" />
-      <div className={gridClassName}>
-        {visibleItems.map((item, relIndex) => {
-          const absoluteIndex = startIndex + relIndex;
-          return (
-            <React.Fragment key={absoluteIndex}>
-              {renderItem(item, absoluteIndex)}
-            </React.Fragment>
-          );
-        })}
+    <div ref={containerRef} className={`w-full relative ${className}`} style={{ minHeight: `${totalHeight}px` }}>
+      <div style={{ transform: `translateY(${topPadding}px)`, width: '100%' }}>
+        <div className={gridClassName}>
+          {visibleItems.map((item, relIndex) => {
+            const absoluteIndex = startIndex + relIndex;
+            return (
+              <React.Fragment key={absoluteIndex}>
+                {renderItem(item, absoluteIndex)}
+              </React.Fragment>
+            );
+          })}
+        </div>
       </div>
-      <div style={{ height: `${bottomPadding}px` }} aria-hidden="true" />
     </div>
   );
 }

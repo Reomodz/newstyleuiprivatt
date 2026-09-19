@@ -4,9 +4,9 @@ import { WatchlistProfile } from '../types';
 export function useWatchlistManager(initialProfiles: WatchlistProfile[]) {
   // Profiles State
   const [profiles, setProfiles] = useState<WatchlistProfile[]>(() => {
-    const vKey = 'il2cpp_watchlist_profiles_v6';
-    const hasV6 = localStorage.getItem(vKey);
-    if (hasV6) {
+    const vKey = 'il2cpp_watchlist_profiles_v8';
+    const hasV8 = localStorage.getItem(vKey);
+    if (hasV8) {
       const saved = localStorage.getItem('il2cpp_watchlist_profiles');
       if (saved) {
         try {

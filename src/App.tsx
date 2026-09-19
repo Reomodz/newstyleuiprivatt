@@ -4,18 +4,31 @@ import {
   BreadcrumbViewData,
   CanvasTabViewData,
   ManagerInfoDestination,
+  WatchlistTargetItem,
 } from './types';
 import { il2cppEngine } from './services/il2cppEngine';
+import { useWatchlistManager } from './hooks/useWatchlistManager';
+import { DEFAULT_PROFILES } from './data/tempData';
 import { ManagerHeader } from './components/ManagerHeader';
 import { MainDashboard } from './components/MainDashboard';
 import { ManagerBrowser } from './components/ManagerBrowser';
 import { CallGraphView } from './components/CallGraphView';
 import { MethodInstructionsView } from './components/MethodInstructionsView';
 import { ManagerDrawer } from './components/ManagerDrawer';
-import { InfoModal } from './components/modals/InfoModal';
+import { InfoModal } from './components/modals';
 import { Toast } from './components/common/Toast';
 
 export const App: React.FC = () => {
+  // Shared Watchlist & Profiles State
+  const watchlistManager = useWatchlistManager(DEFAULT_PROFILES);
+  const {
+    profiles,
+    activeProfileId,
+    setActiveProfileId,
+    activeProfile,
+    saveProfiles,
+  } = watchlistManager;
+
   // Storage Dump State
   const [storageDumpName, setStorageDumpName] = useState<string | null>(() => {
     return il2cppEngine.getStorageMeta().dumpCsFileName || null;
@@ -28,6 +41,8 @@ export const App: React.FC = () => {
   const [selectedAssemblyIndex, setSelectedAssemblyIndex] = useState<number | null>(null);
   const [selectedNamespace, setSelectedNamespace] = useState<string | null>(null);
   const [selectedClassIndex, setSelectedClassIndex] = useState<number | null>(null);
+  const [browserInitialTab, setBrowserInitialTab] = useState<'FIELD' | 'METHOD'>('FIELD');
+  const [browserScrollToMember, setBrowserScrollToMember] = useState<{ memberName: string; kind: 'FIELD' | 'METHOD' } | null>(null);
 
   // Workspace & Canvas Tabs State
   const [activeWorkspace, setActiveWorkspace] = useState<'dashboard' | 'browser' | 'canvas'>('dashboard');
@@ -52,6 +67,52 @@ export const App: React.FC = () => {
   const handleCopyText = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     showToast(`Copied ${label} to clipboard`);
+  };
+
+  // Save Target to Profile Handler
+  const handleSaveTargetToProfile = (
+    targetData: Omit<WatchlistTargetItem, 'id'>,
+    targetProfileId?: string
+  ) => {
+    const profId = targetProfileId || activeProfileId;
+    const targetProf = profiles.find((p) => p.id === profId) || activeProfile;
+    if (!targetProf) return;
+
+    const existingIdx = targetProf.items.findIndex(
+      (t) =>
+        t.className.toLowerCase() === targetData.className.toLowerCase() &&
+        t.memberName.toLowerCase() === targetData.memberName.toLowerCase() &&
+        t.kind === targetData.kind
+    );
+
+    let updatedItems: WatchlistTargetItem[];
+    if (existingIdx >= 0) {
+      updatedItems = [...targetProf.items];
+      updatedItems[existingIdx] = {
+        ...updatedItems[existingIdx],
+        ...targetData,
+        offsetHex: targetData.offsetHex,
+        rvaHex: targetData.rvaHex,
+        vaHex: targetData.vaHex,
+        resolved: true,
+        lastScannedAt: Date.now(),
+      };
+      showToast(`Updated "${targetData.memberName}" in profile "${targetProf.name}"`);
+    } else {
+      const newItem: WatchlistTargetItem = {
+        ...targetData,
+        id: `t_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        resolved: true,
+        lastScannedAt: Date.now(),
+      };
+      updatedItems = [...targetProf.items, newItem];
+      showToast(`Saved "${targetData.memberName}" to profile "${targetProf.name}"`);
+    }
+
+    const nextProfiles = profiles.map((p) =>
+      p.id === targetProf.id ? { ...p, items: updatedItems, updatedAt: Date.now() } : p
+    );
+    saveProfiles(nextProfiles);
   };
 
   // Compute Breadcrumbs
@@ -213,7 +274,15 @@ export const App: React.FC = () => {
             storageDumpName={storageDumpName}
             onStorageDumpLoaded={(fileName) => setStorageDumpName(fileName)}
             onOpenProcessPicker={() => {}}
-            onNavigateToBrowser={(classIndex) => {
+            onNavigateToBrowser={(classIndex, memberKind, memberName) => {
+              if (memberKind) {
+                setBrowserInitialTab(memberKind);
+              }
+              if (memberName) {
+                setBrowserScrollToMember({ memberName, kind: memberKind || 'FIELD' });
+              } else {
+                setBrowserScrollToMember(null);
+              }
               if (classIndex !== undefined) {
                 handleSelectClass(classIndex);
               }
@@ -221,6 +290,7 @@ export const App: React.FC = () => {
             }}
             onCopyText={handleCopyText}
             showToast={showToast}
+            watchlistManager={watchlistManager}
           />
         ) : activeWorkspace === 'browser' ? (
           <ManagerBrowser
@@ -229,6 +299,8 @@ export const App: React.FC = () => {
             selectedNamespace={selectedNamespace}
             selectedClassIndex={selectedClassIndex}
             storageDumpName={storageDumpName}
+            initialClassTab={browserInitialTab}
+            scrollToMember={browserScrollToMember}
             onSelectAssembly={handleSelectAssembly}
             onSelectNamespace={handleSelectNamespace}
             onSelectClass={handleSelectClass}
@@ -236,6 +308,13 @@ export const App: React.FC = () => {
             onCopyText={handleCopyText}
             isSearchOpen={isSearchOpen}
             onCloseSearch={() => setIsSearchOpen(false)}
+            profiles={profiles}
+            activeProfile={activeProfile}
+            activeProfileId={activeProfileId}
+            onSetActiveProfileId={setActiveProfileId}
+            onSaveTargetToProfile={handleSaveTargetToProfile}
+            onSwitchWorkspace={setActiveWorkspace}
+            showToast={showToast}
           />
         ) : activeCanvasTab ? (
           <div className="flex-1 flex flex-col overflow-hidden">

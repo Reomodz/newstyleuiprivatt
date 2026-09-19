@@ -1,6 +1,6 @@
 import React from 'react';
 import { Settings2, X, RotateCcw } from 'lucide-react';
-import { ProfileCardViewSettings, DEFAULT_PROFILE_VIEW_SETTINGS } from '../../types';
+import { ProfileCardViewSettings, DEFAULT_PROFILE_VIEW_SETTINGS } from '../../../types';
 
 interface ProfileCardSettingsModalProps {
   isOpen: boolean;

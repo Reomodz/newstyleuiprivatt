@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pencil, Code2, Check } from 'lucide-react';
-import { WatchlistProfile, CodeStylePreset } from '../../types';
-import { CODE_STYLE_PRESETS, getCodeTemplate } from '../../services/formatters';
+import { WatchlistProfile, CodeStylePreset } from '../../../types';
+import { CODE_STYLE_PRESETS, getCodeTemplate } from '../../../services/formatters';
 
 interface EditProfileModalProps {
   isOpen: boolean;

@@ -105,6 +105,32 @@ class Il2cppEngine {
     return this.classByIndexMap.get(classIndex) || this.classes.find((c) => c.index === classIndex);
   }
 
+  public findClassIndexForTarget(className: string, namespaceName?: string): number | undefined {
+    if (!className) return undefined;
+    const cleanClass = className.trim().toLowerCase();
+    const cleanNs = namespaceName?.trim().toLowerCase();
+
+    if (cleanNs) {
+      const fullKey = `${cleanNs}.${cleanClass}`;
+      const match = this.classByNameMap.get(fullKey);
+      if (match) return match.index;
+    }
+
+    const directMatch = this.classByNameMap.get(cleanClass);
+    if (directMatch) return directMatch.index;
+
+    const found = this.classes.find((c) => {
+      const nameEq = c.name.toLowerCase() === cleanClass;
+      if (!nameEq) return false;
+      if (cleanNs) {
+        return (c.namespaceName || '').toLowerCase() === cleanNs;
+      }
+      return true;
+    });
+
+    return found ? found.index : undefined;
+  }
+
   public getFields(classIndex: number): FieldDescriptor[] {
     return this.fields[classIndex] || [];
   }

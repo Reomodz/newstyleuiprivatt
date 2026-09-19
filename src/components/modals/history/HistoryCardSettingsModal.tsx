@@ -1,6 +1,6 @@
 import React from 'react';
 import { Settings2, X, RotateCcw } from 'lucide-react';
-import { HistoryCardViewSettings, DEFAULT_HISTORY_VIEW_SETTINGS } from '../../types';
+import { HistoryCardViewSettings, DEFAULT_HISTORY_VIEW_SETTINGS } from '../../../types';
 
 interface HistoryCardSettingsModalProps {
   isOpen: boolean;

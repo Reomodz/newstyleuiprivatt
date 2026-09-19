@@ -1,16 +1,19 @@
 import React, { useState, useRef, useMemo, useCallback } from 'react';
 import {
-  Cpu, BookmarkPlus, Trash2, History
+  Cpu, BookmarkPlus, History
 } from 'lucide-react';
-import { AddTargetModal } from "./modals/AddTargetModal";
-import { EditTargetModal } from "./modals/EditTargetModal";
-import { CreateProfileModal } from "./modals/CreateProfileModal";
-import { EditProfileModal } from "./modals/EditProfileModal";
-import { TargetDetailModal } from "./modals/TargetDetailModal";
-import { HistoryDetailModal } from "./modals/HistoryDetailModal";
-import { CardSettingsModal } from "./modals/CardSettingsModal";
-import { ProfileCardSettingsModal } from "./modals/ProfileCardSettingsModal";
-import { HistoryCardSettingsModal } from "./modals/HistoryCardSettingsModal";
+import {
+  AddTargetModal,
+  EditTargetModal,
+  CreateProfileModal,
+  EditProfileModal,
+  TargetDetailModal,
+  HistoryDetailModal,
+  CardSettingsModal,
+  ProfileCardSettingsModal,
+  HistoryCardSettingsModal,
+} from "./modals";
+import { ConfirmDialog } from "./ui";
 import { HistoryTab } from "./dashboard/HistoryTab";
 import { DashboardHeader } from "./dashboard/DashboardHeader";
 import { ProfileSidebar } from "./dashboard/ProfileSidebar";
@@ -40,17 +43,20 @@ interface MainDashboardProps {
   storageDumpName?: string | null;
   onStorageDumpLoaded?: (fileName: string | null) => void;
   onOpenProcessPicker?: () => void;
-  onNavigateToBrowser?: (classIndex?: number) => void;
+  onNavigateToBrowser?: (classIndex?: number, memberKind?: 'FIELD' | 'METHOD', memberName?: string) => void;
   onCopyText: (text: string, label: string) => void;
   showToast: (msg: string) => void;
+  watchlistManager?: ReturnType<typeof useWatchlistManager>;
 }
 
 export const MainDashboard: React.FC<MainDashboardProps> = ({
   currentProcess,
   storageDumpName,
   onStorageDumpLoaded,
+  onNavigateToBrowser,
   onCopyText,
   showToast,
+  watchlistManager,
 }) => {
   // Dashboard Navigation State
   const [activeTab, setActiveTab] = useState<'target' | 'watchlist' | 'history'>('target');
@@ -69,6 +75,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   } | null>(null);
 
   // Profiles State
+  const defaultWatchlist = useWatchlistManager(DEFAULT_PROFILES);
   const {
     profiles,
     activeProfileId,
@@ -77,7 +84,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     setSelectedProfileViewId,
     activeProfile,
     saveProfiles,
-  } = useWatchlistManager(DEFAULT_PROFILES);
+  } = watchlistManager || defaultWatchlist;
 
   // Profile JSON Import ref
   const profileImportInputRef = useRef<HTMLInputElement>(null);
@@ -111,7 +118,10 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
   const [isAddTargetModalOpen, setIsAddTargetModalOpen] = useState(false);
   const [newTargetCustomName, setNewTargetCustomName] = useState('');
+  const [newTargetGroupName, setNewTargetGroupName] = useState('');
+  const [newTargetSubGroupName, setNewTargetSubGroupName] = useState('');
   const [newTargetAssemblyName, setNewTargetAssemblyName] = useState('');
+  const [newTargetNamespaceName, setNewTargetNamespaceName] = useState('');
   const [newTargetClassName, setNewTargetClassName] = useState('');
   const [newTargetMemberName, setNewTargetMemberName] = useState('');
   const [newTargetKind, setNewTargetKind] = useState<'FIELD' | 'METHOD'>('FIELD');
@@ -125,6 +135,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   const [editingTargetItem, setEditingTargetItem] = useState<WatchlistTargetItem | null>(null);
   const [editTargetCustomName, setEditTargetCustomName] = useState('');
   const [editTargetAssemblyName, setEditTargetAssemblyName] = useState('');
+  const [editTargetNamespaceName, setEditTargetNamespaceName] = useState('');
   const [editTargetClassName, setEditTargetClassName] = useState('');
   const [editTargetMemberName, setEditTargetMemberName] = useState('');
   const [editTargetKind, setEditTargetKind] = useState<'FIELD' | 'METHOD'>('FIELD');
@@ -369,6 +380,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         customCodeStyleTemplate: prof.customCodeStyleTemplate,
         items: prof.items.map((item) => ({
           customName: item.customName,
+          groupName: item.groupName,
+          subGroupName: item.subGroupName,
           assemblyName: item.assemblyName,
           className: item.className,
           memberName: item.memberName,
@@ -429,6 +442,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           items: profileData.items.map((it: any, idx: number) => ({
             id: `t_${Date.now()}_${idx}`,
             customName: it.customName || undefined,
+            groupName: it.groupName || undefined,
+            subGroupName: it.subGroupName || undefined,
             assemblyName: it.assemblyName || undefined,
             className: it.className || '',
             memberName: it.memberName || '',
@@ -470,12 +485,52 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     showToast('Profile deleted');
   };
 
+  // Available groups and subgroups for active profile
+  const availableGroups = useMemo(() => {
+    if (!activeProfile) return [];
+    const set = new Set<string>();
+    for (const item of activeProfile.items) {
+      if (item.groupName?.trim()) set.add(item.groupName.trim());
+    }
+    return Array.from(set);
+  }, [activeProfile]);
+
+  const availableSubGroups = useMemo(() => {
+    if (!activeProfile) return [];
+    const set = new Set<string>();
+    for (const item of activeProfile.items) {
+      if (item.subGroupName?.trim()) set.add(item.subGroupName.trim());
+    }
+    return Array.from(set);
+  }, [activeProfile]);
+
+  const handleOpenAddTargetToGroup = useCallback((groupName?: string, subGroupName?: string) => {
+    setNewTargetGroupName(groupName || '');
+    setNewTargetSubGroupName(subGroupName || '');
+    setIsAddTargetModalOpen(true);
+  }, []);
+
+  const handleReorderTargets = useCallback((profileId: string, items: WatchlistTargetItem[], groupOrder?: string[]) => {
+    const nextProfiles = profiles.map((p) =>
+      p.id === profileId
+        ? {
+            ...p,
+            items,
+            ...(groupOrder !== undefined ? { groupOrder } : {}),
+            updatedAt: Date.now(),
+          }
+        : p
+    );
+    saveProfiles(nextProfiles);
+  }, [profiles, saveProfiles]);
+
   // Open Edit Target Modal
   const handleOpenEditTarget = (item: WatchlistTargetItem) => {
     setEditingTargetItem(item);
     setEditTargetCustomName(item.customName || '');
     setEditTargetAssemblyName(item.assemblyName || item.resolvedAssemblyName || '');
-    setEditTargetClassName(item.className);
+    setEditTargetNamespaceName(item.namespaceName || '');
+    setEditTargetClassName(item.namespaceName ? `${item.namespaceName}::${item.className}` : item.className);
     setEditTargetMemberName(item.memberName);
     setEditTargetKind(item.kind);
     setEditTargetComment(item.comment || '');
@@ -493,11 +548,22 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   const handleSaveEditTarget = () => {
     if (!editingTargetItem || !activeProfile || !editTargetClassName.trim() || !editTargetMemberName.trim()) return;
 
+    let parsedNs = editTargetNamespaceName.trim() || undefined;
+    let parsedClass = editTargetClassName.trim();
+    if (parsedClass.includes('::')) {
+      const parts = parsedClass.split('::');
+      parsedNs = parts[0].trim() || undefined;
+      parsedClass = parts.slice(1).join('::').trim();
+    }
+
     const updatedItem: WatchlistTargetItem = {
       ...editingTargetItem,
       customName: editTargetCustomName.trim() || undefined,
+      groupName: editingTargetItem.groupName,
+      subGroupName: editingTargetItem.subGroupName,
       assemblyName: editTargetAssemblyName.trim() || undefined,
-      className: editTargetClassName.trim(),
+      namespaceName: parsedNs,
+      className: parsedClass,
       memberName: editTargetMemberName.trim(),
       kind: editTargetKind,
       comment: editTargetComment.trim() || undefined,
@@ -533,11 +599,22 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   const handleAddTarget = () => {
     if (!newTargetClassName.trim() || !newTargetMemberName.trim() || !activeProfile) return;
 
+    let parsedNs = newTargetNamespaceName.trim() || undefined;
+    let parsedClass = newTargetClassName.trim();
+    if (parsedClass.includes('::')) {
+      const parts = parsedClass.split('::');
+      parsedNs = parts[0].trim() || undefined;
+      parsedClass = parts.slice(1).join('::').trim();
+    }
+
     const newItem: WatchlistTargetItem = {
       id: `t_${Date.now()}`,
       customName: newTargetCustomName.trim() || undefined,
+      groupName: newTargetGroupName.trim() || undefined,
+      subGroupName: newTargetSubGroupName.trim() || undefined,
       assemblyName: newTargetAssemblyName.trim() || undefined,
-      className: newTargetClassName.trim(),
+      namespaceName: parsedNs,
+      className: parsedClass,
       memberName: newTargetMemberName.trim(),
       kind: newTargetKind,
       comment: newTargetComment.trim() || undefined,
@@ -551,7 +628,10 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     saveProfiles(nextProfiles);
 
     setNewTargetCustomName('');
+    setNewTargetGroupName('');
+    setNewTargetSubGroupName('');
     setNewTargetAssemblyName('');
+    setNewTargetNamespaceName('');
     setNewTargetClassName('');
     setNewTargetMemberName('');
     setNewTargetComment('');
@@ -582,6 +662,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     return activeProfile.items.filter(
       (i) =>
         (i.customName && i.customName.toLowerCase().includes(lowerFilter)) ||
+        (i.groupName && i.groupName.toLowerCase().includes(lowerFilter)) ||
+        (i.subGroupName && i.subGroupName.toLowerCase().includes(lowerFilter)) ||
         (i.assemblyName && i.assemblyName.toLowerCase().includes(lowerFilter)) ||
         (i.resolvedAssemblyName && i.resolvedAssemblyName.toLowerCase().includes(lowerFilter)) ||
         i.className.toLowerCase().includes(lowerFilter) ||
@@ -681,6 +763,11 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               handleOpenEditTarget={handleOpenEditTarget}
               handleRemoveTargetItem={handleRemoveTargetItem}
               setIsAddTargetModalOpen={setIsAddTargetModalOpen}
+              handleReorderTargets={handleReorderTargets}
+              handleOpenAddTargetToGroup={handleOpenAddTargetToGroup}
+              showToast={showToast}
+              onNavigateToBrowser={onNavigateToBrowser}
+              isDumpLoaded={Boolean(loadedStorageFileName || storageDumpName || il2cppEngine.getStorageMeta().dumpCsFileName || il2cppEngine.getAssemblies().length > 0)}
             />
           )}
 
@@ -737,6 +824,12 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         setNewTargetKind={setNewTargetKind}
         newTargetCustomName={newTargetCustomName}
         setNewTargetCustomName={setNewTargetCustomName}
+        newTargetGroupName={newTargetGroupName}
+        setNewTargetGroupName={setNewTargetGroupName}
+        newTargetSubGroupName={newTargetSubGroupName}
+        setNewTargetSubGroupName={setNewTargetSubGroupName}
+        availableGroups={availableGroups}
+        availableSubGroups={availableSubGroups}
         newTargetAssemblyName={newTargetAssemblyName}
         setNewTargetAssemblyName={setNewTargetAssemblyName}
         newTargetClassName={newTargetClassName}
@@ -795,6 +888,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         activeProfile={activeProfile}
         handleOpenEditTarget={handleOpenEditTarget}
         onCopyText={onCopyText}
+        onNavigateToBrowser={onNavigateToBrowser}
+        isDumpLoaded={Boolean(loadedStorageFileName || storageDumpName || il2cppEngine.getStorageMeta().dumpCsFileName || il2cppEngine.getAssemblies().length > 0)}
       />
       <HistoryDetailModal
         isOpen={!!selectedHistoryRecord}
@@ -832,44 +927,18 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
       />
 
       {/* Confirmation Modal: Clear All History */}
-      {isConfirmClearHistoryOpen && (
-        <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm overflow-y-auto p-3 sm:p-4 flex justify-center items-start sm:items-center">
-          <div className="bg-[#1E1E20] border border-[#3A3A3E] rounded-2xl sm:rounded-3xl p-4 sm:p-6 max-w-sm w-full shadow-2xl flex flex-col gap-3 sm:gap-4 animate-in fade-in zoom-in-95 duration-200 mt-20 sm:mt-0 mb-auto sm:my-auto shrink-0">
-            <div className="flex items-center gap-1.5 sm:gap-3">
-              <div className="p-1.5 sm:p-2.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl sm:rounded-2xl">
-                <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
-              </div>
-              <div className="flex flex-col">
-                <h3 className="text-sm sm:text-base font-bold text-[#E2E2E4]">Clear All History?</h3>
-                <p className="text-[10px] sm:text-xs text-[#8E8E93]">This will permanently delete all {scanHistory.length} scan logs.</p>
-              </div>
-            </div>
-
-            <p className="text-[10px] sm:text-xs text-[#A0A0A5] leading-relaxed bg-[#141416] p-2 sm:p-3 rounded-lg sm:rounded-xl border border-[#2D2D30]">
-              Are you sure you want to clear your scan history logs? This action cannot be undone.
-            </p>
-
-            <div className="flex items-center justify-end gap-2.5 pt-1">
-              <button
-                onClick={() => setIsConfirmClearHistoryOpen(false)}
-                className="px-3 sm:px-4 py-1.5 sm:py-2 text-[10px] sm:text-xs font-semibold text-[#8E8E93] hover:text-white bg-[#262629] hover:bg-[#323236] rounded-lg sm:rounded-xl transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  saveHistory([]);
-                  setIsConfirmClearHistoryOpen(false);
-                  showToast('All scan history cleared');
-                }}
-                className="px-3 sm:px-4 py-1.5 sm:py-2 bg-red-600 hover:bg-red-500 text-white text-[10px] sm:text-xs font-bold rounded-lg sm:rounded-xl shadow-md shadow-red-600/30 transition-colors"
-              >
-                Delete All
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        isOpen={isConfirmClearHistoryOpen}
+        onClose={() => setIsConfirmClearHistoryOpen(false)}
+        onConfirm={() => {
+          saveHistory([]);
+          showToast('All scan history cleared');
+        }}
+        title="Clear All History?"
+        subtitle={`This will permanently delete all ${scanHistory.length} scan logs.`}
+        description="Are you sure you want to clear your scan history logs? This action cannot be undone."
+        confirmText="Delete All"
+      />
     </div>
   );
 };

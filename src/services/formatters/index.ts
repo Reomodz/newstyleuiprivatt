@@ -43,14 +43,6 @@ export const CODE_STYLE_PRESETS: CodeStyleOption[] = [
     mimeType: 'text/plain',
   },
   {
-    id: 'lua',
-    label: 'Lua Script',
-    template: 'local {name} = {offset}',
-    description: 'Lua local variable definitions',
-    fileExtension: '.lua',
-    mimeType: 'text/x-lua',
-  },
-  {
     id: 'custom',
     label: 'Custom Template',
     template: 'constexpr uintptr_t {name} = {offset};',
@@ -83,6 +75,8 @@ export function formatTargetCodeSnippet(
   const type = item.typeName || (item.kind === 'FIELD' ? 'System.Single' : 'void');
   const kind = item.kind;
   const comment = item.comment || '';
+  const group = item.groupName || '';
+  const subgroup = item.subGroupName || '';
 
   // Variable-safe member name (e.g. for C++ / C# variable identifiers)
   const safeName = displayName.replace(/[^a-zA-Z0-9_]/g, '_');
@@ -93,6 +87,7 @@ export function formatTargetCodeSnippet(
     .replace(/\{name\}/g, safeName)
     .replace(/\{rawName\}/g, displayName)
     .replace(/\{memberName\}/g, safeMemberName)
+    .replace(/\{member\}/g, safeMemberName)
     .replace(/\{rawMemberName\}/g, targetMember)
     .replace(/\{offset\}/g, offset)
     .replace(/\{rva\}/g, rva)
@@ -101,7 +96,14 @@ export function formatTargetCodeSnippet(
     .replace(/\{safeClass\}/g, safeClass)
     .replace(/\{type\}/g, type)
     .replace(/\{kind\}/g, kind)
-    .replace(/\{comment\}/g, comment);
+    .replace(/\{group\}/g, group)
+    .replace(/\{groupName\}/g, group)
+    .replace(/\{subgroup\}/g, subgroup)
+    .replace(/\{subGroupName\}/g, subgroup)
+    .replace(/\{comment\}/g, comment)
+    .replace(/\{\\n\}/g, '\n')
+    .replace(/\{newline\}/g, '\n')
+    .replace(/\\n/g, '\n');
 
   return result;
 }

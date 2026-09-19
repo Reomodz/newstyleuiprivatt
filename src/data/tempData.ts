@@ -14,6 +14,8 @@ export const DEFAULT_PROFILES: WatchlistProfile[] = [
       {
         id: 't_demo_1',
         customName: 'PlayerHealth',
+        groupName: 'Player',
+        subGroupName: 'Attributes',
         assemblyName: 'Assembly-CSharp.dll',
         className: 'PlayerController',
         memberName: 'health',
@@ -25,6 +27,8 @@ export const DEFAULT_PROFILES: WatchlistProfile[] = [
       {
         id: 't_demo_2',
         customName: 'MoveSpeed',
+        groupName: 'Player',
+        subGroupName: 'Movement',
         assemblyName: 'Assembly-CSharp.dll',
         className: 'PlayerMovement',
         memberName: 'walkSpeed',
@@ -36,6 +40,8 @@ export const DEFAULT_PROFILES: WatchlistProfile[] = [
       {
         id: 't_demo_3',
         customName: 'FireWeapon',
+        groupName: 'Combat',
+        subGroupName: 'Weapons',
         assemblyName: 'Assembly-CSharp.dll',
         className: 'WeaponController',
         memberName: 'Fire',
@@ -47,6 +53,8 @@ export const DEFAULT_PROFILES: WatchlistProfile[] = [
       {
         id: 't_demo_4',
         customName: 'PlayerJump',
+        groupName: 'Player',
+        subGroupName: 'Movement',
         assemblyName: 'Assembly-CSharp.dll',
         className: 'PlayerMovement',
         memberName: 'Jump',
@@ -68,6 +76,8 @@ export const DEFAULT_PROFILES: WatchlistProfile[] = [
       {
         id: 't_demo_5',
         customName: 'CameraController',
+        groupName: 'Rendering',
+        subGroupName: 'Camera',
         assemblyName: 'Assembly-CSharp.dll',
         className: 'COW.GamePlay::CameraControllerBase',
         memberName: 'm_TargetCamera',
@@ -79,6 +89,8 @@ export const DEFAULT_PROFILES: WatchlistProfile[] = [
       {
         id: 't_demo_6',
         customName: 'GameUpdate',
+        groupName: 'GameLoop',
+        subGroupName: 'State',
         assemblyName: 'Assembly-CSharp.dll',
         className: 'GameManager',
         memberName: 'Update',
@@ -90,6 +102,8 @@ export const DEFAULT_PROFILES: WatchlistProfile[] = [
       {
         id: 't_demo_7',
         customName: 'IsGamePaused',
+        groupName: 'GameLoop',
+        subGroupName: 'State',
         assemblyName: 'Assembly-CSharp.dll',
         className: 'GameManager',
         memberName: 'isPaused',

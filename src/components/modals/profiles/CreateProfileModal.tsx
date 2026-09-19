@@ -1,7 +1,7 @@
 import React from 'react';
 import { BookmarkPlus, Code2, Check } from 'lucide-react';
-import { CodeStylePreset } from '../../types';
-import { CODE_STYLE_PRESETS, getCodeTemplate } from '../../services/formatters';
+import { CodeStylePreset } from '../../../types';
+import { CODE_STYLE_PRESETS, getCodeTemplate } from '../../../services/formatters';
 
 interface CreateProfileModalProps {
   isOpen: boolean;
