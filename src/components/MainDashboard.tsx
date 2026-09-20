@@ -300,11 +300,11 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
       methodsCount: storageMeta.totalMethods,
       fieldsCount: storageMeta.totalFields,
       typeInfosCount: 0,
-      stage: `Preparing to stream ${file.name} (${Number((file.size / (1024 * 1024)).toFixed(2))} MB)...`,
+      stage: `Scanning ${file.name} (${Number((file.size / (1024 * 1024)).toFixed(2))} MB)...`,
     });
 
     try {
-      const result = await il2cppEngine.parseIl2cppHFile(file, (progress) => {
+      await il2cppEngine.parseIl2cppHFile(file, (progress) => {
         setParseProgress(progress);
       });
       setLoadedHeaderFileName(file.name);
@@ -318,12 +318,33 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
       }));
       setIsParsingDump(false);
       setParseProgress(null);
-      showToast(`Linked ${file.name} (${Number((file.size / (1024 * 1024)).toFixed(2))} MB): ${result.typeInfosCount.toLocaleString()} TypeInfos & ${result.methodsLinked.toLocaleString()} methods linked`);
+      showToast(`Loaded ${file.name}: TypeInfo ${updatedMeta.baseAddressHex || '0x0'} & Static Offset ${updatedMeta.staticFieldsOffsetHex || '0xB8'}`);
     } catch (err) {
       setIsParsingDump(false);
       setParseProgress(null);
       showToast('Failed to parse il2cpp.h file');
     }
+  };
+
+  // Unload il2cpp.h
+  const handleUnloadIl2cppH = () => {
+    il2cppEngine.unloadIl2cppH();
+    setLoadedHeaderFileName(null);
+    const updatedMeta = il2cppEngine.getStorageMeta();
+    setStorageMeta(updatedMeta);
+    setParsedSummary((prev) => (prev ? { ...prev, typeInfos: 0 } : null));
+    showToast('Unloaded il2cpp.h from workspace');
+  };
+
+  // Unload dump.cs
+  const handleUnloadDumpCs = () => {
+    il2cppEngine.unloadDumpCs();
+    setLoadedStorageFileName(null);
+    const updatedMeta = il2cppEngine.getStorageMeta();
+    setStorageMeta(updatedMeta);
+    setParsedSummary(null);
+    if (onStorageDumpLoaded) onStorageDumpLoaded(null as any);
+    showToast('Unloaded dump.cs from workspace');
   };
 
   // Create Profile
@@ -893,6 +914,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               storageMeta={storageMeta}
               onDumpCsUploaded={handleDumpCsUpload}
               onIl2cppHUploaded={handleIl2cppHUpload}
+              onUnloadDumpCs={handleUnloadDumpCs}
+              onUnloadIl2cppH={handleUnloadIl2cppH}
               isParsingDump={isParsingDump}
               parseProgress={parseProgress}
               activeProfileId={activeProfileId}

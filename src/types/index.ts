@@ -145,6 +145,7 @@ export interface StorageDumpMeta {
   il2cppHFileName?: string | null;
   baseAddressHex?: string;
   staticFieldsOffsetHex?: string;
+  typeInfoSymbolName?: string;
   totalClasses: number;
   totalMethods: number;
   totalFields: number;

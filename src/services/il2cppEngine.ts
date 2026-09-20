@@ -641,6 +641,51 @@ class Il2cppEngine {
     };
   }
 
+  public unloadIl2cppH(): void {
+    this.storageMeta = {
+      ...this.storageMeta,
+      il2cppHFileName: null,
+      baseAddressHex: '0x0',
+      staticFieldsOffsetHex: '0xB8',
+      typeInfoSymbolName: undefined,
+      totalTypeInfos: 0,
+      loadedAt: Date.now(),
+    };
+    for (const c of this.classes) {
+      delete c.typeInfoHex;
+    }
+  }
+
+  public unloadDumpCs(): void {
+    this.assemblies = [];
+    this.namespaces = [];
+    this.classes = [];
+    this.fields = {};
+    this.methods = {};
+    this.callRelations = [];
+    this.classByNameMap.clear();
+    this.classByIndexMap.clear();
+
+    this.storageMeta = {
+      ...this.storageMeta,
+      dumpCsFileName: null,
+      totalClasses: 0,
+      totalMethods: 0,
+      totalFields: 0,
+      totalTypeInfos: 0,
+      loadedAt: Date.now(),
+    };
+
+    this.currentProcess = {
+      pid: 0,
+      name: 'No dump loaded',
+      appName: 'Storage Dump Engine',
+      startTicks: Math.floor(Date.now() / 1000),
+      unityVersion: 'Unknown',
+      arch: 'arm64-v8a',
+    };
+  }
+
   public async parseIl2cppHFile(
     file: File,
     onProgress?: (progress: DumpParseProgress) => void
@@ -658,15 +703,24 @@ class Il2cppEngine {
 
     let detectedBaseAddress: string | undefined;
     let detectedStaticOffset: string | undefined;
-    let typeInfosCount = 0;
-    let methodsLinked = 0;
-    let currentImageName = 'Assembly-CSharp.dll';
+    let detectedTypeInfoSymbol: string | undefined;
 
-    const baseRegex = /(?:Base\s*Address:?|IL2CPP_BASE_ADDRESS)\s*(0x[0-9a-fA-F]+)/i;
-    const staticOffsetRegex = /(?:static_fields\s*offset:?|IL2CPP_STATIC_FIELDS_OFFSET)\s*(0x[0-9a-fA-F]+)/i;
-    const imgRegex = /^\/\/\s*Image:\s*([a-zA-Z0-9_.-]+\.dll)/i;
-    const typeInfoRegex = /static\s+const\s+uintptr_t\s+(?:t_)?([a-zA-Z0-9_]+)_TypeInfo\s*=\s*(0x[0-9a-fA-F]+);/;
-    const methodPtrRegex = /static\s+const\s+uintptr_t\s+m_([a-zA-Z0-9_]+)_([a-zA-Z0-9_]+)\s*=\s*(0x[0-9a-fA-F]+);(?:\s*\/\/\s*typeinfo\s*(0x[0-9a-fA-F]+))?/;
+    // Pattern 1: Targeted GameFacade TypeInfo: static const uintptr_t t_GameFacade_TypeInfo = 0xac1e768;
+    const gameFacadeRegex = /static\s+const\s+uintptr_t\s+(t_GameFacade_TypeInfo|GameFacade_TypeInfo)\s*=\s*(0x[0-9a-fA-F]+);/i;
+    // Pattern 2: General TypeInfo fallback: static const uintptr_t (?:t_)?..._TypeInfo = 0x...;
+    const typeInfoRegex = /static\s+const\s+uintptr_t\s+(?:t_)?([a-zA-Z0-9_]+)_TypeInfo\s*=\s*(0x[0-9a-fA-F]+);/i;
+    // Pattern 3: Static fields offset: #define IL2CPP_STATIC_FIELDS_OFFSET 0xb8
+    const staticOffsetRegex = /(?:#define\s+IL2CPP_STATIC_FIELDS_OFFSET|static_fields\s*offset:?)\s*(0x[0-9a-fA-F]+|[0-9a-fA-F]+)/i;
+    // Pattern 4: Base address: #define IL2CPP_BASE_ADDRESS 0x... or Base Address: 0x...
+    const baseRegex = /(?:#define\s+IL2CPP_BASE_ADDRESS|Base\s*Address:?)\s*(0x[0-9a-fA-F]+)/i;
+
+    const formatHex = (val: string) => {
+      const clean = val.trim();
+      if (clean.toLowerCase().startsWith('0x')) {
+        return '0x' + clean.slice(2).toUpperCase();
+      }
+      return '0x' + clean.toUpperCase();
+    };
 
     let lastYieldTime = performance.now();
 
@@ -683,108 +737,50 @@ class Il2cppEngine {
         const line = lines[i].trim();
         if (!line) continue;
 
-        if (line.startsWith('//')) {
-          const imgMatch = line.match(imgRegex);
-          if (imgMatch) {
-            currentImageName = imgMatch[1].trim();
-            continue;
+        // 1. Check for static fields offset
+        if (line.includes('STATIC_FIELDS') || line.includes('static_fields')) {
+          const staticMatch = line.match(staticOffsetRegex);
+          if (staticMatch) {
+            detectedStaticOffset = formatHex(staticMatch[1]);
           }
         }
 
-        // Base address & Static fields offset
-        if (line.includes('Address') || line.includes('ADDRESS')) {
+        // 2. Check for targeted GameFacade TypeInfo
+        if (line.includes('GameFacade')) {
+          const gfMatch = line.match(gameFacadeRegex);
+          if (gfMatch) {
+            detectedBaseAddress = formatHex(gfMatch[2]);
+            detectedTypeInfoSymbol = gfMatch[1];
+            // If class already exists in dump.cs, link it without creating new classes
+            const matchingClass = this.classByNameMap.get('gamefacade');
+            if (matchingClass) {
+              matchingClass.typeInfoHex = detectedBaseAddress;
+            }
+          }
+        }
+
+        // 3. Check for general TypeInfo fallback if not yet found
+        if (line.includes('_TypeInfo') && !detectedBaseAddress) {
+          const tiMatch = line.match(typeInfoRegex);
+          if (tiMatch) {
+            detectedBaseAddress = formatHex(tiMatch[2]);
+            detectedTypeInfoSymbol = tiMatch[1] + '_TypeInfo';
+            const matchingClass = this.classByNameMap.get(tiMatch[1].toLowerCase());
+            if (matchingClass) {
+              matchingClass.typeInfoHex = detectedBaseAddress;
+            }
+          }
+        }
+
+        // 4. Check for general Base Address
+        if ((line.includes('BASE_ADDRESS') || line.includes('Address')) && !detectedBaseAddress) {
           const baseMatch = line.match(baseRegex);
           if (baseMatch) {
-            detectedBaseAddress = baseMatch[1].toUpperCase();
-          }
-        }
-        if (line.includes('static_fields') || line.includes('STATIC_FIELDS')) {
-          const staticOffsetMatch = line.match(staticOffsetRegex);
-          if (staticOffsetMatch) {
-            detectedStaticOffset = staticOffsetMatch[1].toUpperCase();
-          }
-        }
-
-        // TypeInfo pointer: static const uintptr_t t_..._TypeInfo = 0x...;
-        if (line.includes('_TypeInfo')) {
-          const typeInfoMatch = line.match(typeInfoRegex);
-          if (typeInfoMatch) {
-            const typeName = typeInfoMatch[1];
-            const typeInfoHex = typeInfoMatch[2];
-            typeInfosCount++;
-
-            // Fast O(1) class lookup
-            const matchingClass = this.classByNameMap.get(typeName.toLowerCase());
-            if (matchingClass) {
-              matchingClass.typeInfoHex = typeInfoHex;
-            } else {
-              let asm = this.assemblies.find((a) => a.name === currentImageName);
-              if (!asm) {
-                asm = { index: this.assemblies.length, name: currentImageName, classCount: 0 };
-                this.assemblies.push(asm);
-              }
-              asm.classCount = (asm.classCount || 0) + 1;
-
-              const newClass: ClassInfoDescriptor = {
-                index: this.classes.length,
-                name: typeName,
-                namespaceName: '',
-                assemblyIndex: asm.index,
-                assemblyName: asm.name,
-                flags: 0x100001,
-                token: 0x02000000 + this.classes.length,
-                bitfield: 1,
-                typeInfoHex,
-              };
-              this.classes.push(newClass);
-              this.classByNameMap.set(typeName.toLowerCase(), newClass);
-              this.classByIndexMap.set(newClass.index, newClass);
-              this.fields[newClass.index] = [];
-              this.methods[newClass.index] = [];
-            }
-            continue;
-          }
-        }
-
-        // Method RVA & TypeInfo: static const uintptr_t m_Class_Method = 0x...;
-        if (line.includes('m_') && line.includes('uintptr_t')) {
-          const methodPtrMatch = line.match(methodPtrRegex);
-          if (methodPtrMatch) {
-            const className = methodPtrMatch[1];
-            const methodName = methodPtrMatch[2];
-            const rva = parseInt(methodPtrMatch[3], 16);
-            const typeInfoHex = methodPtrMatch[4];
-            methodsLinked++;
-
-            const matchingClass = this.classByNameMap.get(className.toLowerCase());
-            if (matchingClass) {
-              const classMethods = this.methods[matchingClass.index] || [];
-              const existingMethod = classMethods.find((m) => m.name === methodName);
-              if (existingMethod) {
-                existingMethod.rva = rva;
-                if (typeInfoHex) existingMethod.typeInfoHex = typeInfoHex;
-              } else {
-                const baseAddr = detectedBaseAddress
-                  ? parseInt(detectedBaseAddress, 16)
-                  : (this.storageMeta.baseAddressHex ? parseInt(this.storageMeta.baseAddressHex, 16) : 0x78f1e0b000);
-                const newM: MethodDescriptor = {
-                  index: classMethods.length,
-                  classIndex: matchingClass.index,
-                  name: methodName,
-                  signature: `public void ${methodName}()`,
-                  rva,
-                  address: baseAddr + rva,
-                  typeInfoHex,
-                };
-                classMethods.push(newM);
-                this.methods[matchingClass.index] = classMethods;
-              }
-            }
+            detectedBaseAddress = formatHex(baseMatch[1]);
           }
         }
       }
 
-      // Yield every 20ms to keep 60fps responsiveness
       const now = performance.now();
       if (now - lastYieldTime > 20) {
         if (onProgress) {
@@ -797,8 +793,8 @@ class Il2cppEngine {
             classesCount: this.classes.length,
             methodsCount: Object.values(this.methods).reduce((a, b) => a + b.length, 0),
             fieldsCount: Object.values(this.fields).reduce((a, b) => a + b.length, 0),
-            typeInfosCount,
-            stage: `Streaming ${file.name} (${Number((offset / (1024 * 1024)).toFixed(1))} MB / ${Number((totalBytes / (1024 * 1024)).toFixed(1))} MB)...`,
+            typeInfosCount: detectedBaseAddress ? 1 : 0,
+            stage: `Scanning ${file.name} for TypeInfo & Static Offset...`,
           });
         }
         await new Promise((resolve) => setTimeout(resolve, 0));
@@ -806,14 +802,13 @@ class Il2cppEngine {
       }
     }
 
-    this.rebuildIndexMaps();
-
     this.storageMeta = {
       ...this.storageMeta,
       il2cppHFileName: file.name,
-      baseAddressHex: detectedBaseAddress || this.storageMeta.baseAddressHex,
-      staticFieldsOffsetHex: detectedStaticOffset || this.storageMeta.staticFieldsOffsetHex,
-      totalTypeInfos: this.classes.filter((c) => !!c.typeInfoHex).length,
+      baseAddressHex: detectedBaseAddress || this.storageMeta.baseAddressHex || '0x0',
+      staticFieldsOffsetHex: detectedStaticOffset || this.storageMeta.staticFieldsOffsetHex || '0xB8',
+      typeInfoSymbolName: detectedTypeInfoSymbol || (detectedBaseAddress ? 't_GameFacade_TypeInfo' : undefined),
+      totalTypeInfos: detectedBaseAddress ? 1 : 0,
       loadedAt: Date.now(),
     };
 
@@ -827,14 +822,14 @@ class Il2cppEngine {
         classesCount: this.classes.length,
         methodsCount: Object.values(this.methods).reduce((a, b) => a + b.length, 0),
         fieldsCount: Object.values(this.fields).reduce((a, b) => a + b.length, 0),
-        typeInfosCount,
-        stage: 'Linking complete!',
+        typeInfosCount: detectedBaseAddress ? 1 : 0,
+        stage: 'Offsets extracted!',
       });
     }
 
     return {
-      typeInfosCount,
-      methodsLinked,
+      typeInfosCount: detectedBaseAddress ? 1 : 0,
+      methodsLinked: 0,
       baseAddressHex: detectedBaseAddress,
       staticOffsetHex: detectedStaticOffset,
     };
@@ -1123,121 +1118,77 @@ class Il2cppEngine {
     const lines = headerText.split(/\r?\n/);
     let detectedBaseAddress: string | undefined;
     let detectedStaticOffset: string | undefined;
-    let typeInfosCount = 0;
-    let methodsLinked = 0;
+    let detectedTypeInfoSymbol: string | undefined;
 
-    let currentImageName = 'Assembly-CSharp.dll';
+    const gameFacadeRegex = /static\s+const\s+uintptr_t\s+(t_GameFacade_TypeInfo|GameFacade_TypeInfo)\s*=\s*(0x[0-9a-fA-F]+);/i;
+    const typeInfoRegex = /static\s+const\s+uintptr_t\s+(?:t_)?([a-zA-Z0-9_]+)_TypeInfo\s*=\s*(0x[0-9a-fA-F]+);/i;
+    const staticOffsetRegex = /(?:#define\s+IL2CPP_STATIC_FIELDS_OFFSET|static_fields\s*offset:?)\s*(0x[0-9a-fA-F]+|[0-9a-fA-F]+)/i;
+    const baseRegex = /(?:#define\s+IL2CPP_BASE_ADDRESS|Base\s*Address:?)\s*(0x[0-9a-fA-F]+)/i;
+
+    const formatHex = (val: string) => {
+      const clean = val.trim();
+      if (clean.toLowerCase().startsWith('0x')) {
+        return '0x' + clean.slice(2).toUpperCase();
+      }
+      return '0x' + clean.toUpperCase();
+    };
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) continue;
 
-      const baseMatch = line.match(/(?:Base\s*Address:?|IL2CPP_BASE_ADDRESS)\s*(0x[0-9a-fA-F]+)/i);
-      if (baseMatch) {
-        detectedBaseAddress = baseMatch[1].toUpperCase();
-      }
-
-      const staticOffsetMatch = line.match(
-        /(?:static_fields\s*offset:?|IL2CPP_STATIC_FIELDS_OFFSET)\s*(0x[0-9a-fA-F]+)/i
-      );
-      if (staticOffsetMatch) {
-        detectedStaticOffset = staticOffsetMatch[1].toUpperCase();
-      }
-
-      const imageMatch = line.match(/^\/\/\s*Image:\s*([a-zA-Z0-9_.-]+\.dll)/i);
-      if (imageMatch) {
-        currentImageName = imageMatch[1].trim();
-        continue;
-      }
-
-      const typeInfoMatch = line.match(
-        /static\s+const\s+uintptr_t\s+(?:t_)?([a-zA-Z0-9_]+)_TypeInfo\s*=\s*(0x[0-9a-fA-F]+);/
-      );
-      if (typeInfoMatch) {
-        const typeName = typeInfoMatch[1];
-        const typeInfoHex = typeInfoMatch[2];
-        typeInfosCount++;
-
-        const matchingClass = this.classByNameMap.get(typeName.toLowerCase());
-        if (matchingClass) {
-          matchingClass.typeInfoHex = typeInfoHex;
-        } else {
-          let asm = this.assemblies.find((a) => a.name === currentImageName);
-          if (!asm) {
-            asm = { index: this.assemblies.length, name: currentImageName, classCount: 0 };
-            this.assemblies.push(asm);
-          }
-          asm.classCount = (asm.classCount || 0) + 1;
-
-          const newClass: ClassInfoDescriptor = {
-            index: this.classes.length,
-            name: typeName,
-            namespaceName: '',
-            assemblyIndex: asm.index,
-            assemblyName: asm.name,
-            flags: 0x100001,
-            token: 0x02000000 + this.classes.length,
-            bitfield: 1,
-            typeInfoHex,
-          };
-          this.classes.push(newClass);
-          this.classByNameMap.set(typeName.toLowerCase(), newClass);
-          this.classByIndexMap.set(newClass.index, newClass);
-          this.fields[newClass.index] = [];
-          this.methods[newClass.index] = [];
+      if (line.includes('STATIC_FIELDS') || line.includes('static_fields')) {
+        const staticMatch = line.match(staticOffsetRegex);
+        if (staticMatch) {
+          detectedStaticOffset = formatHex(staticMatch[1]);
         }
-        continue;
       }
 
-      const methodPtrMatch = line.match(
-        /static\s+const\s+uintptr_t\s+m_([a-zA-Z0-9_]+)_([a-zA-Z0-9_]+)\s*=\s*(0x[0-9a-fA-F]+);(?:\s*\/\/\s*typeinfo\s*(0x[0-9a-fA-F]+))?/
-      );
-      if (methodPtrMatch) {
-        const className = methodPtrMatch[1];
-        const methodName = methodPtrMatch[2];
-        const rva = parseInt(methodPtrMatch[3], 16);
-        const typeInfoHex = methodPtrMatch[4];
-        methodsLinked++;
-
-        const matchingClass = this.classByNameMap.get(className.toLowerCase());
-        if (matchingClass) {
-          const classMethods = this.methods[matchingClass.index] || [];
-          const existingMethod = classMethods.find((m) => m.name === methodName);
-          if (existingMethod) {
-            existingMethod.rva = rva;
-            if (typeInfoHex) existingMethod.typeInfoHex = typeInfoHex;
-          } else {
-            const baseAddr = detectedBaseAddress ? parseInt(detectedBaseAddress, 16) : 0x78f1e0b000;
-            const newM: MethodDescriptor = {
-              index: classMethods.length,
-              classIndex: matchingClass.index,
-              name: methodName,
-              signature: `public void ${methodName}()`,
-              rva,
-              address: baseAddr + rva,
-              typeInfoHex,
-            };
-            classMethods.push(newM);
-            this.methods[matchingClass.index] = classMethods;
+      if (line.includes('GameFacade')) {
+        const gfMatch = line.match(gameFacadeRegex);
+        if (gfMatch) {
+          detectedBaseAddress = formatHex(gfMatch[2]);
+          detectedTypeInfoSymbol = gfMatch[1];
+          const matchingClass = this.classByNameMap.get('gamefacade');
+          if (matchingClass) {
+            matchingClass.typeInfoHex = detectedBaseAddress;
           }
+        }
+      }
+
+      if (line.includes('_TypeInfo') && !detectedBaseAddress) {
+        const tiMatch = line.match(typeInfoRegex);
+        if (tiMatch) {
+          detectedBaseAddress = formatHex(tiMatch[2]);
+          detectedTypeInfoSymbol = tiMatch[1] + '_TypeInfo';
+          const matchingClass = this.classByNameMap.get(tiMatch[1].toLowerCase());
+          if (matchingClass) {
+            matchingClass.typeInfoHex = detectedBaseAddress;
+          }
+        }
+      }
+
+      if ((line.includes('BASE_ADDRESS') || line.includes('Address')) && !detectedBaseAddress) {
+        const baseMatch = line.match(baseRegex);
+        if (baseMatch) {
+          detectedBaseAddress = formatHex(baseMatch[1]);
         }
       }
     }
 
-    this.rebuildIndexMaps();
-
     this.storageMeta = {
       ...this.storageMeta,
       il2cppHFileName: headerFileName,
-      baseAddressHex: detectedBaseAddress || this.storageMeta.baseAddressHex,
-      staticFieldsOffsetHex: detectedStaticOffset || this.storageMeta.staticFieldsOffsetHex,
-      totalTypeInfos: this.classes.filter((c) => !!c.typeInfoHex).length,
+      baseAddressHex: detectedBaseAddress || this.storageMeta.baseAddressHex || '0x0',
+      staticFieldsOffsetHex: detectedStaticOffset || this.storageMeta.staticFieldsOffsetHex || '0xB8',
+      typeInfoSymbolName: detectedTypeInfoSymbol || (detectedBaseAddress ? 't_GameFacade_TypeInfo' : undefined),
+      totalTypeInfos: detectedBaseAddress ? 1 : 0,
       loadedAt: Date.now(),
     };
 
     return {
-      typeInfosCount,
-      methodsLinked,
+      typeInfosCount: detectedBaseAddress ? 1 : 0,
+      methodsLinked: 0,
       baseAddressHex: detectedBaseAddress,
       staticOffsetHex: detectedStaticOffset,
     };

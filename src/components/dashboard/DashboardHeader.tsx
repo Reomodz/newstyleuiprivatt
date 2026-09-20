@@ -14,6 +14,7 @@ import {
   Zap,
   Copy,
   Check,
+  Trash2,
 } from 'lucide-react';
 import {
   WatchlistProfile,
@@ -30,6 +31,8 @@ interface DashboardHeaderProps {
   storageMeta: StorageDumpMeta;
   onDumpCsUploaded: (file: File) => void;
   onIl2cppHUploaded: (file: File) => void;
+  onUnloadDumpCs?: () => void;
+  onUnloadIl2cppH?: () => void;
   onNavigateToBrowser?: (classIndex?: number) => void;
   isParsingDump: boolean;
   parseProgress?: DumpParseProgress | null;
@@ -48,6 +51,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
   storageMeta,
   onDumpCsUploaded,
   onIl2cppHUploaded,
+  onUnloadDumpCs,
+  onUnloadIl2cppH,
   isParsingDump,
   parseProgress,
   activeProfileId,
@@ -268,6 +273,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
                 </div>
               </div>
 
+            <div className="flex items-center gap-1 shrink-0">
               <button
                 onClick={() => dumpCsInputRef.current?.click()}
                 disabled={isParsingDump}
@@ -280,54 +286,67 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
                 )}
                 <span>{hasDumpCs ? 'Change' : 'Select dump.cs'}</span>
               </button>
-            </div>
-
-            <div className="bg-[#141416] p-1.5 sm:p-2.5 rounded-md sm:rounded-lg border border-[#262629] text-[9.5px] sm:text-[11px] font-mono text-[#A0A0A5] flex flex-col gap-0.5">
-              <div className="flex justify-between items-center text-[8.5px] sm:text-[10px]">
-                <span className="text-[#6C6C70]">Status</span>
-                <span className={hasDumpCs ? 'text-emerald-400 font-semibold' : 'text-amber-400'}>
-                  {hasDumpCs ? 'Active in Memory' : 'No file selected'}
-                </span>
-              </div>
+              {hasDumpCs && onUnloadDumpCs && (
+                <button
+                  onClick={onUnloadDumpCs}
+                  disabled={isParsingDump}
+                  title="Unload dump.cs from workspace"
+                  className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 rounded-md sm:rounded-lg text-[9px] sm:text-xs font-semibold transition-colors"
+                >
+                  <Trash2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                  <span className="hidden xs:inline">Unload</span>
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Card 2: il2cpp.h Selector */}
-          <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              setIsDraggingH(true);
-            }}
-            onDragLeave={() => setIsDraggingH(false)}
-            onDrop={handleHDrop}
-            className={`bg-[#1E1E20] border rounded-lg sm:rounded-2xl p-2 sm:p-3.5 flex flex-col justify-between gap-1.5 sm:gap-2.5 transition-all ${
-              isDraggingH
-                ? 'border-purple-400 bg-purple-500/10'
-                : hasIl2cppH
-                ? 'border-[#333336] hover:border-[#444448]'
-                : 'border-dashed border-[#444448]'
-            }`}
-          >
-            <div className="flex items-start justify-between gap-1.5">
-              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
-                  <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <div className="flex items-center gap-1">
-                    <span className="font-semibold text-[11px] sm:text-sm text-white truncate">
-                      {storageMeta.il2cppHFileName || 'il2cpp.h'}
-                    </span>
-                    {hasIl2cppH && (
-                      <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-purple-400 shrink-0" />
-                    )}
-                  </div>
-                  <span className="text-[8.5px] sm:text-[10px] text-[#8E8E93]">
-                    TypeInfo Pointers & RVAs
-                  </span>
-                </div>
-              </div>
+          <div className="bg-[#141416] p-1.5 sm:p-2.5 rounded-md sm:rounded-lg border border-[#262629] text-[9.5px] sm:text-[11px] font-mono text-[#A0A0A5] flex flex-col gap-0.5">
+            <div className="flex justify-between items-center text-[8.5px] sm:text-[10px]">
+              <span className="text-[#6C6C70]">Status</span>
+              <span className={hasDumpCs ? 'text-emerald-400 font-semibold' : 'text-amber-400'}>
+                {hasDumpCs ? 'Active in Memory' : 'No file selected'}
+              </span>
+            </div>
+          </div>
+        </div>
 
+        {/* Card 2: il2cpp.h Selector */}
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDraggingH(true);
+          }}
+          onDragLeave={() => setIsDraggingH(false)}
+          onDrop={handleHDrop}
+          className={`bg-[#1E1E20] border rounded-lg sm:rounded-2xl p-2 sm:p-3.5 flex flex-col justify-between gap-1.5 sm:gap-2.5 transition-all ${
+            isDraggingH
+              ? 'border-purple-400 bg-purple-500/10'
+              : hasIl2cppH
+              ? 'border-[#333336] hover:border-[#444448]'
+              : 'border-dashed border-[#444448]'
+          }`}
+        >
+          <div className="flex items-start justify-between gap-1.5">
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+              <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
+                <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold text-[11px] sm:text-sm text-white truncate">
+                    {storageMeta.il2cppHFileName || 'il2cpp.h'}
+                  </span>
+                  {hasIl2cppH && (
+                    <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-purple-400 shrink-0" />
+                  )}
+                </div>
+                <span className="text-[8.5px] sm:text-[10px] text-[#8E8E93]">
+                  TypeInfo & Static Fields Offset
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1 shrink-0">
               <button
                 onClick={() => il2cppHInputRef.current?.click()}
                 disabled={isParsingDump}
@@ -340,23 +359,39 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
                 )}
                 <span>{hasIl2cppH ? 'Change' : 'Select il2cpp.h'}</span>
               </button>
-            </div>
-
-            <div className="bg-[#141416] p-1.5 sm:p-2.5 rounded-md sm:rounded-lg border border-[#262629] text-[9.5px] sm:text-[11px] font-mono text-[#A0A0A5] flex flex-col gap-0.5">
-              <div className="flex justify-between items-center text-[8.5px] sm:text-[10px]">
-                <span className="text-[#6C6C70]">Base Address</span>
-                <span className="text-purple-300 font-semibold">
-                  {storageMeta.baseAddressHex || '0x78F1E0B000'}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-[8.5px] sm:text-[10px]">
-                <span className="text-[#6C6C70]">Static Fields Offset</span>
-                <span className="text-amber-300 font-semibold">
-                  {storageMeta.staticFieldsOffsetHex || '0xB8'}
-                </span>
-              </div>
+              {hasIl2cppH && onUnloadIl2cppH && (
+                <button
+                  onClick={onUnloadIl2cppH}
+                  disabled={isParsingDump}
+                  title="Unload il2cpp.h from workspace"
+                  className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 rounded-md sm:rounded-lg text-[9px] sm:text-xs font-semibold transition-colors"
+                >
+                  <Trash2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                  <span className="hidden xs:inline">Unload</span>
+                </button>
+              )}
             </div>
           </div>
+
+          <div className="bg-[#141416] p-1.5 sm:p-2.5 rounded-md sm:rounded-lg border border-[#262629] text-[9.5px] sm:text-[11px] font-mono text-[#A0A0A5] flex flex-col gap-0.5">
+            <div className="flex justify-between items-center text-[8.5px] sm:text-[10px]">
+              <span className="text-[#6C6C70]">
+                {hasIl2cppH ? (storageMeta.typeInfoSymbolName || 't_GameFacade_TypeInfo') : 'Base / TypeInfo Address'}
+              </span>
+              <span className={hasIl2cppH ? 'text-purple-300 font-semibold' : 'text-[#6C6C70]'}>
+                {hasIl2cppH ? (storageMeta.baseAddressHex || '0x0') : 'Not loaded'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-[8.5px] sm:text-[10px]">
+              <span className="text-[#6C6C70]">
+                {hasIl2cppH ? '#define IL2CPP_STATIC_FIELDS_OFFSET' : 'Static Fields Offset'}
+              </span>
+              <span className={hasIl2cppH ? 'text-amber-300 font-semibold' : 'text-[#6C6C70]'}>
+                {hasIl2cppH ? (storageMeta.staticFieldsOffsetHex || '0xB8') : 'Not loaded'}
+              </span>
+            </div>
+          </div>
+        </div>
         </div>
 
         {/* REDESIGNED: Profile Target Select & Resolve Offsets Trigger Card */}

@@ -936,7 +936,7 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
               <Sliders className="w-8 h-8 text-[#55555A]" />
               <p className="text-xs font-medium mt-1">No targets match your filter.</p>
               <p className="text-[10px] text-[#6C6C70] max-w-[220px]">
-                Tap Make Group to organize, or add new targets to this profile.
+                Tap Make Group to organize, or use the + button to add new targets.
               </p>
             </div>
           ) : cardViewSettings.showGroups !== false ? (
@@ -1036,14 +1036,14 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
             </div>
           )}
 
-          {/* FLOATING ACTION BUTTON (Profile Targets View Only) */}
-          <div className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 md:absolute md:bottom-auto md:-bottom-20 md:right-0 z-40">
+          {/* Floating Corner Add Button (Fixed position across all screen sizes and tabs) */}
+          <div className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-40">
             <button
               onClick={() => onOpenAddTarget(undefined, undefined)}
-              className="flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition-transform hover:scale-105 active:scale-95 border border-indigo-500/50"
-              title="Add Target Field/Class"
+              className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-2xl shadow-indigo-600/50 hover:shadow-indigo-600/60 transition-all hover:scale-105 active:scale-95 border border-indigo-400/40 cursor-pointer"
+              title="Add Target"
             >
-              <Plus className="w-5 h-5 sm:w-5.5 sm:h-5.5" />
+              <Plus className="w-6 h-6 sm:w-7 sm:h-7" />
             </button>
           </div>
 
