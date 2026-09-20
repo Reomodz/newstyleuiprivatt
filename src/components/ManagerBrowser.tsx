@@ -318,6 +318,8 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
     if (!activeProfile || !activeProfile.items) return false;
     return activeProfile.items.some(
       (t) =>
+        t.className &&
+        t.memberName &&
         t.className.toLowerCase() === className.toLowerCase() &&
         t.memberName.toLowerCase() === memberName.toLowerCase() &&
         t.kind === kind
@@ -327,7 +329,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
   const savedTargetsInCurrentClass = useMemo(() => {
     if (!currentClassInfo || !activeProfile || !activeProfile.items) return 0;
     return activeProfile.items.filter(
-      (t) => t.className.toLowerCase() === currentClassInfo.name.toLowerCase()
+      (t) => t.className && t.className.toLowerCase() === currentClassInfo.name.toLowerCase()
     ).length;
   }, [currentClassInfo, activeProfile]);
 
@@ -418,7 +420,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
   );
 
   return (
-    <div className="flex-1 flex flex-col bg-[#242426] text-[#E2E2E4] overflow-hidden">
+    <div className="browser-workspace-container flex-1 flex flex-col bg-[#242426] text-[#E2E2E4] overflow-hidden">
       {/* Search Dock */}
       {isSearchOpen && (
         <div className="bg-[#1C1C1E] border-b border-[#353535] p-2 sm:p-3 flex flex-col gap-2 sm:gap-2.5 shadow-md">

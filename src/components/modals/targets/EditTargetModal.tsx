@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pencil, X, Sparkles, EyeOff, Eye, ChevronDown, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { Pencil, X, Sparkles, EyeOff, Eye, ChevronDown, ChevronLeft, ChevronRight, Plus, Hash } from 'lucide-react';
 import { WatchlistProfile, WatchlistTargetItem } from '../../../types';
 
 interface EditTargetModalProps {
@@ -11,6 +11,10 @@ interface EditTargetModalProps {
   setEditTargetKind?: (kind: 'FIELD' | 'METHOD') => void;
   editTargetCustomName: string;
   setEditTargetCustomName: (val: string) => void;
+  editTargetIsCustom?: boolean;
+  setEditTargetIsCustom?: (val: boolean) => void;
+  editTargetDefaultOffset?: string;
+  setEditTargetDefaultOffset?: (val: string) => void;
   editTargetAssemblyName?: string;
   setEditTargetAssemblyName?: (val: string) => void;
   editTargetClassName: string;
@@ -36,6 +40,8 @@ interface EditTargetModalProps {
 export const EditTargetModal: React.FC<EditTargetModalProps> = ({
   isOpen, onClose, activeProfile, editingTargetItem, editTargetKind,
   editTargetCustomName, setEditTargetCustomName,
+  editTargetIsCustom = false,
+  editTargetDefaultOffset = '', setEditTargetDefaultOffset,
   editTargetAssemblyName = '', setEditTargetAssemblyName,
   editTargetClassName, setEditTargetClassName,
   editTargetMemberName, setEditTargetMemberName, editTargetComment, setEditTargetComment,
@@ -44,6 +50,10 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
   editTargetFallbackMembers, setEditTargetFallbackMembers, handleSaveEditTarget, handleOpenEditTarget
 }) => {
   if (!isOpen || !editingTargetItem) return null;
+
+  const isFormValid = editTargetIsCustom
+    ? Boolean(editTargetCustomName.trim() && editTargetDefaultOffset.trim())
+    : Boolean(editTargetClassName.trim() && editTargetMemberName.trim());
 
   return (
     <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm p-2 sm:p-3 flex justify-center items-center">
@@ -67,7 +77,7 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
           </div>
 
           {/* Next / Back navigation in Edit modal */}
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             {activeProfile && activeProfile.items.length > 1 && (
               <div className="flex items-center gap-0.5 bg-[#141416] px-1 py-0.5 rounded-lg border border-[#353538]">
                 <span className="text-[8px] sm:text-[9px] text-[#8E8E93] font-mono pr-0.5">
@@ -117,6 +127,76 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
 
         {/* Scrollable Modal Body */}
         <div className="p-2.5 sm:p-3.5 flex-1 overflow-y-auto space-y-2 sm:space-y-2.5 overscroll-contain pr-1.5">
+          {editTargetIsCustom ? (
+            /* DIRECT OFFSET MODE: Assembly, Namespace, Class, Member & Fallbacks are hidden */
+            <div className="space-y-2.5 sm:space-y-3 animate-in fade-in duration-200">
+              {/* Custom Target Name (Required in direct mode) */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] sm:text-[10px] font-medium text-[#E2E2E4] ml-0.5 flex items-center justify-between">
+                  <span>Custom Target Name <span className="text-red-400">*</span></span>
+                  <span className="text-[8px] sm:text-[9px] text-indigo-300 font-normal">Primary Identifier</span>
+                </label>
+                <input
+                  type="text"
+                  value={editTargetCustomName}
+                  onChange={(e) => setEditTargetCustomName(e.target.value)}
+                  placeholder="e.g. Player GodMode, Gold Base Offset, CameraFOV"
+                  className="w-full px-2 sm:px-3 py-1.5 sm:py-2 bg-[#141416] border border-[#353538] focus:border-indigo-500 rounded-lg sm:rounded-xl text-[10px] sm:text-xs text-[#E2E2E4] focus:outline-none font-mono placeholder:text-[#55555A]"
+                  autoFocus
+                />
+              </div>
+
+              {/* Default Offset Field */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] sm:text-[10px] font-medium text-[#E2E2E4] ml-0.5 flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <Hash className="w-3 h-3 text-emerald-400" />
+                    <span>Default Offset (Hex) <span className="text-red-400">*</span></span>
+                  </span>
+                  <span className="text-[8.5px] sm:text-[9px] text-[#8E8E93] font-mono">
+                    {editTargetKind === 'FIELD' ? 'Memory Offset' : 'Method RVA'}
+                  </span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={editTargetDefaultOffset}
+                    onChange={(e) => setEditTargetDefaultOffset?.(e.target.value)}
+                    placeholder="e.g. 0x48, 0x1A2B00, or 0x0"
+                    className="w-full px-2 sm:px-3 py-1.5 sm:py-2 bg-[#141416] border border-[#353538] focus:border-emerald-500 rounded-lg sm:rounded-xl text-[10px] sm:text-xs text-emerald-300 focus:outline-none font-mono placeholder:text-[#55555A]"
+                  />
+                </div>
+                {/* Quick Helper Chips */}
+                <div className="flex items-center gap-1 pt-0.5 flex-wrap">
+                  <span className="text-[8px] sm:text-[9px] text-[#71717A] mr-1">Quick presets:</span>
+                  {['0x0', '0x10', '0x18', '0x20', '0x48', '0x5C', '0x100'].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setEditTargetDefaultOffset?.(preset)}
+                      className="px-1.5 py-0.5 bg-[#202024] hover:bg-[#2A2A30] text-[#A0A0A8] hover:text-emerald-300 border border-[#323236] rounded text-[8px] sm:text-[9px] font-mono transition-colors"
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Comment in direct mode */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] sm:text-[10px] font-medium text-[#8E8E93] ml-0.5">Comment / Notes (Optional)</label>
+                <input
+                  type="text"
+                  value={editTargetComment}
+                  onChange={(e) => setEditTargetComment(e.target.value)}
+                  placeholder="e.g. Base pointer offset"
+                  className="w-full px-2 sm:px-3 py-1.5 sm:py-2 bg-[#141416] border border-[#353538] rounded-lg sm:rounded-xl text-[10px] sm:text-xs text-[#E2E2E4] focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+            </div>
+          ) : (
+            /* STANDARD METADATA SCANNING MODE */
+            <div className="space-y-2.5 sm:space-y-3 animate-in fade-in duration-200">
           {/* Custom Name */}
           <div className="flex flex-col gap-1">
             <label className="text-[9px] sm:text-[10px] font-medium text-[#8E8E93] ml-0.5">
@@ -358,18 +438,28 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
             )}
           </div>
         </div>
+      )}
 
-        {/* Modal Sticky Footer */}
+    </div>
+
+    {/* Modal Sticky Footer */}
         <div className="p-2.5 sm:p-3 border-t border-[#2D2D30] shrink-0 bg-[#1E1E20] flex items-center justify-end gap-2">
           <button
+            type="button"
             onClick={() => onClose()}
             className="px-3 sm:px-4 py-1.5 text-[10px] sm:text-xs font-medium text-[#8E8E93] hover:text-white bg-[#262629] rounded-lg sm:rounded-xl transition-colors"
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleSaveEditTarget}
-            className="px-3.5 sm:px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] sm:text-xs font-bold rounded-lg sm:rounded-xl shadow-md shadow-indigo-600/20 transition-colors"
+            disabled={!isFormValid}
+            className={`px-3.5 sm:px-4 py-1.5 text-white text-[10px] sm:text-xs font-bold rounded-lg sm:rounded-xl shadow-md transition-all ${
+              isFormValid
+                ? 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/20 cursor-pointer'
+                : 'bg-indigo-600/40 text-white/50 cursor-not-allowed'
+            }`}
           >
             Save Changes
           </button>

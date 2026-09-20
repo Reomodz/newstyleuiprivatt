@@ -30,3 +30,290 @@
 .font-mono-code {
   font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
+
+/* ==========================================================================
+   APP THEME & APPEARANCE CUSTOMIZER ENGINE
+   ========================================================================== */
+
+:root {
+  --card-opacity: 0.92;
+  --app-accent-hex: #6366F1;
+  --app-accent-rgb: 99, 102, 241;
+}
+
+/* --------------------------------------------------------------------------
+   DYNAMIC ACCENT COLOR ENGINE (Connects to full app)
+   Overrides standard indigo classes with active user accent color
+   -------------------------------------------------------------------------- */
+.bg-indigo-600,
+.bg-indigo-500 {
+  background-color: var(--app-accent-hex) !important;
+}
+
+.hover\:bg-indigo-500:hover,
+.hover\:bg-indigo-600:hover {
+  background-color: var(--app-accent-hex) !important;
+  filter: brightness(1.15) !important;
+}
+
+.bg-indigo-600\/10,
+.bg-indigo-500\/10,
+.bg-indigo-600\/15,
+.bg-indigo-500\/15,
+.bg-indigo-600\/20,
+.bg-indigo-500\/20,
+.bg-indigo-600\/25,
+.bg-indigo-500\/25,
+.bg-indigo-600\/30,
+.bg-indigo-500\/30,
+.bg-indigo-600\/40,
+.bg-indigo-500\/40 {
+  background-color: rgba(var(--app-accent-rgb), 0.18) !important;
+}
+
+.hover\:bg-indigo-600\/35:hover,
+.hover\:bg-indigo-600\/40:hover,
+.hover\:bg-indigo-600\/20:hover,
+.hover\:bg-indigo-500\/30:hover {
+  background-color: rgba(var(--app-accent-rgb), 0.32) !important;
+}
+
+.text-indigo-300,
+.text-indigo-400,
+.text-indigo-500 {
+  color: var(--app-accent-hex) !important;
+}
+
+.border-indigo-500,
+.border-indigo-600,
+.border-indigo-400,
+.focus\:border-indigo-500:focus,
+.hover\:border-indigo-500:hover {
+  border-color: var(--app-accent-hex) !important;
+}
+
+.border-indigo-500\/20,
+.border-indigo-500\/30,
+.border-indigo-500\/40,
+.border-indigo-500\/50,
+.hover\:border-indigo-500\/50:hover {
+  border-color: rgba(var(--app-accent-rgb), 0.45) !important;
+}
+
+.accent-indigo-500 {
+  accent-color: var(--app-accent-hex) !important;
+}
+
+.shadow-indigo-600\/20,
+.shadow-indigo-600\/30,
+.shadow-indigo-600\/40 {
+  box-shadow: 0 4px 14px 0 rgba(var(--app-accent-rgb), 0.32) !important;
+}
+
+.ring-indigo-500 {
+  --tw-ring-color: var(--app-accent-hex) !important;
+}
+
+/* --------------------------------------------------------------------------
+   CUSTOM WALLPAPER ACTIVE: KEEP APP SHELL TRANSPARENT & CARDS TRANSLUCENT
+   -------------------------------------------------------------------------- */
+.has-custom-bg body,
+.has-custom-bg #root,
+.has-custom-bg .app-root-container,
+.has-custom-bg main,
+.has-custom-bg .dashboard-workspace-container,
+.has-custom-bg .browser-workspace-container,
+.has-custom-bg .bg-\[\#18181A\],
+.has-custom-bg .bg-\[\#242426\],
+.has-custom-bg .bg-\[\#121214\],
+.has-custom-bg .bg-\[\#101012\],
+.has-custom-bg .bg-\[\#0E0E10\],
+.has-custom-bg .bg-\[\#0A0A0C\] {
+  background-color: transparent !important;
+}
+
+/* Full App Screen Top Header: wallpaper shines through continuously */
+.has-custom-bg .app-top-header,
+.has-custom-bg header {
+  background-color: rgba(22, 22, 26, 0.45) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Dashboard Tab Bar: subtle frosted glass strip */
+.has-custom-bg .dashboard-tab-bar {
+  background-color: rgba(22, 22, 26, 0.45) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Storage dump workspace, profile cards, and all primary cards: solid & consistent */
+.has-custom-bg .bg-\[\#1E1E20\],
+.has-custom-bg .bg-\[\#1C1C1E\],
+.has-custom-bg .bg-\[\#202020\],
+.has-custom-bg .bg-\[\#202022\],
+.has-custom-bg .bg-\[\#18181B\] {
+  background-color: rgba(28, 28, 32, var(--card-opacity, 0.92)) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+
+.has-custom-bg .bg-\[\#18181C\],
+.has-custom-bg .bg-\[\#262629\],
+.has-custom-bg .bg-\[\#242428\],
+.has-custom-bg .bg-\[\#28282A\] {
+  background-color: rgba(36, 36, 42, var(--card-opacity, 0.92)) !important;
+}
+
+/* In OLED mode with custom wallpaper */
+.has-custom-bg.theme-oled .bg-\[\#1E1E20\],
+.has-custom-bg.theme-oled .bg-\[\#1C1C1E\],
+.has-custom-bg.theme-oled .bg-\[\#202020\],
+.has-custom-bg.theme-oled .bg-\[\#202022\],
+.has-custom-bg.theme-oled .bg-\[\#141416\] {
+  background-color: rgba(4, 4, 6, var(--card-opacity, 0.92)) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+
+/* In Day mode with custom wallpaper */
+.has-custom-bg.theme-day .bg-\[\#1E1E20\],
+.has-custom-bg.theme-day .bg-\[\#1C1C1E\],
+.has-custom-bg.theme-day .bg-\[\#202020\],
+.has-custom-bg.theme-day .bg-\[\#202022\],
+.has-custom-bg.theme-day .bg-\[\#141416\] {
+  background-color: rgba(255, 255, 255, var(--card-opacity, 0.92)) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border-color: rgba(229, 231, 235, 0.8) !important;
+}
+
+/* Translucent frosted glass effect on panels when card opacity is lowered */
+.custom-card-translucent .bg-\[\#1E1E20\],
+.custom-card-translucent .bg-\[\#1C1C1E\],
+.custom-card-translucent .bg-\[\#202022\],
+.custom-card-translucent .bg-\[\#262629\],
+.custom-card-translucent .bg-\[\#141416\] {
+  background-color: rgba(28, 28, 30, var(--card-opacity, 0.92)) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+/* ==========================================================================
+   DAY / LIGHT MODE (Clean, high contrast, readable)
+   ========================================================================== */
+.theme-day:not(.has-custom-bg) {
+  background-color: #F4F5F7 !important;
+}
+
+.theme-day:not(.has-custom-bg) .bg-\[\#18181A\],
+.theme-day:not(.has-custom-bg) .bg-\[\#121214\],
+.theme-day:not(.has-custom-bg) .bg-\[\#101012\],
+.theme-day:not(.has-custom-bg) .bg-\[\#0E0E10\] {
+  background-color: #F8F9FA !important;
+}
+
+.theme-day .bg-\[\#1E1E20\],
+.theme-day .bg-\[\#1C1C1E\],
+.theme-day .bg-\[\#202020\],
+.theme-day .bg-\[\#202022\],
+.theme-day .bg-\[\#141416\] {
+  background-color: rgba(255, 255, 255, var(--card-opacity, 0.98)) !important;
+  color: #111827 !important;
+  border-color: #E5E7EB !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+.theme-day .bg-\[\#262629\],
+.theme-day .bg-\[\#242428\],
+.theme-day .bg-\[\#28282A\],
+.theme-day .bg-\[\#323236\] {
+  background-color: #F0F2F5 !important;
+  color: #111827 !important;
+  border-color: #E2E4E8 !important;
+}
+
+.theme-day .border-\[\#2D2D30\],
+.theme-day .border-\[\#353535\],
+.theme-day .border-\[\#323238\],
+.theme-day .border-\[\#353538\],
+.theme-day .border-\[\#262628\],
+.theme-day .border-\[\#2D2D32\] {
+  border-color: #E5E7EB !important;
+}
+
+/* Day Mode: Buttons and solid badges MUST maintain crisp white text */
+.theme-day .bg-indigo-600,
+.theme-day .bg-indigo-600 *,
+.theme-day .bg-indigo-500,
+.theme-day .bg-indigo-500 *,
+.theme-day button.bg-indigo-600,
+.theme-day [class*="bg-red-"],
+.theme-day [class*="bg-red-"] *,
+.theme-day [class*="bg-emerald-"],
+.theme-day [class*="bg-emerald-"] * {
+  color: #FFFFFF !important;
+}
+
+/* Day Mode text hierarchy */
+.theme-day .text-\[\#E2E2E4\],
+.theme-day h1,
+.theme-day h2,
+.theme-day h3,
+.theme-day .text-white:not(.bg-indigo-600 *):not(.bg-indigo-500 *):not([class*="bg-red-"] *):not([class*="bg-emerald-"] *) {
+  color: #111827 !important;
+}
+
+.theme-day .text-\[\#8E8E93\],
+.theme-day .text-\[\#A0A0A5\],
+.theme-day .text-\[\#B8B8B8\],
+.theme-day .text-\[\#C7C7CC\],
+.theme-day .text-\[\#A1A1AA\] {
+  color: #4B5563 !important;
+}
+
+.theme-day .hover\:bg-\[\#28282A\]:hover,
+.theme-day .hover\:bg-\[\#323236\]:hover,
+.theme-day .hover\:bg-\[\#242428\]:hover {
+  background-color: #E5E7EB !important;
+}
+
+/* Day Mode Inputs */
+.theme-day input:not([type="range"]),
+.theme-day select,
+.theme-day textarea {
+  background-color: #FFFFFF !important;
+  color: #111827 !important;
+  border-color: #D1D5DB !important;
+}
+
+/* ==========================================================================
+   OLED PITCH BLACK MODE
+   ========================================================================== */
+.theme-oled:not(.has-custom-bg) {
+  background-color: #000000 !important;
+}
+
+.theme-oled:not(.has-custom-bg) .bg-\[\#18181A\],
+.theme-oled:not(.has-custom-bg) .bg-\[\#121214\],
+.theme-oled:not(.has-custom-bg) .bg-\[\#101012\] {
+  background-color: #000000 !important;
+}
+
+.theme-oled .bg-\[\#1E1E20\],
+.theme-oled .bg-\[\#1C1C1E\],
+.theme-oled .bg-\[\#202020\],
+.theme-oled .bg-\[\#202022\] {
+  background-color: rgba(8, 8, 10, var(--card-opacity, 0.95)) !important;
+  border-color: #1E1E22 !important;
+}
+
+.theme-oled .bg-\[\#262629\],
+.theme-oled .bg-\[\#242428\],
+.theme-oled .bg-\[\#28282A\] {
+  background-color: #121214 !important;
+  border-color: #222226 !important;
+}
+

@@ -26,7 +26,7 @@ interface ProfileSidebarProps {
   setIsNewProfileModalOpen: (open: boolean) => void;
   handleOpenEditProfile: (prof: WatchlistProfile, e?: React.MouseEvent) => void;
   handleExportProfile: (prof: WatchlistProfile, e?: React.MouseEvent) => void;
-  handleDeleteProfile: (id: string, e: React.MouseEvent) => void;
+  handleDeleteProfile: (id: string, e?: React.MouseEvent) => void;
   activeProfile: WatchlistProfile | undefined;
   watchlistFilter: string;
   setWatchlistFilter: (filter: string) => void;
@@ -86,6 +86,11 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
 
   // Collapsed group sections state
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [expandedProfileDescIds, setExpandedProfileDescIds] = useState<Record<string, boolean>>({});
+  const [expandActiveProfileDesc, setExpandActiveProfileDesc] = useState(false);
+
+  // Profile Deletion Confirmation States
+  const [profileToDelete, setProfileToDelete] = useState<WatchlistProfile | null>(null);
 
   // Group creation & selection state
   const [createdGroups, setCreatedGroups] = useState<{ groupName: string; subGroups: string[] }[]>([]);
@@ -582,8 +587,8 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
         className="hidden"
       />
 
-      {/* VIEW 1: PROFILES OVERVIEW (When no specific profile is opened) */}
-      {selectedProfileViewId === null ? (
+      {/* VIEW 1: PROFILES OVERVIEW (When no specific profile is opened or activeProfile is missing) */}
+      {selectedProfileViewId === null || !activeProfile ? (
         <div className="flex flex-col gap-2.5 sm:gap-4">
           {/* Top Bar: Title, Import, Options & Create Profile Button */}
           <div className="flex items-center justify-between gap-2 bg-[#1E1E20] border border-[#2D2D30] rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-sm">
@@ -629,87 +634,137 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
             </div>
           </div>
 
-          {/* Profiles Cards List */}
-          <div
-            className={`grid grid-cols-1 ${
-              profileCardSettings.tabletLayout === 'grid' ? 'md:grid-cols-2' : 'md:grid-cols-1'
-            } gap-2 sm:gap-3`}
-          >
-            {profiles.map((prof) => {
-              const isScanActive = prof.id === activeProfileId;
-              const isCompact = profileCardSettings.density === 'compact';
-              const showFooter = profileCardSettings.showTargetCount || profileCardSettings.showTargetChips || profileCardSettings.showOpenIndicator;
-
-              return (
-                <div
-                  key={prof.id}
-                  onClick={() => {
-                    setActiveProfileId(prof.id);
-                    setSelectedProfileViewId(prof.id);
-                  }}
-                  className={`bg-[#1E1E20] hover:bg-[#242428] border ${
-                    isScanActive ? 'border-blue-500/50 shadow-md shadow-blue-500/5' : 'border-[#2D2D30] hover:border-blue-500/40'
-                  } ${
-                    isCompact ? 'p-2.5 sm:p-3 pl-3.5 sm:pl-4 gap-1.5' : 'p-3 sm:p-3.5 pl-4 sm:pl-5 gap-2'
-                  } rounded-xl sm:rounded-2xl shadow-sm flex flex-col cursor-pointer transition-all active:scale-[0.99] group/pcard relative overflow-hidden`}
+          {/* Profiles Cards List / Empty State */}
+          {profiles.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-8 sm:p-12 bg-[#1E1E20] border border-[#2D2D30] rounded-xl sm:rounded-2xl text-center gap-3">
+              <div className="p-3 sm:p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                <Layers className="w-7 h-7 sm:w-8 sm:h-8" />
+              </div>
+              <div>
+                <h3 className="text-sm sm:text-base font-bold text-[#E2E2E4]">No Profiles Available</h3>
+                <p className="text-xs text-[#8E8E93] mt-1 max-w-[320px]">
+                  All profiles have been deleted. You can create a new profile or import an existing JSON profile.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <button
+                  onClick={() => setIsNewProfileModalOpen(true)}
+                  className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg sm:rounded-xl text-xs font-semibold shadow-md shadow-indigo-600/30 transition-all active:scale-95"
                 >
-                  {/* Profile Identity Blue Line Accent on Left Side */}
-                  <div
-                    className={`absolute left-0 top-0 bottom-0 transition-all duration-200 ${
-                      isScanActive
-                        ? 'w-[2px] bg-gradient-to-b from-blue-400 via-sky-400 to-indigo-600 shadow-[0_0_12px_rgba(59,130,246,0.6)]'
-                        : 'w-[1px] bg-gradient-to-b from-blue-500/80 to-indigo-500/60 group-hover/pcard:w-[2px] group-hover/pcard:from-blue-400 group-hover/pcard:to-sky-400'
-                    }`}
-                  />
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Create Profile</span>
+                </button>
+                <button
+                  onClick={() => profileImportInputRef.current?.click()}
+                  className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-[#262629] hover:bg-[#323236] text-[#A0A0A5] hover:text-white border border-[#353538] rounded-lg sm:rounded-xl text-xs font-semibold transition-all active:scale-95"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Import JSON</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div
+              className={`grid grid-cols-1 ${
+                profileCardSettings.tabletLayout === 'grid' ? 'md:grid-cols-2' : 'md:grid-cols-1'
+              } gap-2 sm:gap-3`}
+            >
+              {profiles.map((prof) => {
+                const isScanActive = prof.id === activeProfileId;
+                const isCompact = profileCardSettings.density === 'compact';
+                const showFooter = profileCardSettings.showTargetCount || profileCardSettings.showTargetChips || profileCardSettings.showOpenIndicator;
 
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-bold text-xs sm:text-sm text-[#E2E2E4] group-hover/pcard:text-blue-300 transition-colors truncate">
-                          {prof.name}
-                        </span>
-                        {profileCardSettings.showActiveBadge && isScanActive && (
-                          <span className="text-[8px] sm:text-[9px] font-mono px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-300 border border-blue-500/30 font-semibold shrink-0">
-                            Active
+                return (
+                  <div
+                    key={prof.id}
+                    onClick={() => {
+                      setActiveProfileId(prof.id);
+                      setSelectedProfileViewId(prof.id);
+                    }}
+                    className={`bg-[#1E1E20] hover:bg-[#242428] border ${
+                      isScanActive ? 'border-blue-500/50 shadow-md shadow-blue-500/5' : 'border-[#2D2D30] hover:border-blue-500/40'
+                    } ${
+                      isCompact ? 'p-2.5 sm:p-3 pl-3.5 sm:pl-4 gap-1.5' : 'p-3 sm:p-3.5 pl-4 sm:pl-5 gap-2'
+                    } rounded-xl sm:rounded-2xl shadow-sm flex flex-col cursor-pointer transition-all active:scale-[0.99] group/pcard relative overflow-hidden`}
+                  >
+                    {/* Profile Identity Accent Line on Left Side */}
+                    <div
+                      className={`absolute left-0 top-0 bottom-0 transition-all duration-200 ${
+                        isScanActive ? 'w-[2px]' : 'w-[1px] group-hover/pcard:w-[2px]'
+                      }`}
+                      style={{
+                        background: isScanActive
+                          ? 'linear-gradient(180deg, var(--app-accent-hex), rgba(var(--app-accent-rgb), 0.35))'
+                          : 'linear-gradient(180deg, rgba(var(--app-accent-rgb), 0.7), rgba(var(--app-accent-rgb), 0.25))',
+                        boxShadow: isScanActive ? '0 0 12px rgba(var(--app-accent-rgb), 0.6)' : undefined,
+                      }}
+                    />
+
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold text-xs sm:text-sm text-[#E2E2E4] group-hover/pcard:text-blue-300 transition-colors truncate">
+                            {prof.name}
                           </span>
+                          {profileCardSettings.showActiveBadge && isScanActive && (
+                            <span className="text-[8px] sm:text-[9px] font-mono px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-300 border border-blue-500/30 font-semibold shrink-0">
+                              Active
+                            </span>
+                          )}
+                        </div>
+                        {profileCardSettings.showDescription && prof.description && (
+                          <p
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpandedProfileDescIds((prev) => ({
+                                ...prev,
+                                [prof.id]: !prev[prof.id],
+                              }));
+                            }}
+                            className={`text-[10px] sm:text-xs text-[#8E8E93] cursor-pointer hover:text-[#C4C4C8] transition-colors ${
+                              expandedProfileDescIds[prof.id] || profileCardSettings.expandAllDescriptions
+                                ? 'whitespace-normal break-words'
+                                : 'line-clamp-1'
+                            }`}
+                            title="Click to view full description"
+                          >
+                            {prof.description}
+                          </p>
                         )}
                       </div>
-                      {profileCardSettings.showDescription && prof.description && (
-                        <p className="text-[10px] sm:text-xs text-[#8E8E93] line-clamp-1">{prof.description}</p>
-                      )}
-                    </div>
 
-                    {/* Profile Action Logos: Edit Name, Share/Export, Delete */}
-                    {profileCardSettings.showActionButtons && (
-                      <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          onClick={(e) => handleOpenEditProfile(prof, e)}
-                          className="p-1 sm:p-1.5 text-[#8E8E93] hover:text-blue-400 bg-[#262629] hover:bg-[#323236] rounded-md sm:rounded-lg transition-colors"
-                          title="Edit Profile Name"
-                        >
-                          <Pencil className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                        </button>
-
-                        <button
-                          onClick={(e) => handleExportProfile(prof, e)}
-                          className="p-1 sm:p-1.5 text-[#8E8E93] hover:text-emerald-400 bg-[#262629] hover:bg-[#323236] rounded-md sm:rounded-lg transition-colors"
-                          title="Export / Share Profile JSON"
-                        >
-                          <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                        </button>
-
-                        {profiles.length > 1 && (
+                      {/* Profile Action Logos: Edit Name, Share/Export, Delete */}
+                      {profileCardSettings.showActionButtons && (
+                        <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                           <button
-                            onClick={(e) => handleDeleteProfile(prof.id, e)}
+                            onClick={(e) => handleOpenEditProfile(prof, e)}
+                            className="p-1 sm:p-1.5 text-[#8E8E93] hover:text-blue-400 bg-[#262629] hover:bg-[#323236] rounded-md sm:rounded-lg transition-colors"
+                            title="Edit Profile Name"
+                          >
+                            <Pencil className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                          </button>
+
+                          <button
+                            onClick={(e) => handleExportProfile(prof, e)}
+                            className="p-1 sm:p-1.5 text-[#8E8E93] hover:text-emerald-400 bg-[#262629] hover:bg-[#323236] rounded-md sm:rounded-lg transition-colors"
+                            title="Export / Share Profile JSON"
+                          >
+                            <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                          </button>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setProfileToDelete(prof);
+                            }}
                             className="p-1 sm:p-1.5 text-[#8E8E93] hover:text-red-400 bg-[#262629] hover:bg-[#323236] rounded-md sm:rounded-lg transition-colors"
                             title="Delete Profile"
                           >
                             <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                           </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                        </div>
+                      )}
+                    </div>
 
                   {/* Target preview chips & summary footer */}
                   {showFooter && (
@@ -749,14 +804,21 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
               );
             })}
           </div>
-        </div>
-      ) : (
+        )}
+      </div>
+    ) : (
         /* VIEW 2: PROFILE TARGETS VIEW (Inside selected profile) */
         <div className="flex flex-col gap-2.5 sm:gap-3.5 relative">
           {/* Top Navigation & Profile Header with Back Button */}
           <div className="flex items-center justify-between gap-1.5 sm:gap-3 bg-[#1E1E20] border border-[#2D2D30] rounded-xl sm:rounded-2xl p-2.5 sm:p-3 pl-4 sm:pl-5 shadow-sm relative overflow-hidden">
-            {/* Left Blue Accent Line */}
-            <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-blue-400 via-sky-400 to-indigo-600 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+            {/* Left Dynamic Accent Line */}
+            <div
+              className="absolute left-0 top-0 bottom-0 w-[2px] transition-all"
+              style={{
+                background: 'linear-gradient(180deg, var(--app-accent-hex), rgba(var(--app-accent-rgb), 0.35))',
+                boxShadow: '0 0 10px rgba(var(--app-accent-rgb), 0.5)',
+              }}
+            />
 
             <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
               {/* Back Button */}
@@ -778,7 +840,15 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
                   </span>
                 </div>
                 {activeProfile?.description && (
-                  <span className="text-[10px] sm:text-xs text-[#8E8E93] truncate">
+                  <span
+                    onClick={() => setExpandActiveProfileDesc(!expandActiveProfileDesc)}
+                    className={`text-[10px] sm:text-xs text-[#8E8E93] cursor-pointer hover:text-[#C4C4C8] transition-colors ${
+                      expandActiveProfileDesc || profileCardSettings.expandAllDescriptions
+                        ? 'whitespace-normal break-words'
+                        : 'truncate'
+                    }`}
+                    title="Click to view full description"
+                  >
                     {activeProfile.description}
                   </span>
                 )}
@@ -800,6 +870,19 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
                 title="Export / Share Profile JSON"
               >
                 <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (activeProfile) {
+                    setProfileToDelete(activeProfile);
+                  }
+                }}
+                className="p-1.5 sm:p-2 text-[#8E8E93] hover:text-red-400 bg-[#262629] hover:bg-[#323236] rounded-lg border border-[#353538] transition-colors"
+                title="Delete This Profile"
+              >
+                <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </button>
             </div>
           </div>
@@ -1021,8 +1104,10 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
             subtitle={
               targetToDelete
                 ? targetToDelete.customName
-                  ? `${targetToDelete.customName} (${targetToDelete.className}.${targetToDelete.memberName})`
-                  : `${targetToDelete.className}.${targetToDelete.memberName}`
+                  ? targetToDelete.className && targetToDelete.memberName
+                    ? `${targetToDelete.customName} (${targetToDelete.className}.${targetToDelete.memberName})`
+                    : targetToDelete.customName
+                  : `${targetToDelete.className || ''}.${targetToDelete.memberName || ''}`
                 : undefined
             }
             description={
@@ -1037,6 +1122,34 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
           />
         </div>
       )}
+
+      {/* Single Profile Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(profileToDelete)}
+        onClose={() => setProfileToDelete(null)}
+        onConfirm={() => {
+          if (!profileToDelete) return;
+          handleDeleteProfile(profileToDelete.id);
+          setProfileToDelete(null);
+        }}
+        title="Delete Profile?"
+        subtitle={profileToDelete?.name}
+        description={
+          profileToDelete ? (
+            <>
+              Are you sure you want to delete profile{' '}
+              <span className="text-white font-semibold">{profileToDelete.name}</span>?
+              {profileToDelete.items.length > 0 && (
+                <span className="block mt-1.5 text-amber-400/90 text-xs">
+                  This will permanently remove {profileToDelete.items.length} target{profileToDelete.items.length === 1 ? '' : 's'} inside this profile.
+                </span>
+              )}
+            </>
+          ) : null
+        }
+        confirmText="Delete Profile"
+        variant="danger"
+      />
     </div>
   );
 });

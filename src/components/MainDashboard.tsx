@@ -37,8 +37,6 @@ import {
 } from '../types';
 import { il2cppEngine } from '../services/il2cppEngine';
 
-import { DEFAULT_SCAN_HISTORY, DEFAULT_PROFILES } from '../data/tempData';
-
 interface MainDashboardProps {
   currentProcess?: ProcessDescriptor | null;
   storageDumpName?: string | null;
@@ -76,7 +74,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   } | null>(null);
 
   // Profiles State
-  const defaultWatchlist = useWatchlistManager(DEFAULT_PROFILES);
+  const defaultWatchlist = useWatchlistManager();
   const {
     profiles,
     activeProfileId,
@@ -108,7 +106,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     isScanning,
     scanLogs,
     handleScanProfile: doScanProfile
-  } = useMemoryScanner(DEFAULT_SCAN_HISTORY);
+  } = useMemoryScanner();
 
   // Modal / Form States
   const [isNewProfileModalOpen, setIsNewProfileModalOpen] = useState(false);
@@ -118,6 +116,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   const [newProfileCustomTemplate, setNewProfileCustomTemplate] = useState('constexpr uintptr_t {name} = {offset};');
 
   const [isAddTargetModalOpen, setIsAddTargetModalOpen] = useState(false);
+  const [newTargetIsCustom, setNewTargetIsCustom] = useState(false);
+  const [newTargetDefaultOffset, setNewTargetDefaultOffset] = useState('');
   const [newTargetCustomName, setNewTargetCustomName] = useState('');
   const [newTargetGroupName, setNewTargetGroupName] = useState('');
   const [newTargetSubGroupName, setNewTargetSubGroupName] = useState('');
@@ -134,6 +134,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
   // Edit Target Modal State
   const [editingTargetItem, setEditingTargetItem] = useState<WatchlistTargetItem | null>(null);
+  const [editTargetIsCustom, setEditTargetIsCustom] = useState(false);
+  const [editTargetDefaultOffset, setEditTargetDefaultOffset] = useState('');
   const [editTargetCustomName, setEditTargetCustomName] = useState('');
   const [editTargetAssemblyName, setEditTargetAssemblyName] = useState('');
   const [editTargetNamespaceName, setEditTargetNamespaceName] = useState('');
@@ -379,13 +381,6 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     showToast(`Updated profile "${editProfileName.trim()}"`);
   };
 
-  // Restore / Reset to Starter Profiles (preserved for future use)
-  // const handleResetDefaultProfiles = () => {
-  //   saveProfiles(DEFAULT_PROFILES);
-  //   setActiveProfileId(DEFAULT_PROFILES[0].id);
-  //   showToast('Loaded 3 starter profiles with 15 verified targets');
-  // };
-
   // Export / Share Profile as JSON with Full Card Settings & Default Folder Storage
   const handleExportProfile = async (prof: WatchlistProfile, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -404,23 +399,37 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         groupOrder: prof.groupOrder,
         // Include full target card view settings in export!
         cardViewSettings: prof.cardViewSettings || cardViewSettings,
-        items: prof.items.map((item) => ({
-          id: item.id,
-          customName: item.customName,
-          groupName: item.groupName,
-          subGroupName: item.subGroupName,
-          assemblyName: item.assemblyName,
-          className: item.className,
-          memberName: item.memberName,
-          kind: item.kind,
-          comment: item.comment,
-          offsetHex: item.offsetHex,
-          rvaHex: item.rvaHex,
-          isStatic: item.isStatic,
-          valueType: item.valueType,
-          fallbackClassNames: item.fallbackClassNames,
-          fallbackMemberNames: item.fallbackMemberNames,
-        })),
+        items: prof.items.map((item) => {
+          if (item.isCustom) {
+            return {
+              id: item.id,
+              isCustom: true,
+              customName: item.customName,
+              groupName: item.groupName,
+              subGroupName: item.subGroupName,
+              comment: item.comment,
+              offsetHex: item.offsetHex,
+              defaultOffset: item.defaultOffset,
+            };
+          }
+          return {
+            id: item.id,
+            customName: item.customName,
+            groupName: item.groupName,
+            subGroupName: item.subGroupName,
+            assemblyName: item.assemblyName,
+            className: item.className,
+            memberName: item.memberName,
+            kind: item.kind,
+            comment: item.comment,
+            offsetHex: item.offsetHex,
+            rvaHex: item.rvaHex,
+            isStatic: item.isStatic,
+            valueType: item.valueType,
+            fallbackClassNames: item.fallbackClassNames,
+            fallbackMemberNames: item.fallbackMemberNames,
+          };
+        }),
       },
     };
 
@@ -516,23 +525,41 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           groupOrder: Array.isArray(profileData.groupOrder) ? profileData.groupOrder : undefined,
           createdAt: Date.now(),
           updatedAt: Date.now(),
-          items: profileData.items.map((it: any, idx: number) => ({
-            id: `t_${Date.now()}_${idx}`,
-            customName: it.customName || undefined,
-            groupName: it.groupName || undefined,
-            subGroupName: it.subGroupName || undefined,
-            assemblyName: it.assemblyName || undefined,
-            className: it.className || '',
-            memberName: it.memberName || '',
-            kind: it.kind === 'METHOD' ? 'METHOD' : 'FIELD',
-            comment: it.comment || '',
-            offsetHex: it.offsetHex || undefined,
-            rvaHex: it.rvaHex || undefined,
-            isStatic: Boolean(it.isStatic),
-            valueType: it.valueType || undefined,
-            fallbackClassNames: Array.isArray(it.fallbackClassNames) ? it.fallbackClassNames : undefined,
-            fallbackMemberNames: Array.isArray(it.fallbackMemberNames) ? it.fallbackMemberNames : undefined,
-          })),
+          items: profileData.items.map((it: any, idx: number) => {
+            const isCustom = Boolean(it.isCustom || (!it.className && !it.memberName && it.customName));
+            if (isCustom) {
+              return {
+                id: `t_${Date.now()}_${idx}`,
+                isCustom: true,
+                customName: it.customName || undefined,
+                groupName: it.groupName || undefined,
+                subGroupName: it.subGroupName || undefined,
+                comment: it.comment || undefined,
+                offsetHex: it.offsetHex || it.defaultOffset || undefined,
+                defaultOffset: it.defaultOffset || it.offsetHex || undefined,
+                resolved: Boolean(it.offsetHex || it.defaultOffset),
+              };
+            }
+            return {
+              id: `t_${Date.now()}_${idx}`,
+              isCustom: false,
+              customName: it.customName || undefined,
+              groupName: it.groupName || undefined,
+              subGroupName: it.subGroupName || undefined,
+              assemblyName: it.assemblyName || undefined,
+              className: it.className || '',
+              memberName: it.memberName || '',
+              kind: it.kind === 'METHOD' ? 'METHOD' : 'FIELD',
+              comment: it.comment || '',
+              offsetHex: it.offsetHex || undefined,
+              rvaHex: it.rvaHex || undefined,
+              isStatic: Boolean(it.isStatic),
+              valueType: it.valueType || undefined,
+              fallbackClassNames: Array.isArray(it.fallbackClassNames) ? it.fallbackClassNames : undefined,
+              fallbackMemberNames: Array.isArray(it.fallbackMemberNames) ? it.fallbackMemberNames : undefined,
+              resolved: Boolean(it.offsetHex || it.rvaHex),
+            };
+          }),
         };
 
         const updated = [newProfile, ...profiles];
@@ -553,21 +580,17 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   };
 
   // Delete Profile
-  const handleDeleteProfile = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (profiles.length <= 1) {
-      showToast('You must keep at least one profile.');
-      return;
-    }
+  const handleDeleteProfile = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     const next = profiles.filter((p) => p.id !== id);
     saveProfiles(next);
     if (activeProfileId === id) {
-      setActiveProfileId(next[0].id);
+      setActiveProfileId(next[0]?.id || '');
     }
     if (selectedProfileViewId === id) {
       setSelectedProfileViewId(null);
     }
-    showToast('Profile deleted');
+    showToast(next.length === 0 ? 'All profiles deleted' : 'Profile deleted');
   };
 
   // Available groups and subgroups for active profile
@@ -612,12 +635,14 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   // Open Edit Target Modal
   const handleOpenEditTarget = (item: WatchlistTargetItem) => {
     setEditingTargetItem(item);
+    setEditTargetIsCustom(Boolean(item.isCustom));
+    setEditTargetDefaultOffset(item.defaultOffset || item.offsetHex || item.rvaHex || '');
     setEditTargetCustomName(item.customName || '');
     setEditTargetAssemblyName(item.assemblyName || item.resolvedAssemblyName || '');
     setEditTargetNamespaceName(item.namespaceName || '');
-    setEditTargetClassName(item.namespaceName ? `${item.namespaceName}::${item.className}` : item.className);
-    setEditTargetMemberName(item.memberName);
-    setEditTargetKind(item.kind);
+    setEditTargetClassName(item.className ? (item.namespaceName ? `${item.namespaceName}::${item.className}` : item.className) : '');
+    setEditTargetMemberName(item.memberName || '');
+    setEditTargetKind(item.kind || 'FIELD');
     setEditTargetComment(item.comment || '');
     const hasFallbacks =
       (item.fallbackClassNames && item.fallbackClassNames.length > 0) ||
@@ -631,7 +656,13 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
   // Save Edit Target
   const handleSaveEditTarget = () => {
-    if (!editingTargetItem || !activeProfile || !editTargetClassName.trim() || !editTargetMemberName.trim()) return;
+    if (!editingTargetItem || !activeProfile) return;
+
+    if (editTargetIsCustom) {
+      if (!editTargetCustomName.trim()) return;
+    } else {
+      if (!editTargetClassName.trim() || !editTargetMemberName.trim()) return;
+    }
 
     let parsedNs = editTargetNamespaceName.trim() || undefined;
     let parsedClass = editTargetClassName.trim();
@@ -641,29 +672,49 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
       parsedClass = parts.slice(1).join('::').trim();
     }
 
-    const updatedItem: WatchlistTargetItem = {
-      ...editingTargetItem,
-      customName: editTargetCustomName.trim() || undefined,
-      groupName: editingTargetItem.groupName,
-      subGroupName: editingTargetItem.subGroupName,
-      assemblyName: editTargetAssemblyName.trim() || undefined,
-      namespaceName: parsedNs,
-      className: parsedClass,
-      memberName: editTargetMemberName.trim(),
-      kind: editTargetKind,
-      comment: editTargetComment.trim() || undefined,
-      fallbackClassNames: editTargetFallbackClasses.length > 0 ? editTargetFallbackClasses : undefined,
-      fallbackMemberNames: editTargetFallbackMembers.length > 0 ? editTargetFallbackMembers : undefined,
-      // Reset resolved states if key details changed
-      resolved: false,
-      offsetHex: undefined,
-      rvaHex: undefined,
-      vaHex: undefined,
-      resolvedViaFallback: false,
-      resolvedClassName: undefined,
-      resolvedMemberName: undefined,
-      resolvedAssemblyName: undefined,
-    };
+    const cleanOffset = editTargetDefaultOffset.trim();
+    const formattedOffset = cleanOffset
+      ? cleanOffset.startsWith('0x') || cleanOffset.startsWith('0X')
+        ? cleanOffset
+        : `0x${cleanOffset}`
+      : undefined;
+
+    const updatedItem: WatchlistTargetItem = editTargetIsCustom
+      ? {
+          id: editingTargetItem.id,
+          isCustom: true,
+          customName: editTargetCustomName.trim() || undefined,
+          defaultOffset: formattedOffset,
+          offsetHex: formattedOffset,
+          comment: editTargetComment.trim() || undefined,
+          groupName: editingTargetItem.groupName,
+          subGroupName: editingTargetItem.subGroupName,
+          resolved: Boolean(formattedOffset),
+        }
+      : {
+          ...editingTargetItem,
+          isCustom: false,
+          defaultOffset: formattedOffset,
+          customName: editTargetCustomName.trim() || undefined,
+          groupName: editingTargetItem.groupName,
+          subGroupName: editingTargetItem.subGroupName,
+          assemblyName: editTargetAssemblyName.trim() || undefined,
+          namespaceName: parsedNs,
+          className: parsedClass,
+          memberName: editTargetMemberName.trim(),
+          kind: editTargetKind,
+          comment: editTargetComment.trim() || undefined,
+          fallbackClassNames: editTargetFallbackClasses.length > 0 ? editTargetFallbackClasses : undefined,
+          fallbackMemberNames: editTargetFallbackMembers.length > 0 ? editTargetFallbackMembers : undefined,
+          // If direct offset is provided or modified, update resolved offset
+          offsetHex: formattedOffset || editingTargetItem.offsetHex,
+          rvaHex: editTargetKind === 'METHOD' && formattedOffset ? formattedOffset : editingTargetItem.rvaHex,
+          resolved: Boolean(formattedOffset) || editingTargetItem.resolved,
+          resolvedViaFallback: editingTargetItem.resolvedViaFallback,
+          resolvedClassName: editingTargetItem.resolvedClassName,
+          resolvedMemberName: editingTargetItem.resolvedMemberName,
+          resolvedAssemblyName: editingTargetItem.resolvedAssemblyName,
+        };
 
     const nextProfiles = profiles.map((p) =>
       p.id === activeProfile.id
@@ -677,12 +728,18 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     saveProfiles(nextProfiles);
 
     setEditingTargetItem(null);
-    showToast(`Updated target ${updatedItem.customName || `${updatedItem.className}.${updatedItem.memberName}`}`);
+    showToast(`Updated target ${updatedItem.customName || `${updatedItem.className || ''}.${updatedItem.memberName || ''}`}`);
   };
 
   // Add Target Item to Active Profile
   const handleAddTarget = () => {
-    if (!newTargetClassName.trim() || !newTargetMemberName.trim() || !activeProfile) return;
+    if (!activeProfile) return;
+
+    if (newTargetIsCustom) {
+      if (!newTargetCustomName.trim()) return;
+    } else {
+      if (!newTargetClassName.trim() || !newTargetMemberName.trim()) return;
+    }
 
     let parsedNs = newTargetNamespaceName.trim() || undefined;
     let parsedClass = newTargetClassName.trim();
@@ -692,26 +749,52 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
       parsedClass = parts.slice(1).join('::').trim();
     }
 
-    const newItem: WatchlistTargetItem = {
-      id: `t_${Date.now()}`,
-      customName: newTargetCustomName.trim() || undefined,
-      groupName: newTargetGroupName.trim() || undefined,
-      subGroupName: newTargetSubGroupName.trim() || undefined,
-      assemblyName: newTargetAssemblyName.trim() || undefined,
-      namespaceName: parsedNs,
-      className: parsedClass,
-      memberName: newTargetMemberName.trim(),
-      kind: newTargetKind,
-      comment: newTargetComment.trim() || undefined,
-      fallbackClassNames: newTargetFallbackClasses.length > 0 ? newTargetFallbackClasses : undefined,
-      fallbackMemberNames: newTargetFallbackMembers.length > 0 ? newTargetFallbackMembers : undefined,
-    };
+    const cleanOffset = newTargetDefaultOffset.trim();
+    const formattedOffset = cleanOffset
+      ? cleanOffset.startsWith('0x') || cleanOffset.startsWith('0X')
+        ? cleanOffset
+        : `0x${cleanOffset}`
+      : undefined;
+
+    const newItem: WatchlistTargetItem = newTargetIsCustom
+      ? {
+          id: `t_${Date.now()}`,
+          isCustom: true,
+          customName: newTargetCustomName.trim(),
+          defaultOffset: formattedOffset,
+          offsetHex: formattedOffset,
+          comment: newTargetComment.trim() || undefined,
+          groupName: newTargetGroupName.trim() || undefined,
+          subGroupName: newTargetSubGroupName.trim() || undefined,
+          resolved: Boolean(formattedOffset),
+        }
+      : {
+          id: `t_${Date.now()}`,
+          isCustom: false,
+          defaultOffset: formattedOffset,
+          customName: newTargetCustomName.trim() || undefined,
+          groupName: newTargetGroupName.trim() || undefined,
+          subGroupName: newTargetSubGroupName.trim() || undefined,
+          assemblyName: newTargetAssemblyName.trim() || undefined,
+          namespaceName: parsedNs,
+          className: parsedClass,
+          memberName: newTargetMemberName.trim(),
+          kind: newTargetKind,
+          comment: newTargetComment.trim() || undefined,
+          fallbackClassNames: newTargetFallbackClasses.length > 0 ? newTargetFallbackClasses : undefined,
+          fallbackMemberNames: newTargetFallbackMembers.length > 0 ? newTargetFallbackMembers : undefined,
+          offsetHex: formattedOffset,
+          rvaHex: newTargetKind === 'METHOD' ? formattedOffset : undefined,
+          resolved: Boolean(formattedOffset),
+        };
 
     const nextProfiles = profiles.map((p) =>
       p.id === activeProfile.id ? { ...p, items: [...p.items, newItem], updatedAt: Date.now() } : p
     );
     saveProfiles(nextProfiles);
 
+    setNewTargetIsCustom(false);
+    setNewTargetDefaultOffset('');
     setNewTargetCustomName('');
     setNewTargetGroupName('');
     setNewTargetSubGroupName('');
@@ -725,7 +808,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     setTempFallbackClassInput('');
     setTempFallbackMemberInput('');
     setIsAddTargetModalOpen(false);
-    showToast(`Added target ${newItem.customName || `${newItem.className}.${newItem.memberName}`}`);
+    showToast(`Added target ${newItem.customName || `${newItem.className || ''}.${newItem.memberName || ''}`}`);
   };
 
   // Remove Item
@@ -751,16 +834,16 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         (i.subGroupName && i.subGroupName.toLowerCase().includes(lowerFilter)) ||
         (i.assemblyName && i.assemblyName.toLowerCase().includes(lowerFilter)) ||
         (i.resolvedAssemblyName && i.resolvedAssemblyName.toLowerCase().includes(lowerFilter)) ||
-        i.className.toLowerCase().includes(lowerFilter) ||
-        i.memberName.toLowerCase().includes(lowerFilter) ||
+        (i.className && i.className.toLowerCase().includes(lowerFilter)) ||
+        (i.memberName && i.memberName.toLowerCase().includes(lowerFilter)) ||
         (i.comment && i.comment.toLowerCase().includes(lowerFilter))
     );
   }, [activeProfile, watchlistFilter]);
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#18181A] text-[#E2E2E4] overflow-hidden relative">
+    <div className="dashboard-workspace-container flex-1 flex flex-col h-full bg-[#18181A] text-[#E2E2E4] overflow-hidden relative">
       {/* Top Tab Navigation (Responsive Bar / Card Style on Tablet & Big Screen) */}
-      <div className="bg-[#1E1E20] border-b border-[#2D2D30] px-1.5 sm:px-4 pt-1 sm:pt-2 pb-1 shrink-0">
+      <div className="dashboard-tab-bar bg-[#1E1E20] border-b border-[#2D2D30] px-1.5 sm:px-4 pt-1 sm:pt-2 pb-1 shrink-0">
         <div className="max-w-5xl mx-auto flex md:bg-[#141416] md:p-1 md:rounded-2xl md:border md:border-[#2D2D30] md:shadow-inner">
           <button
             onClick={() => setActiveTab('target')}
@@ -909,6 +992,10 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         setNewTargetKind={setNewTargetKind}
         newTargetCustomName={newTargetCustomName}
         setNewTargetCustomName={setNewTargetCustomName}
+        newTargetIsCustom={newTargetIsCustom}
+        setNewTargetIsCustom={setNewTargetIsCustom}
+        newTargetDefaultOffset={newTargetDefaultOffset}
+        setNewTargetDefaultOffset={setNewTargetDefaultOffset}
         newTargetGroupName={newTargetGroupName}
         setNewTargetGroupName={setNewTargetGroupName}
         newTargetSubGroupName={newTargetSubGroupName}
@@ -944,6 +1031,10 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         setEditTargetKind={setEditTargetKind}
         editTargetCustomName={editTargetCustomName}
         setEditTargetCustomName={setEditTargetCustomName}
+        editTargetIsCustom={editTargetIsCustom}
+        setEditTargetIsCustom={setEditTargetIsCustom}
+        editTargetDefaultOffset={editTargetDefaultOffset}
+        setEditTargetDefaultOffset={setEditTargetDefaultOffset}
         editTargetAssemblyName={editTargetAssemblyName}
         setEditTargetAssemblyName={setEditTargetAssemblyName}
         editTargetClassName={editTargetClassName}

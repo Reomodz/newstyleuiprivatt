@@ -19,6 +19,3 @@ export { HistoryCardSettingsModal } from './history/HistoryCardSettingsModal';
 
 // Settings Modals
 export { CardSettingsModal } from './settings/CardSettingsModal';
-
-// Common Modals
-export { InfoModal } from './common/InfoModal';

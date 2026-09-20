@@ -96,12 +96,6 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                         <span className="font-semibold text-xs text-indigo-300 group-hover:text-indigo-200 transition-colors truncate">
                           {rec.profileName}
                         </span>
-                        {cardViewSettings.showCodeStyleBadge && (
-                          <span className="flex items-center gap-0.5 text-[8px] sm:text-[9px] font-mono px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 shrink-0">
-                            <Code2 className="w-2.5 h-2.5" />
-                            <span>{presetObj.label}</span>
-                          </span>
-                        )}
                       </div>
 
                       {cardViewSettings.showQuickActions && (
@@ -156,20 +150,31 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                       )}
                     </div>
 
+                    {/* Live Half Side Box: Resolution Rate + Active Format (Compact for Mobile) */}
                     {cardViewSettings.showMetadata && (
-                      <div className="text-[9px] sm:text-[10px] text-[#8E8E93] flex items-center gap-1.5 flex-wrap">
-                        <span className="bg-[#141416] px-1.5 py-0.2 rounded border border-[#353538]">
-                          {rec.sourceMode === 'live' ? 'Live' : 'Dump'}
-                        </span>
-                        <span className="text-emerald-400 font-medium px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/20">
-                          {rec.resolvedCount}/{rec.totalTargets} Resolved
-                        </span>
-                        <span className="text-[9px] text-[#6C6C70]">
-                          {new Date(rec.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                        <span className="text-[9px] text-indigo-400/80 ml-auto flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                          View details <ChevronRight className="w-2.5 h-2.5" />
-                        </span>
+                      <div className="flex items-center justify-between gap-1.5 pt-0.5">
+                        <div className="inline-flex items-center rounded-md sm:rounded-lg bg-[#141416] border border-[#2F2F34] text-[8px] sm:text-[9px] font-mono overflow-hidden shadow-inner">
+                          {/* Resolution Rate */}
+                          <span className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 bg-emerald-500/10 text-emerald-400 font-semibold border-r border-[#2F2F34]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                            <span>{rec.resolvedCount}/{rec.totalTargets}</span>
+                            <span className="text-[7.5px] sm:text-[8px] opacity-80">
+                              ({Math.round(((rec.resolvedCount || 0) / Math.max(rec.totalTargets, 1)) * 100)}%)
+                            </span>
+                          </span>
+                          {/* Active Format */}
+                          <span className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 text-indigo-300 font-medium">
+                            <Code2 className="w-2.5 h-2.5 text-indigo-400 shrink-0" />
+                            <span className="truncate max-w-[110px] sm:max-w-[140px]">{presetObj.label}</span>
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 ml-auto text-[8px] sm:text-[9px] text-[#6C6C70]">
+                          <span>{new Date(rec.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          <span className="text-indigo-400/80 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <ChevronRight className="w-2.5 h-2.5" />
+                          </span>
+                        </div>
                       </div>
                     )}
 

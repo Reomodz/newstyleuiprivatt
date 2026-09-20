@@ -169,7 +169,7 @@ export interface BreadcrumbViewData {
   targetIndex?: number;
 }
 
-export type ManagerInfoDestination = 'about' | 'credits' | 'licenses';
+export * from './theme';
 
 export type TargetSourceMode = 'live' | 'storage';
 
@@ -180,9 +180,9 @@ export interface WatchlistTargetItem {
   subGroupName?: string;
   assemblyName?: string;
   namespaceName?: string;
-  className: string;
-  memberName: string;
-  kind: 'FIELD' | 'METHOD';
+  className?: string;
+  memberName?: string;
+  kind?: 'FIELD' | 'METHOD';
   comment?: string;
   fallbackClassNames?: string[];
   fallbackMemberNames?: string[];
@@ -202,6 +202,8 @@ export interface WatchlistTargetItem {
   lastScannedAt?: number;
   isStatic?: boolean;
   valueType?: string;
+  isCustom?: boolean;
+  defaultOffset?: string;
 }
 
 export type CodeStylePreset =
@@ -243,9 +245,9 @@ export interface ScanHistoryRecord {
     groupName?: string;
     subGroupName?: string;
     assemblyName?: string;
-    className: string;
-    memberName: string;
-    kind: 'FIELD' | 'METHOD';
+    className?: string;
+    memberName?: string;
+    kind?: 'FIELD' | 'METHOD';
     comment?: string;
     offsetHex?: string;
     rvaHex?: string;
@@ -259,6 +261,8 @@ export interface ScanHistoryRecord {
     classIndex?: number;
     memberIndex?: number;
     resolved?: boolean;
+    isCustom?: boolean;
+    defaultOffset?: string;
   }[];
 }
 
@@ -271,6 +275,7 @@ export interface ProfileCardViewSettings {
   showActiveBadge: boolean;
   showActionButtons: boolean;
   showOpenIndicator: boolean;
+  expandAllDescriptions?: boolean;
 }
 
 export const DEFAULT_PROFILE_VIEW_SETTINGS: ProfileCardViewSettings = {
@@ -282,6 +287,7 @@ export const DEFAULT_PROFILE_VIEW_SETTINGS: ProfileCardViewSettings = {
   showActiveBadge: true,
   showActionButtons: true,
   showOpenIndicator: true,
+  expandAllDescriptions: false,
 };
 
 export interface TargetCardViewSettings {
@@ -297,6 +303,7 @@ export interface TargetCardViewSettings {
   tabletLayout?: 'grid' | 'list';
   showTargetBanner?: boolean;
   showScanLogCard?: boolean;
+  expandAllDescriptions?: boolean;
 }
 
 export const DEFAULT_TARGET_VIEW_SETTINGS: TargetCardViewSettings = {
@@ -312,6 +319,7 @@ export const DEFAULT_TARGET_VIEW_SETTINGS: TargetCardViewSettings = {
   tabletLayout: 'list',
   showTargetBanner: true,
   showScanLogCard: true,
+  expandAllDescriptions: false,
 };
 
 export interface HistoryCardViewSettings {

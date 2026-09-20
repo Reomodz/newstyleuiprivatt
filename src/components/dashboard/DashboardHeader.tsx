@@ -134,8 +134,14 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
       {/* Storage Dump Hub Header */}
       <div className="flex flex-col gap-2 sm:gap-3 w-full">
         {/* Top Info Banner */}
-        <div className="bg-[#18181A] border border-[#2D2D30] rounded-lg sm:rounded-2xl p-2 sm:p-3.5 shadow-lg relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-0.5 sm:h-1 bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-500" />
+        <div className="bg-[#1E1E20] border border-[#2D2D30] rounded-lg sm:rounded-2xl p-2 sm:p-3.5 shadow-lg relative overflow-hidden">
+          <div
+            className="absolute top-0 left-0 right-0 h-0.5 sm:h-1 transition-all"
+            style={{
+              background: 'linear-gradient(90deg, var(--app-accent-hex), rgba(var(--app-accent-rgb), 0.35))',
+              boxShadow: '0 0 8px rgba(var(--app-accent-rgb), 0.4)',
+            }}
+          />
           
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-3 pt-0.5 sm:pt-1">
             <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
@@ -151,7 +157,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
                     ARM64 / IL2CPP
                   </span>
                 </div>
-                <p className="text-[9px] sm:text-xs text-[#8E8E93] truncate">
+                <p className="text-[9px] sm:text-xs text-[#8E8E93] leading-relaxed break-words">
                   Select <code className="text-sky-300 bg-[#252528] px-1 py-0.2 rounded text-[8.5px] sm:text-[11px]">dump.cs</code> and <code className="text-purple-300 bg-[#252528] px-1 py-0.2 rounded text-[8.5px] sm:text-[11px]">il2cpp.h</code> to parse classes & offsets offline.
                 </p>
               </div>
@@ -160,25 +166,25 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
 
           {/* Quick Metrics Bar */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-2 mt-2 pt-2 border-t border-[#262629]">
-            <div className="bg-[#121214] p-1 sm:p-2 rounded-md sm:rounded-lg border border-[#222225] flex flex-col">
+            <div className="bg-[#18181C] p-1 sm:p-2 rounded-md sm:rounded-lg border border-[#28282C] flex flex-col">
               <span className="text-[8px] sm:text-[10px] text-[#8E8E93]">Parsed Classes</span>
               <span className="text-[11px] sm:text-sm md:text-base font-bold text-sky-300 font-mono">
                 {storageMeta.totalClasses || parsedSummary?.classes || 0}
               </span>
             </div>
-            <div className="bg-[#121214] p-1 sm:p-2 rounded-md sm:rounded-lg border border-[#222225] flex flex-col">
+            <div className="bg-[#18181C] p-1 sm:p-2 rounded-md sm:rounded-lg border border-[#28282C] flex flex-col">
               <span className="text-[8px] sm:text-[10px] text-[#8E8E93]">Methods & RVAs</span>
               <span className="text-[11px] sm:text-sm md:text-base font-bold text-purple-300 font-mono">
                 {storageMeta.totalMethods || parsedSummary?.methods || 0}
               </span>
             </div>
-            <div className="bg-[#121214] p-1 sm:p-2 rounded-md sm:rounded-lg border border-[#222225] flex flex-col">
+            <div className="bg-[#18181C] p-1 sm:p-2 rounded-md sm:rounded-lg border border-[#28282C] flex flex-col">
               <span className="text-[8px] sm:text-[10px] text-[#8E8E93]">Fields & Offsets</span>
               <span className="text-[11px] sm:text-sm md:text-base font-bold text-amber-300 font-mono">
                 {storageMeta.totalFields || parsedSummary?.fields || 0}
               </span>
             </div>
-            <div className="bg-[#121214] p-1 sm:p-2 rounded-md sm:rounded-lg border border-[#222225] flex flex-col">
+            <div className="bg-[#18181C] p-1 sm:p-2 rounded-md sm:rounded-lg border border-[#28282C] flex flex-col">
               <span className="text-[8px] sm:text-[10px] text-[#8E8E93]">TypeInfo Pointers</span>
               <span className="text-[11px] sm:text-sm md:text-base font-bold text-emerald-300 font-mono">
                 {storageMeta.totalTypeInfos || parsedSummary?.typeInfos || 0}
@@ -355,8 +361,14 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
 
         {/* REDESIGNED: Profile Target Select & Resolve Offsets Trigger Card */}
         {cardViewSettings.showStorageProfileSelect !== false && (
-          <div className="bg-[#18181B] border border-[#2D2D32] hover:border-[#383840] rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-xl transition-all relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4">
-            <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-indigo-500 via-purple-500 to-sky-500 shadow-[0_0_10px_rgba(99,102,241,0.6)]" />
+          <div className="bg-[#1E1E20] border border-[#2D2D32] hover:border-[#383840] rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-xl transition-all relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4">
+            <div
+              className="absolute left-0 top-0 bottom-0 w-[3px] transition-all"
+              style={{
+                background: 'linear-gradient(180deg, var(--app-accent-hex), rgba(var(--app-accent-rgb), 0.35))',
+                boxShadow: '0 0 10px rgba(var(--app-accent-rgb), 0.6)',
+              }}
+            />
 
             {/* Profile Select Section */}
             <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 pl-1">
@@ -378,13 +390,22 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
                   <select
                     value={activeProfileId}
                     onChange={(e) => setActiveProfileId(e.target.value)}
-                    className="w-full pl-2.5 sm:pl-3 pr-7 sm:pr-8 py-1.5 sm:py-2 bg-[#101012] hover:bg-[#151518] border border-[#323238] focus:border-indigo-500 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold text-[#E2E2E4] focus:outline-none appearance-none cursor-pointer truncate transition-colors shadow-inner"
+                    disabled={profiles.length === 0}
+                    className={`w-full pl-2.5 sm:pl-3 pr-7 sm:pr-8 py-1.5 sm:py-2 bg-[#101012] border border-[#323238] rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold text-[#E2E2E4] focus:outline-none appearance-none truncate transition-colors shadow-inner ${
+                      profiles.length === 0 ? 'opacity-60 cursor-not-allowed text-[#8E8E93]' : 'hover:bg-[#151518] focus:border-indigo-500 cursor-pointer'
+                    }`}
                   >
-                    {profiles.map((p) => (
-                      <option key={p.id} value={p.id} className="bg-[#18181B] text-[#E2E2E4]">
-                        {p.name} ({p.items.length} {p.items.length === 1 ? 'target' : 'targets'})
+                    {profiles.length === 0 ? (
+                      <option value="" disabled className="bg-[#18181B] text-[#8E8E93]">
+                        No profiles available
                       </option>
-                    ))}
+                    ) : (
+                      profiles.map((p) => (
+                        <option key={p.id} value={p.id} className="bg-[#18181B] text-[#E2E2E4]">
+                          {p.name} ({p.items.length} {p.items.length === 1 ? 'target' : 'targets'})
+                        </option>
+                      ))
+                    )}
                   </select>
                   <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#8E8E93] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>

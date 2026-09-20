@@ -64,8 +64,8 @@ export const CreateProfileModal: React.FC<CreateProfileModalProps> = ({
                 <span className="text-[9px] sm:text-[11px] text-[#8E8E93]">Default format for copy & export</span>
               </div>
 
-              {/* Preset selection grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {/* Preset selection grid - side-by-side and compact for mobile */}
+              <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                 {CODE_STYLE_PRESETS.map((preset) => {
                   const isSelected = newProfileCodeStyle === preset.id;
                   return (
@@ -73,19 +73,19 @@ export const CreateProfileModal: React.FC<CreateProfileModalProps> = ({
                       key={preset.id}
                       type="button"
                       onClick={() => setNewProfileCodeStyle(preset.id as CodeStylePreset)}
-                      className={`p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl border text-left flex flex-col gap-1 transition-all ${
+                      className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl border text-left flex flex-col gap-0.5 transition-all ${
                         isSelected
                           ? 'bg-indigo-600/15 border-indigo-500/50 shadow-sm'
                           : 'bg-[#141416] border-[#353538] hover:border-[#4A4A50]'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className={`text-[10px] sm:text-xs font-bold ${isSelected ? 'text-indigo-300' : 'text-[#E2E2E4]'}`}>
+                        <span className={`text-[9.5px] sm:text-xs font-bold truncate ${isSelected ? 'text-indigo-300' : 'text-[#E2E2E4]'}`}>
                           {preset.label}
                         </span>
-                        {isSelected && <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-indigo-400" />}
+                        {isSelected && <Check className="w-3 h-3 text-indigo-400 shrink-0" />}
                       </div>
-                      <span className="text-[9px] sm:text-[11px] font-mono text-[#8E8E93] truncate">
+                      <span className="text-[8px] sm:text-[9.5px] font-mono text-[#8E8E93] truncate">
                         {preset.template}
                       </span>
                     </button>
@@ -95,7 +95,7 @@ export const CreateProfileModal: React.FC<CreateProfileModalProps> = ({
 
               {/* Custom Template Editor */}
               {newProfileCodeStyle === 'custom' && (
-                <div className="flex flex-col gap-2 p-2 sm:p-3 bg-[#141416] border border-indigo-500/30 rounded-xl sm:rounded-2xl animate-in fade-in duration-150 mt-1">
+                <div className="flex flex-col gap-1.5 p-2 sm:p-3 bg-[#141416] border border-indigo-500/30 rounded-xl sm:rounded-2xl animate-in fade-in duration-150 mt-1">
                   <label className="text-[9px] sm:text-[11px] font-medium text-indigo-300">Custom Template String</label>
                   <input
                     type="text"
@@ -104,14 +104,14 @@ export const CreateProfileModal: React.FC<CreateProfileModalProps> = ({
                     placeholder="e.g. constexpr uintptr_t {name} = {offset};"
                     className="w-full px-2 sm:px-3 py-1.5 sm:py-2 bg-[#1A1A1D] border border-[#353538] rounded-lg sm:rounded-xl text-[10px] sm:text-xs text-[#E2E2E4] focus:outline-none focus:border-indigo-500 font-mono"
                   />
-                  <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                    <span className="text-[9px] sm:text-[10px] text-[#8E8E93]">Placeholders:</span>
-                    {['{name}', '{offset}', '{class}', '{rva}', '{type}', '{comment}'].map((token) => (
+                  <div className="flex items-center gap-1 flex-wrap pt-0.5">
+                    <span className="text-[8px] sm:text-[9.5px] text-[#8E8E93]">Placeholders:</span>
+                    {['{name}', '{offset}', '{rva}', '{va}', '{class}', '{member}', '{type}', '{group}', '{subgroup}', '{kind}', '{comment}', '\\n'].map((token) => (
                       <button
                         key={token}
                         type="button"
                         onClick={() => setNewProfileCustomTemplate((prev) => `${prev} ${token}`.trim())}
-                        className="px-1.5 sm:px-2 py-0.5 rounded bg-[#242428] hover:bg-[#323236] border border-[#3E3E44] text-[9px] sm:text-[10px] font-mono text-indigo-300 transition-colors"
+                        className="px-1.5 py-0.5 rounded bg-[#242428] hover:bg-[#323236] border border-[#3E3E44] text-[8px] sm:text-[9px] font-mono text-indigo-300 transition-colors"
                       >
                         {token}
                       </button>
@@ -121,18 +121,23 @@ export const CreateProfileModal: React.FC<CreateProfileModalProps> = ({
               )}
 
               {/* Live Preview Box */}
-              <div className="p-2 sm:p-3 bg-[#141416] border border-[#2D2D30] rounded-lg sm:rounded-xl flex flex-col gap-1">
-                <div className="flex items-center justify-between text-[9px] sm:text-[10px] text-[#8E8E93]">
+              <div className="p-2 sm:p-2.5 bg-[#141416] border border-[#2D2D30] rounded-lg sm:rounded-xl flex flex-col gap-1">
+                <div className="flex items-center justify-between text-[8.5px] sm:text-[10px] text-[#8E8E93]">
                   <span className="font-semibold uppercase tracking-wider">Preview</span>
                   <span className="font-mono">{newProfileCodeStyle}</span>
                 </div>
-                <div className="font-mono text-[10px] sm:text-xs text-amber-300 bg-[#1A1A1D] p-1.5 sm:p-2 rounded-md sm:rounded-lg border border-[#28282B] overflow-x-auto whitespace-pre">
+                <div className="font-mono text-[9.5px] sm:text-xs text-amber-300 bg-[#1A1A1D] p-1.5 sm:p-2 rounded-md sm:rounded-lg border border-[#28282B] overflow-x-auto whitespace-pre">
                   {getCodeTemplate(newProfileCodeStyle, newProfileCustomTemplate)
                     .replace(/{name}/g, 'moveSpeed')
                     .replace(/{offset}/g, '0x28')
                     .replace(/{class}/g, 'PlayerController')
+                    .replace(/{member}/g, 'moveSpeed')
                     .replace(/{type}/g, 'float')
                     .replace(/{rva}/g, '0x1A2B3C')
+                    .replace(/{va}/g, '0x7FF01A2B')
+                    .replace(/{group}/g, 'Movement')
+                    .replace(/{subgroup}/g, 'Base')
+                    .replace(/{kind}/g, 'FIELD')
                     .replace(/{comment}/g, 'Movement speed')}
                 </div>
               </div>

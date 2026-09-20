@@ -66,14 +66,14 @@ export function formatTargetCodeSnippet(
   customTemplate?: string
 ): string {
   const template = getCodeTemplate(preset, customTemplate);
-  const targetClass = item.resolvedClassName || item.className || 'UnknownClass';
-  const targetMember = item.resolvedMemberName || item.memberName || 'unknownMember';
+  const targetClass = item.resolvedClassName || item.className || item.customName?.trim() || 'Custom';
+  const targetMember = item.resolvedMemberName || item.memberName || item.customName?.trim() || 'offset';
   const displayName = item.customName?.trim() || targetMember;
-  const offset = item.kind === 'FIELD' ? (item.offsetHex || '0x0') : (item.rvaHex || '0x0');
-  const rva = item.rvaHex || '0x0';
+  const offset = item.offsetHex || item.defaultOffset || item.rvaHex || '0x0';
+  const rva = item.rvaHex || item.offsetHex || item.defaultOffset || '0x0';
   const va = item.vaHex || '0x0';
-  const type = item.typeName || (item.kind === 'FIELD' ? 'System.Single' : 'void');
-  const kind = item.kind;
+  const type = item.typeName || (item.kind === 'METHOD' ? 'void' : 'System.Single');
+  const kind = item.kind || 'FIELD';
   const comment = item.comment || '';
   const group = item.groupName || '';
   const subgroup = item.subGroupName || '';

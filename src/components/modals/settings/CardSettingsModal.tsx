@@ -185,6 +185,20 @@ export const CardSettingsModal: React.FC<CardSettingsModalProps> = ({
                   />
                 </label>
 
+                {/* Expand Full Descriptions on Mobile (See All) */}
+                <label className="flex items-center justify-between p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-[#1E1E22] transition-colors cursor-pointer border-t border-[#222226]">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] sm:text-xs font-medium text-[#E2E2E4]">Expand All Descriptions & Comments</span>
+                    <span className="text-[9px] sm:text-[10px] text-[#8E8E93]">Show full multiline descriptions without truncating or cutting off on mobile</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={config.expandAllDescriptions === true}
+                    onChange={(e) => updateConfig({ expandAllDescriptions: e.target.checked })}
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 accent-indigo-600 rounded cursor-pointer shrink-0"
+                  />
+                </label>
+
                 {/* Show Resolved Offsets */}
                 <label className="flex items-center justify-between p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-[#1E1E22] transition-colors cursor-pointer border-t border-[#222226]">
                   <div className="flex flex-col">

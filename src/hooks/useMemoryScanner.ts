@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { ScanHistoryRecord, TargetSourceMode, ProcessDescriptor, WatchlistProfile, WatchlistTargetItem } from '../types';
 import { il2cppEngine } from '../services/il2cppEngine';
 
-export function useMemoryScanner(initialHistory: ScanHistoryRecord[]) {
+export function useMemoryScanner(initialHistory: ScanHistoryRecord[] = []) {
   // Scan History
   const [scanHistory, setScanHistory] = useState<ScanHistoryRecord[]>(() => {
     const vKey = 'il2cpp_scan_history_v2';
@@ -67,13 +67,28 @@ export function useMemoryScanner(initialHistory: ScanHistoryRecord[]) {
 
       let resolvedCount = 0;
       const scannedItems: WatchlistTargetItem[] = activeProfile.items.map((item) => {
+        // Direct Offset & Custom Target mode
+        if (item.isCustom) {
+          const directOffset = item.defaultOffset || item.offsetHex || item.rvaHex || '0x0';
+          resolvedCount++;
+          addLog(`[DIRECT] "${item.customName || item.memberName}" -> Direct Offset: ${directOffset}`, 'success');
+          return {
+            ...item,
+            resolved: true,
+            resolvedViaFallback: false,
+            offsetHex: directOffset,
+            rvaHex: item.kind === 'METHOD' ? directOffset : undefined,
+            lastScannedAt: Date.now(),
+          };
+        }
+
         const candidateClasses = [
-          item.className.trim(),
+          (item.className || '').trim(),
           ...(item.fallbackClassNames || []).map((s) => s.trim()),
         ].filter((s) => s.length > 0);
 
         const candidateMembers = [
-          item.memberName.trim(),
+          (item.memberName || '').trim(),
           ...(item.fallbackMemberNames || []).map((s) => s.trim()),
         ].filter((s) => s.length > 0);
 
@@ -83,8 +98,13 @@ export function useMemoryScanner(initialHistory: ScanHistoryRecord[]) {
         let matchedClassName = '';
         let matchedMemberName = '';
         let matchedAssemblyName = '';
+        let matchedViaFallbackClass = false;
+        let matchedViaFallbackMember = false;
 
-        for (const cName of candidateClasses) {
+        for (let cIdx = 0; cIdx < candidateClasses.length; cIdx++) {
+          const cName = candidateClasses[cIdx];
+          const isFallbackClassCandidate = cIdx > 0;
+
           const isClassMatching = (c: typeof allClasses[0]) => {
             const cleanInput = cName.trim().toLowerCase();
             const cNameLower = c.name.toLowerCase();
@@ -135,13 +155,16 @@ export function useMemoryScanner(initialHistory: ScanHistoryRecord[]) {
 
             if (item.kind === 'FIELD') {
               const fields = il2cppEngine.getFields(foundCls.index);
-              for (const mName of candidateMembers) {
+              for (let mIdx = 0; mIdx < candidateMembers.length; mIdx++) {
+                const mName = candidateMembers[mIdx];
                 const foundF = fields.find((f) => f.name.toLowerCase() === mName.toLowerCase());
                 if (foundF && foundF.offset !== undefined) {
                   matchedClass = foundCls;
                   matchedField = foundF;
                   matchedClassName = formattedResolvedClassName;
                   matchedMemberName = foundF.name;
+                  matchedViaFallbackClass = isFallbackClassCandidate;
+                  matchedViaFallbackMember = mIdx > 0;
                   const asm = allAssemblies.find((a) => a.index === foundCls.assemblyIndex);
                   matchedAssemblyName = foundCls.assemblyName || asm?.name || 'Assembly-CSharp.dll';
                   break;
@@ -149,13 +172,16 @@ export function useMemoryScanner(initialHistory: ScanHistoryRecord[]) {
               }
             } else {
               const methods = il2cppEngine.getMethods(foundCls.index);
-              for (const mName of candidateMembers) {
+              for (let mIdx = 0; mIdx < candidateMembers.length; mIdx++) {
+                const mName = candidateMembers[mIdx];
                 const foundM = methods.find((m) => m.name.toLowerCase() === mName.toLowerCase());
                 if (foundM) {
                   matchedClass = foundCls;
                   matchedMethod = foundM;
                   matchedClassName = formattedResolvedClassName;
                   matchedMemberName = foundM.name;
+                  matchedViaFallbackClass = isFallbackClassCandidate;
+                  matchedViaFallbackMember = mIdx > 0;
                   const asm = allAssemblies.find((a) => a.index === foundCls.assemblyIndex);
                   matchedAssemblyName = foundCls.assemblyName || asm?.name || 'Assembly-CSharp.dll';
                   break;
@@ -185,9 +211,8 @@ export function useMemoryScanner(initialHistory: ScanHistoryRecord[]) {
         }
 
         resolvedCount++;
-        const isFallbackUsed =
-          matchedClassName.toLowerCase() !== item.className.toLowerCase().trim() ||
-          matchedMemberName.toLowerCase() !== item.memberName.toLowerCase().trim();
+        // Fallback is ONLY used if a fallback class candidate or fallback member candidate was matched
+        const isFallbackUsed = Boolean(matchedViaFallbackClass || matchedViaFallbackMember);
 
         if (item.kind === 'FIELD' && matchedField) {
           const offsetHex = `0x${matchedField.offset.toString(16).toUpperCase()}`;

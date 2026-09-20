@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   GripVertical,
   ChevronUp,
@@ -59,6 +59,7 @@ export const TargetCard: React.FC<TargetCardProps> = React.memo(({
     (item.fallbackMemberNames && item.fallbackMemberNames.length > 0);
 
   const isCompact = cardViewSettings.density === 'compact';
+  const [isCommentExpanded, setIsCommentExpanded] = useState(false);
 
   return (
     <div
@@ -101,7 +102,7 @@ export const TargetCard: React.FC<TargetCardProps> = React.memo(({
               </span>
             ) : (
               <span className="font-mono text-xs font-semibold text-sky-300 truncate max-w-[220px] sm:max-w-[340px]">
-                {item.memberName}
+                {item.memberName || item.customName || 'Offset'}
               </span>
             )}
 
@@ -120,7 +121,7 @@ export const TargetCard: React.FC<TargetCardProps> = React.memo(({
               </span>
             )}
 
-            {cardViewSettings.showKindBadge && (
+            {cardViewSettings.showKindBadge && item.kind && (
               <span
                 className={`text-[8px] sm:text-[9px] px-1.5 py-0.2 rounded font-mono font-semibold ${
                   item.kind === 'FIELD'
@@ -133,12 +134,17 @@ export const TargetCard: React.FC<TargetCardProps> = React.memo(({
             )}
           </div>
 
-          {/* Resolved Offset / RVA pill if scanned */}
-          {cardViewSettings.showResolvedOffset !== false && (item.offsetHex || item.rvaHex) && (
+          {/* Resolved Offset / RVA pill if scanned or default offset */}
+          {cardViewSettings.showResolvedOffset !== false && (item.offsetHex || item.rvaHex || item.defaultOffset) && (
             <div className="flex items-center gap-1.5 mt-0.5 text-[9px] sm:text-[10px] font-mono">
               <span className="text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20">
-                {item.offsetHex || item.rvaHex}
+                {item.offsetHex || item.rvaHex || item.defaultOffset}
               </span>
+              {item.isCustom && (
+                <span className="text-[8px] sm:text-[9px] font-sans px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-medium">
+                  Direct Offset
+                </span>
+              )}
               {item.typeName && (
                 <span className="text-[#8E8E93] truncate max-w-[140px]">
                   {item.typeName}
@@ -147,9 +153,20 @@ export const TargetCard: React.FC<TargetCardProps> = React.memo(({
             </div>
           )}
 
-          {/* Comments Preview */}
+          {/* Comments Preview with expand capability for mobile */}
           {cardViewSettings.showComments && item.comment && (
-            <div className="text-[9px] sm:text-[10px] text-[#8E8E93] italic line-clamp-1">
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsCommentExpanded(!isCommentExpanded);
+              }}
+              className={`text-[9px] sm:text-[10px] text-[#8E8E93] italic cursor-pointer hover:text-[#B0B0B5] transition-colors ${
+                isCommentExpanded || cardViewSettings.expandAllDescriptions
+                  ? 'whitespace-normal break-words'
+                  : 'line-clamp-1'
+              }`}
+              title="Click to view full comment"
+            >
               // {item.comment}
             </div>
           )}
@@ -214,12 +231,12 @@ export const TargetCard: React.FC<TargetCardProps> = React.memo(({
             <Pencil className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
           </button>
 
-          {isDumpLoaded && onNavigateToBrowser && (
+          {isDumpLoaded && onNavigateToBrowser && !item.isCustom && item.className && (
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                const targetClass = item.resolvedClassName || item.className;
+                const targetClass = item.resolvedClassName || item.className || '';
                 const targetNs = item.namespaceName;
                 const classIdx = il2cppEngine.findClassIndexForTarget(targetClass, targetNs);
                 onNavigateToBrowser(classIdx, item.kind, item.memberName);

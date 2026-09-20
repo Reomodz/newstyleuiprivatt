@@ -82,27 +82,33 @@ export const TargetDetailModal: React.FC<TargetDetailModalProps> = ({
                 <h3 className="text-xs sm:text-sm font-bold text-[#F4F4F5] truncate">
                   {viewingTargetItem.customName || targetMember}
                 </h3>
-                <span
-                  className={`text-[8px] sm:text-[9px] px-1.5 py-0.2 rounded font-mono font-semibold shrink-0 ${
-                    viewingTargetItem.kind === 'FIELD'
-                      ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                      : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                  }`}
-                >
-                  {viewingTargetItem.kind}
-                </span>
-                <span className="text-[8px] sm:text-[9px] px-1.5 py-0.2 rounded font-mono bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 shrink-0">
-                  {viewingTargetItem.resolvedAssemblyName || viewingTargetItem.assemblyName || 'Assembly-CSharp.dll'}
-                </span>
+                {viewingTargetItem.kind && (
+                  <span
+                    className={`text-[8px] sm:text-[9px] px-1.5 py-0.2 rounded font-mono font-semibold shrink-0 ${
+                      viewingTargetItem.kind === 'FIELD'
+                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                        : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                    }`}
+                  >
+                    {viewingTargetItem.kind}
+                  </span>
+                )}
+                {(viewingTargetItem.resolvedAssemblyName || viewingTargetItem.assemblyName) && (
+                  <span className="text-[8px] sm:text-[9px] px-1.5 py-0.2 rounded font-mono bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 shrink-0">
+                    {viewingTargetItem.resolvedAssemblyName || viewingTargetItem.assemblyName}
+                  </span>
+                )}
                 {viewingTargetItem.resolvedViaFallback && (
                   <span className="text-[8px] sm:text-[9px] px-1.5 py-0.2 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20 shrink-0">
                     Fallback Match
                   </span>
                 )}
               </div>
-              <span className="text-[9px] text-[#71717A] truncate font-mono">
-                {targetClass}.{targetMember}
-              </span>
+              {!viewingTargetItem.isCustom && (viewingTargetItem.className || viewingTargetItem.memberName) && (
+                <span className="text-[9px] text-[#71717A] truncate font-mono">
+                  {targetClass}.{targetMember}
+                </span>
+              )}
             </div>
           </div>
 
@@ -144,92 +150,129 @@ export const TargetDetailModal: React.FC<TargetDetailModalProps> = ({
         <div className="p-2.5 sm:p-3.5 flex-1 overflow-y-auto space-y-2.5 overscroll-contain text-[10px] sm:text-xs pr-1.5">
           
           {/* Target Assembly, Class & Method/Field Details */}
-          <div className="p-2.5 sm:p-3 rounded-lg sm:rounded-xl bg-[#141417] border border-[#27272B] space-y-2">
-            {/* Assembly / DLL info */}
-            <div className="flex flex-col gap-0.5 p-2 rounded-lg bg-[#18181C] border border-[#26262B]">
+          {viewingTargetItem.isCustom ? (
+            <div className="p-2.5 sm:p-3 rounded-lg sm:rounded-xl bg-[#141417] border border-[#27272B] space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[#8E8E93] uppercase text-[8px] sm:text-[9px] font-semibold tracking-wider flex items-center gap-1">
-                  <span>Assembly Module (.dll)</span>
+                <span className="text-indigo-400 font-bold text-xs sm:text-sm flex items-center gap-1.5">
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span>Direct Offset Target</span>
                 </span>
-                <button
-                  onClick={() => handleCopy(viewingTargetItem.resolvedAssemblyName || viewingTargetItem.assemblyName || 'Assembly-CSharp.dll', 'Assembly / DLL', 'dll')}
-                  className="text-[#A1A1AA] hover:text-indigo-300 transition-colors p-0.5"
-                  title="Copy Assembly (.dll)"
-                >
-                  {copiedKey === 'dll' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                </button>
+                <span className="px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-mono bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                  Custom Mode
+                </span>
               </div>
-              <span className="text-indigo-300 font-mono text-[10px] sm:text-xs font-semibold truncate select-all">
-                {viewingTargetItem.resolvedAssemblyName || viewingTargetItem.assemblyName || 'Assembly-CSharp.dll'}
-              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] sm:text-xs">
+                <div className="flex flex-col gap-0.5 p-2 rounded-lg bg-[#18181C] border border-[#26262B]">
+                  <span className="text-[#8E8E93] uppercase text-[8px] sm:text-[9px] font-semibold tracking-wider">Custom Name</span>
+                  <span className="text-[#F4F4F5] font-semibold text-[11px] sm:text-xs truncate">
+                    {viewingTargetItem.customName || viewingTargetItem.className}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-0.5 p-2 rounded-lg bg-[#18181C] border border-[#26262B]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#8E8E93] uppercase text-[8px] sm:text-[9px] font-semibold tracking-wider">Direct / Default Offset</span>
+                    <button
+                      onClick={() => handleCopy(viewingTargetItem.defaultOffset || viewingTargetItem.offsetHex || viewingTargetItem.rvaHex || '0x0', 'Default Offset', 'offset')}
+                      className="text-[#A1A1AA] hover:text-emerald-300 transition-colors p-0.5"
+                      title="Copy Offset"
+                    >
+                      {copiedKey === 'offset' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    </button>
+                  </div>
+                  <span className="text-emerald-400 font-mono text-[11px] sm:text-xs font-bold truncate">
+                    {viewingTargetItem.defaultOffset || viewingTargetItem.offsetHex || viewingTargetItem.rvaHex || '0x0'}
+                  </span>
+                </div>
+              </div>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] sm:text-xs">
-              
-              {/* Class Name (Namespace::ClassName) */}
+          ) : (
+            <div className="p-2.5 sm:p-3 rounded-lg sm:rounded-xl bg-[#141417] border border-[#27272B] space-y-2">
+              {/* Assembly / DLL info */}
               <div className="flex flex-col gap-0.5 p-2 rounded-lg bg-[#18181C] border border-[#26262B]">
                 <div className="flex items-center justify-between">
-                  <span className="text-[#8E8E93] uppercase text-[8px] sm:text-[9px] font-semibold tracking-wider">Target Namespace & Class</span>
+                  <span className="text-[#8E8E93] uppercase text-[8px] sm:text-[9px] font-semibold tracking-wider flex items-center gap-1">
+                    <span>Assembly Module (.dll)</span>
+                  </span>
                   <button
-                    onClick={() =>
-                      handleCopy(
-                        viewingTargetItem.namespaceName
-                          ? `${viewingTargetItem.namespaceName}::${viewingTargetItem.className}`
-                          : viewingTargetItem.className,
-                        'Class Name',
-                        'class'
-                      )
-                    }
+                    onClick={() => handleCopy(viewingTargetItem.resolvedAssemblyName || viewingTargetItem.assemblyName || 'Assembly-CSharp.dll', 'Assembly / DLL', 'dll')}
                     className="text-[#A1A1AA] hover:text-indigo-300 transition-colors p-0.5"
-                    title="Copy Target Class"
+                    title="Copy Assembly (.dll)"
                   >
-                    {copiedKey === 'class' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    {copiedKey === 'dll' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                   </button>
                 </div>
-                <span className="text-[#F4F4F5] font-mono text-[10px] sm:text-xs font-semibold truncate select-all">
-                  {viewingTargetItem.namespaceName ? (
-                    <>
-                      <span className="text-amber-300/90">{viewingTargetItem.namespaceName}</span>
-                      <span className="text-indigo-400">::</span>
-                      <span>{viewingTargetItem.className}</span>
-                    </>
-                  ) : (
-                    viewingTargetItem.className
+                <span className="text-indigo-300 font-mono text-[10px] sm:text-xs font-semibold truncate select-all">
+                  {viewingTargetItem.resolvedAssemblyName || viewingTargetItem.assemblyName || 'Assembly-CSharp.dll'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] sm:text-xs">
+                
+                {/* Class Name (Namespace::ClassName) */}
+                <div className="flex flex-col gap-0.5 p-2 rounded-lg bg-[#18181C] border border-[#26262B]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#8E8E93] uppercase text-[8px] sm:text-[9px] font-semibold tracking-wider">Target Namespace & Class</span>
+                    <button
+                      onClick={() =>
+                        handleCopy(
+                          viewingTargetItem.namespaceName
+                            ? `${viewingTargetItem.namespaceName}::${viewingTargetItem.className || ''}`
+                            : viewingTargetItem.className || '',
+                          'Class Name',
+                          'class'
+                        )
+                      }
+                      className="text-[#A1A1AA] hover:text-indigo-300 transition-colors p-0.5"
+                      title="Copy Target Class"
+                    >
+                      {copiedKey === 'class' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    </button>
+                  </div>
+                  <span className="text-[#F4F4F5] font-mono text-[10px] sm:text-xs font-semibold truncate select-all">
+                    {viewingTargetItem.namespaceName ? (
+                      <>
+                        <span className="text-amber-300/90">{viewingTargetItem.namespaceName}</span>
+                        <span className="text-indigo-400">::</span>
+                        <span>{viewingTargetItem.className}</span>
+                      </>
+                    ) : (
+                      viewingTargetItem.className
+                    )}
+                  </span>
+                  {viewingTargetItem.resolvedClassName && viewingTargetItem.resolvedClassName !== viewingTargetItem.className && (
+                    <span className="text-[8px] sm:text-[9px] text-amber-400/90 font-mono mt-0.5">
+                      ↳ Resolved: {viewingTargetItem.resolvedClassName}
+                    </span>
                   )}
-                </span>
-                {viewingTargetItem.resolvedClassName && viewingTargetItem.resolvedClassName !== viewingTargetItem.className && (
-                  <span className="text-[8px] sm:text-[9px] text-amber-400/90 font-mono mt-0.5">
-                    ↳ Resolved: {viewingTargetItem.resolvedClassName}
-                  </span>
-                )}
-              </div>
-
-              {/* Target Method / Field */}
-              <div className="flex flex-col gap-0.5 p-2 rounded-lg bg-[#18181C] border border-[#26262B]">
-                <div className="flex items-center justify-between">
-                  <span className="text-[#8E8E93] uppercase text-[8px] sm:text-[9px] font-semibold tracking-wider">
-                    {viewingTargetItem.kind === 'FIELD' ? 'Target Field' : 'Target Method'}
-                  </span>
-                  <button
-                    onClick={() => handleCopy(viewingTargetItem.memberName, `${viewingTargetItem.kind === 'FIELD' ? 'Field' : 'Method'} Name`, 'member')}
-                    className="text-[#A1A1AA] hover:text-sky-300 transition-colors p-0.5"
-                    title={`Copy ${viewingTargetItem.kind === 'FIELD' ? 'Field' : 'Method'} Name`}
-                  >
-                    {copiedKey === 'member' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                  </button>
                 </div>
-                <span className="text-sky-300 font-mono text-[10px] sm:text-xs font-semibold truncate select-all">
-                  {viewingTargetItem.memberName}
-                </span>
-                {viewingTargetItem.resolvedMemberName && viewingTargetItem.resolvedMemberName !== viewingTargetItem.memberName && (
-                  <span className="text-[8px] sm:text-[9px] text-amber-400/90 font-mono mt-0.5">
-                    ↳ Resolved: {viewingTargetItem.resolvedMemberName}
-                  </span>
-                )}
-              </div>
 
+                {/* Target Method / Field */}
+                <div className="flex flex-col gap-0.5 p-2 rounded-lg bg-[#18181C] border border-[#26262B]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#8E8E93] uppercase text-[8px] sm:text-[9px] font-semibold tracking-wider">
+                      {viewingTargetItem.kind === 'FIELD' ? 'Target Field' : 'Target Method'}
+                    </span>
+                    <button
+                      onClick={() => handleCopy(viewingTargetItem.memberName || '', `${viewingTargetItem.kind === 'FIELD' ? 'Field' : 'Method'} Name`, 'member')}
+                      className="text-[#A1A1AA] hover:text-sky-300 transition-colors p-0.5"
+                      title={`Copy ${viewingTargetItem.kind === 'FIELD' ? 'Field' : 'Method'} Name`}
+                    >
+                      {copiedKey === 'member' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    </button>
+                  </div>
+                  <span className="text-sky-300 font-mono text-[10px] sm:text-xs font-semibold truncate select-all">
+                    {viewingTargetItem.memberName}
+                  </span>
+                  {viewingTargetItem.resolvedMemberName && viewingTargetItem.resolvedMemberName !== viewingTargetItem.memberName && (
+                    <span className="text-[8px] sm:text-[9px] text-amber-400/90 font-mono mt-0.5">
+                      ↳ Resolved: {viewingTargetItem.resolvedMemberName}
+                    </span>
+                  )}
+                </div>
+
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Fallbacks View (if any exist) */}
           {((viewingTargetItem.fallbackClassNames && viewingTargetItem.fallbackClassNames.length > 0) ||
@@ -294,11 +337,11 @@ export const TargetDetailModal: React.FC<TargetDetailModalProps> = ({
               <span>Edit Target</span>
             </button>
 
-            {isDumpLoaded && onNavigateToBrowser && (
+            {isDumpLoaded && onNavigateToBrowser && !viewingTargetItem.isCustom && viewingTargetItem.className && (
               <button
                 onClick={() => {
                   onClose();
-                  const targetClass = viewingTargetItem.resolvedClassName || viewingTargetItem.className;
+                  const targetClass = viewingTargetItem.resolvedClassName || viewingTargetItem.className || '';
                   const targetNs = viewingTargetItem.namespaceName;
                   const classIdx = il2cppEngine.findClassIndexForTarget(targetClass, targetNs);
                   onNavigateToBrowser(classIdx, viewingTargetItem.kind, viewingTargetItem.memberName);

@@ -3,22 +3,28 @@ import {
   DirectoryLevel,
   BreadcrumbViewData,
   CanvasTabViewData,
-  ManagerInfoDestination,
   WatchlistTargetItem,
 } from './types';
 import { il2cppEngine } from './services/il2cppEngine';
 import { useWatchlistManager } from './hooks/useWatchlistManager';
-import { DEFAULT_PROFILES } from './data/tempData';
+import { useAppSettings } from './hooks/useAppSettings';
 import { ManagerHeader } from './components/ManagerHeader';
 import { MainDashboard } from './components/MainDashboard';
 import { ManagerBrowser } from './components/ManagerBrowser';
 import { ManagerDrawer } from './components/ManagerDrawer';
-import { InfoModal } from './components/modals';
 import { Toast } from './components/common/Toast';
 
 export const App: React.FC = () => {
+  // App Theme & Appearance Customizer State
+  const {
+    settings: themeSettings,
+    updateSettings: updateThemeSettings,
+    resetToDefaults: resetThemeDefaults,
+    handleUploadImage: uploadThemeImage,
+  } = useAppSettings();
+
   // Shared Watchlist & Profiles State
-  const watchlistManager = useWatchlistManager(DEFAULT_PROFILES);
+  const watchlistManager = useWatchlistManager();
   const {
     profiles,
     activeProfileId,
@@ -50,7 +56,6 @@ export const App: React.FC = () => {
   // UI Panels & Modals State
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [infoModalDest, setInfoModalDest] = useState<ManagerInfoDestination | null>(null);
 
   // Toast feedback
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -74,11 +79,18 @@ export const App: React.FC = () => {
   ) => {
     const profId = targetProfileId || activeProfileId;
     const targetProf = profiles.find((p) => p.id === profId) || activeProfile;
-    if (!targetProf) return;
+    if (!targetProf) {
+      showToast('No active profile. Please create a profile first.');
+      return;
+    }
 
     const existingIdx = targetProf.items.findIndex(
       (t) =>
+        t.className &&
+        targetData.className &&
         t.className.toLowerCase() === targetData.className.toLowerCase() &&
+        t.memberName &&
+        targetData.memberName &&
         t.memberName.toLowerCase() === targetData.memberName.toLowerCase() &&
         t.kind === targetData.kind
     );
@@ -208,28 +220,63 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#18181A] text-[#E2E2E4]">
+    <div
+      className={`app-root-container flex flex-col h-screen w-screen overflow-hidden text-[#E2E2E4] relative transition-colors duration-300 ${
+        themeSettings.customBgImage
+          ? 'bg-transparent'
+          : themeSettings.themeMode === 'day'
+          ? 'bg-[#F4F5F7]'
+          : themeSettings.themeMode === 'oled'
+          ? 'bg-[#000000]'
+          : 'bg-[#18181A]'
+      }`}
+    >
+      {/* Custom Wallpaper Layer (Blurred if set) */}
+      {themeSettings.customBgImage && (
+        <div
+          className="fixed inset-0 z-0 pointer-events-none transition-all duration-300 bg-cover bg-center bg-no-repeat overflow-hidden"
+          style={{
+            backgroundImage: `url(${themeSettings.customBgImage})`,
+            filter: `blur(${themeSettings.bgBlur}px)`,
+            transform: themeSettings.bgBlur > 0 ? 'scale(1.05)' : 'none',
+          }}
+        />
+      )}
+
+      {/* Pure Neutral Dark Dimming Overlay (No white haze) */}
+      {themeSettings.customBgImage && (
+        <div
+          className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-300"
+          style={{
+            backgroundColor: '#000000',
+            opacity: (themeSettings.bgDim * 0.75) / 100,
+          }}
+        />
+      )}
+
       {/* Header */}
-      <ManagerHeader
-        storageDumpName={storageDumpName}
-        breadcrumbs={breadcrumbs}
-        onBreadcrumbClick={handleBreadcrumbClick}
-        canvasTabs={canvasTabs}
-        activeCanvasTabId={activeCanvasTabId}
-        onSelectCanvasTab={(id) => {
-          setActiveCanvasTabId(id);
-          setActiveWorkspace('canvas');
-        }}
-        onCloseCanvasTab={handleCloseCanvasTab}
-        onToggleSearch={() => setIsSearchOpen((prev) => !prev)}
-        isSearchOpen={isSearchOpen}
-        onOpenMenu={() => setIsDrawerOpen(true)}
-        activeWorkspace={activeWorkspace}
-        onSwitchWorkspace={setActiveWorkspace}
-      />
+      <div className="relative z-10">
+        <ManagerHeader
+          storageDumpName={storageDumpName}
+          breadcrumbs={breadcrumbs}
+          onBreadcrumbClick={handleBreadcrumbClick}
+          canvasTabs={canvasTabs}
+          activeCanvasTabId={activeCanvasTabId}
+          onSelectCanvasTab={(id) => {
+            setActiveCanvasTabId(id);
+            setActiveWorkspace('canvas');
+          }}
+          onCloseCanvasTab={handleCloseCanvasTab}
+          onToggleSearch={() => setIsSearchOpen((prev) => !prev)}
+          isSearchOpen={isSearchOpen}
+          onOpenMenu={() => setIsDrawerOpen(true)}
+          activeWorkspace={activeWorkspace}
+          onSwitchWorkspace={setActiveWorkspace}
+        />
+      </div>
 
       {/* Main Workspace Body */}
-      <main className="flex-1 flex overflow-hidden relative">
+      <main className="flex-1 flex overflow-hidden relative z-10">
         {activeWorkspace === 'dashboard' ? (
           <MainDashboard
             currentProcess={null}
@@ -290,17 +337,15 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      {/* App Drawer */}
+      {/* Appearance & Theme Settings Drawer */}
       <ManagerDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
-        onOpenInfo={(dest) => setInfoModalDest(dest)}
-      />
-
-      {/* Info / Credits / Licenses Modal */}
-      <InfoModal
-        destination={infoModalDest}
-        onClose={() => setInfoModalDest(null)}
+        settings={themeSettings}
+        updateSettings={updateThemeSettings}
+        resetToDefaults={resetThemeDefaults}
+        handleUploadImage={uploadThemeImage}
+        showToast={showToast}
       />
 
       {/* Feedback Toast */}

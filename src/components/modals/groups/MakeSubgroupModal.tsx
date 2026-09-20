@@ -39,8 +39,8 @@ export const MakeSubgroupModal: React.FC<MakeSubgroupModalProps> = ({
     if (!filterQuery.trim()) return true;
     const q = filterQuery.toLowerCase();
     const name = (t.customName || '').toLowerCase();
-    const cls = t.className.toLowerCase();
-    const mem = t.memberName.toLowerCase();
+    const cls = (t.className || '').toLowerCase();
+    const mem = (t.memberName || '').toLowerCase();
     return name.includes(q) || cls.includes(q) || mem.includes(q);
   });
 
@@ -195,21 +195,23 @@ export const MakeSubgroupModal: React.FC<MakeSubgroupModalProps> = ({
                         </div>
                         <div className="flex flex-col min-w-0 flex-1">
                           <span className={`text-[11px] font-medium truncate ${isSelected ? 'text-white font-semibold' : 'text-[#C4C4C8]'}`}>
-                            {item.customName || `${item.className}.${item.memberName}`}
+                            {item.customName || `${item.className || ''}.${item.memberName || ''}`}
                           </span>
                           <span className="text-[9px] font-mono text-[#71717A] truncate">
                             {isAlreadyInGroup ? 'In this group (root)' : 'Ungrouped target'}
                           </span>
                         </div>
-                        <span
-                          className={`text-[8px] px-1 py-0.2 rounded font-mono font-semibold shrink-0 ${
-                            item.kind === 'FIELD'
-                              ? 'bg-amber-500/10 text-amber-400'
-                              : 'bg-emerald-500/10 text-emerald-400'
-                          }`}
-                        >
-                          {item.kind}
-                        </span>
+                        {item.kind && (
+                          <span
+                            className={`text-[8px] px-1 py-0.2 rounded font-mono font-semibold shrink-0 ${
+                              item.kind === 'FIELD'
+                                ? 'bg-amber-500/10 text-amber-400'
+                                : 'bg-emerald-500/10 text-emerald-400'
+                            }`}
+                          >
+                            {item.kind}
+                          </span>
+                        )}
                       </div>
                     );
                   })}

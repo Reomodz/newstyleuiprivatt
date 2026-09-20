@@ -46,7 +46,7 @@ export const ManagerHeader: React.FC<ManagerHeaderProps> = ({
   onSwitchWorkspace,
 }) => {
   return (
-    <header className="bg-[#1A1A1A] text-[#E2E2E4] border-b border-[#353535] shrink-0 flex flex-col select-none">
+    <header className="app-top-header bg-[#1A1A1A]/80 backdrop-blur-md text-[#E2E2E4] border-b border-[#353535]/70 shrink-0 flex flex-col select-none transition-colors">
       {/* Top Primary Bar */}
       <div className="h-12 sm:h-14 px-2 sm:px-4 flex items-center justify-between gap-1.5 sm:gap-3">
         {/* App Title Logo */}
@@ -119,16 +119,14 @@ export const ManagerHeader: React.FC<ManagerHeaderProps> = ({
             </div>
           )}
 
-          {/* 3-line Menu Drawer Toggle (Visible only when Dashboard is active) */}
-          {activeWorkspace === 'dashboard' && (
-            <button
-              onClick={onOpenMenu}
-              className="p-1.5 sm:p-2 rounded-lg text-[#B8B8B8] hover:text-[#E2E2E4] hover:bg-[#28282A] transition-colors"
-              title="App Menu"
-            >
-              <Menu className="w-4 h-4" />
-            </button>
-          )}
+          {/* 3-line Menu Drawer Toggle: Appearance & Theme Settings */}
+          <button
+            onClick={onOpenMenu}
+            className="p-1.5 sm:p-2 rounded-lg text-[#B8B8B8] hover:text-white hover:bg-[#28282A] transition-colors"
+            title="Appearance & Theme Settings"
+          >
+            <Menu className="w-4 h-4" />
+          </button>
         </div>
       </div>
 

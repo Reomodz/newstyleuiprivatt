@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { WatchlistProfile } from '../types';
 
-export function useWatchlistManager(initialProfiles: WatchlistProfile[]) {
+export function useWatchlistManager(initialProfiles: WatchlistProfile[] = []) {
   // Profiles State
   const [profiles, setProfiles] = useState<WatchlistProfile[]>(() => {
     const vKey = 'il2cpp_watchlist_profiles_v8';
@@ -11,7 +11,7 @@ export function useWatchlistManager(initialProfiles: WatchlistProfile[]) {
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
+          if (Array.isArray(parsed)) {
             return parsed;
           }
         } catch {
@@ -25,13 +25,13 @@ export function useWatchlistManager(initialProfiles: WatchlistProfile[]) {
   });
 
   const [activeProfileId, setActiveProfileId] = useState<string>(
-    profiles[0]?.id || 'prof_player_stats'
+    profiles[0]?.id || ''
   );
 
   const [selectedProfileViewId, setSelectedProfileViewId] = useState<string | null>(null);
   
   const activeProfile = useMemo(() => {
-    return profiles.find((p) => p.id === activeProfileId) || profiles[0];
+    return profiles.find((p) => p.id === activeProfileId) || profiles[0] || undefined;
   }, [profiles, activeProfileId]);
 
   const saveProfiles = useCallback((updated: WatchlistProfile[]) => {

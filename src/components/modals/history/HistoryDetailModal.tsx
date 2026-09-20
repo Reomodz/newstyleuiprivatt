@@ -138,28 +138,6 @@ export const HistoryDetailModal: React.FC<HistoryDetailModalProps> = ({
 
               {isHistoryStatsExpanded && (
                 <div className="flex flex-col gap-3 sm:gap-4 animate-in fade-in slide-in-from-top-1.5 sm:p-2 duration-200">
-                  {/* Summary Statistics */}
-                  <div className="grid grid-cols-2 gap-1.5 sm:gap-3">
-                    <div className="bg-[#141416] p-2 sm:p-3 rounded-xl sm:rounded-2xl border border-[#2D2D30] flex flex-col gap-1">
-                      <span className="text-[9px] sm:text-[11px] text-[#8E8E93]">Mode & Target</span>
-                      <span className="text-[11px] sm:text-xs font-semibold text-[#E2E2E4] capitalize truncate">
-                        {selectedHistoryRecord.sourceMode === 'live' ? 'Live Memory Scan' : 'Storage Dump'}
-                      </span>
-                    </div>
-                    <div className="bg-[#141416] p-2 sm:p-3 rounded-xl sm:rounded-2xl border border-[#2D2D30] flex flex-col gap-1">
-                      <span className="text-[9px] sm:text-[11px] text-[#8E8E93]">Resolution Rate</span>
-                      <span className="text-[11px] sm:text-xs font-bold text-emerald-400">
-                        {selectedHistoryRecord.resolvedCount} / {selectedHistoryRecord.totalTargets} Resolved
-                      </span>
-                    </div>
-                    <div className="bg-[#141416] p-2 sm:p-3 rounded-xl sm:rounded-2xl border border-[#2D2D30] flex flex-col gap-1 col-span-2">
-                      <span className="text-[9px] sm:text-[11px] text-[#8E8E93]">Active Format</span>
-                      <span className="text-[10px] sm:text-xs font-mono font-semibold text-indigo-300 truncate">
-                        {activePresetObj.label} ({activePresetObj.fileExtension})
-                      </span>
-                    </div>
-                  </div>
-
                   {/* Code Style Output Selector Bar & Live Template Preview */}
                   <div className="bg-[#141416] p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-[#2D2D30] flex flex-col gap-3">
                     <div className="flex items-center justify-between">
@@ -172,12 +150,12 @@ export const HistoryDetailModal: React.FC<HistoryDetailModalProps> = ({
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                    <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-1.5 sm:gap-2">
                       {CODE_STYLE_PRESETS.map((preset) => (
                         <button
                           key={preset.id}
                           onClick={() => setHistoryModalCodeStyle(preset.id as CodeStylePreset)}
-                          className={`px-2.5 sm:px-3 py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-medium border transition-all ${
+                          className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[9.5px] sm:text-xs font-medium border transition-all text-center truncate ${
                             historyModalCodeStyle === preset.id
                               ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/50 shadow-sm shadow-indigo-600/20 font-bold'
                               : 'bg-[#1E1E20] hover:bg-[#252528] text-[#8E8E93] hover:text-[#E2E2E4] border-[#303034]'
@@ -218,7 +196,7 @@ export const HistoryDetailModal: React.FC<HistoryDetailModalProps> = ({
                             className="w-full px-2.5 py-1.5 sm:py-2 bg-[#101012] border border-indigo-500/40 rounded-lg text-[10px] sm:text-xs font-mono text-indigo-200 focus:outline-none focus:border-indigo-400 shadow-inner"
                           />
                           <div className="flex items-center gap-1 flex-wrap text-[8px] sm:text-[9px] font-mono">
-                            {['{name}', '{offset}', '{rva}', '{member}', '{group}', '{subgroup}', '{kind}', '{type}', '{comment}', '\\n'].map((tag) => (
+                            {['{name}', '{offset}', '{rva}', '{va}', '{class}', '{member}', '{type}', '{group}', '{subgroup}', '{kind}', '{comment}', '\\n'].map((tag) => (
                               <button
                                 key={tag}
                                 type="button"
