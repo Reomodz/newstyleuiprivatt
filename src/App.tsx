@@ -12,8 +12,6 @@ import { DEFAULT_PROFILES } from './data/tempData';
 import { ManagerHeader } from './components/ManagerHeader';
 import { MainDashboard } from './components/MainDashboard';
 import { ManagerBrowser } from './components/ManagerBrowser';
-import { CallGraphView } from './components/CallGraphView';
-import { MethodInstructionsView } from './components/MethodInstructionsView';
 import { ManagerDrawer } from './components/ManagerDrawer';
 import { InfoModal } from './components/modals';
 import { Toast } from './components/common/Toast';
@@ -196,40 +194,6 @@ export const App: React.FC = () => {
     setActiveWorkspace('browser');
   };
 
-  // Canvas method inspection
-  const handleInspectMethod = (
-    classIndex: number,
-    methodIndex: number,
-    mode: 'graph' | 'instructions' = 'graph'
-  ) => {
-    const method = il2cppEngine.getMethod(classIndex, methodIndex);
-    const cls = il2cppEngine.getClass(classIndex);
-    if (!method || !cls) return;
-
-    const tabId = `tab_${classIndex}_${methodIndex}`;
-    const existing = canvasTabs.find((t) => t.id === tabId);
-
-    if (existing) {
-      setCanvasTabs((prev) =>
-        prev.map((t) => (t.id === tabId ? { ...t, activeSubView: mode } : t))
-      );
-      setActiveCanvasTabId(tabId);
-    } else {
-      const newTab: CanvasTabViewData = {
-        id: tabId,
-        classIndex,
-        methodIndex,
-        methodName: method.name,
-        ownerName: `${cls.namespaceName ? cls.namespaceName + '.' : ''}${cls.name}`,
-        activeSubView: mode,
-      };
-      setCanvasTabs((prev) => [...prev, newTab]);
-      setActiveCanvasTabId(tabId);
-    }
-
-    setActiveWorkspace('canvas');
-  };
-
   const handleCloseCanvasTab = (tabId: string) => {
     const nextTabs = canvasTabs.filter((t) => t.id !== tabId);
     setCanvasTabs(nextTabs);
@@ -242,8 +206,6 @@ export const App: React.FC = () => {
       }
     }
   };
-
-  const activeCanvasTab = canvasTabs.find((t) => t.id === activeCanvasTabId);
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#18181A] text-[#E2E2E4]">
@@ -304,7 +266,6 @@ export const App: React.FC = () => {
             onSelectAssembly={handleSelectAssembly}
             onSelectNamespace={handleSelectNamespace}
             onSelectClass={handleSelectClass}
-            onInspectMethod={handleInspectMethod}
             onCopyText={handleCopyText}
             isSearchOpen={isSearchOpen}
             onCloseSearch={() => setIsSearchOpen(false)}
@@ -316,79 +277,6 @@ export const App: React.FC = () => {
             onSwitchWorkspace={setActiveWorkspace}
             showToast={showToast}
           />
-        ) : activeCanvasTab ? (
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Canvas Subview Tab Selector */}
-            <div className="h-10 px-4 bg-[#1E1E20] border-b border-[#353535] flex items-center justify-between gap-2 shrink-0">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() =>
-                    setCanvasTabs((prev) =>
-                      prev.map((t) =>
-                        t.id === activeCanvasTab.id ? { ...t, activeSubView: 'graph' } : t
-                      )
-                    )
-                  }
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                    activeCanvasTab.activeSubView === 'graph'
-                      ? 'bg-indigo-600 text-white shadow-sm'
-                      : 'text-[#8E8E93] hover:text-[#E2E2E4]'
-                  }`}
-                >
-                  Call Graph
-                </button>
-                <button
-                  onClick={() =>
-                    setCanvasTabs((prev) =>
-                      prev.map((t) =>
-                        t.id === activeCanvasTab.id
-                          ? { ...t, activeSubView: 'instructions' }
-                          : t
-                      )
-                    )
-                  }
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                    activeCanvasTab.activeSubView === 'instructions'
-                      ? 'bg-indigo-600 text-white shadow-sm'
-                      : 'text-[#8E8E93] hover:text-[#E2E2E4]'
-                  }`}
-                >
-                  Disassembly
-                </button>
-              </div>
-
-              <div className="text-xs text-[#8E8E93] font-mono truncate hidden sm:block">
-                {activeCanvasTab.ownerName}::{activeCanvasTab.methodName}
-              </div>
-            </div>
-
-            {/* Active Subview Body */}
-            {activeCanvasTab.activeSubView === 'graph' ? (
-              <CallGraphView
-                classIndex={activeCanvasTab.classIndex}
-                methodIndex={activeCanvasTab.methodIndex}
-                onOpenMethodInstructions={(clsIdx, mIdx) =>
-                  handleInspectMethod(clsIdx, mIdx, 'instructions')
-                }
-                onOpenMethodInNewTab={(clsIdx, mIdx) =>
-                  handleInspectMethod(clsIdx, mIdx, 'graph')
-                }
-                onCopyText={handleCopyText}
-              />
-            ) : (
-              <MethodInstructionsView
-                classIndex={activeCanvasTab.classIndex}
-                methodIndex={activeCanvasTab.methodIndex}
-                onOpenInCallGraph={(clsIdx, mIdx) =>
-                  handleInspectMethod(clsIdx, mIdx, 'graph')
-                }
-                onNavigateToMethod={(clsIdx, mIdx) =>
-                  handleInspectMethod(clsIdx, mIdx, 'graph')
-                }
-                onCopyText={handleCopyText}
-              />
-            )}
-          </div>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-[#8E8E93]">
             <p>No active method tab selected.</p>

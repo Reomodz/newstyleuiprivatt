@@ -185,6 +185,48 @@ export const CardSettingsModal: React.FC<CardSettingsModalProps> = ({
                   />
                 </label>
 
+                {/* Show Resolved Offsets */}
+                <label className="flex items-center justify-between p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-[#1E1E22] transition-colors cursor-pointer border-t border-[#222226]">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] sm:text-xs font-medium text-[#E2E2E4]">Show Resolved Offsets & RVAs</span>
+                    <span className="text-[9px] sm:text-[10px] text-[#8E8E93]">Display hex offset and RVA badge on target cards when resolved</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={config.showResolvedOffset !== false}
+                    onChange={(e) => updateConfig({ showResolvedOffset: e.target.checked })}
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 accent-indigo-600 rounded cursor-pointer shrink-0"
+                  />
+                </label>
+
+                {/* Show Storage Dump Profile Selector */}
+                <label className="flex items-center justify-between p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-[#1E1E22] transition-colors cursor-pointer border-t border-[#222226]">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] sm:text-xs font-medium text-[#E2E2E4]">Show Profile Select & Resolve Offsets</span>
+                    <span className="text-[9px] sm:text-[10px] text-[#8E8E93]">Display Target Profile dropdown & Resolve Offsets card in Storage Dump</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={config.showStorageProfileSelect !== false}
+                    onChange={(e) => updateConfig({ showStorageProfileSelect: e.target.checked })}
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 accent-indigo-600 rounded cursor-pointer shrink-0"
+                  />
+                </label>
+
+                {/* Show Resolution Log Console */}
+                <label className="flex items-center justify-between p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-[#1E1E22] transition-colors cursor-pointer border-t border-[#222226]">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] sm:text-xs font-medium text-[#E2E2E4]">Show Storage Resolution Log Console</span>
+                    <span className="text-[9px] sm:text-[10px] text-[#8E8E93]">Display resolution log output console in Storage Dump workspace</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={config.showScanLogCard !== false}
+                    onChange={(e) => updateConfig({ showScanLogCard: e.target.checked })}
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 accent-indigo-600 rounded cursor-pointer shrink-0"
+                  />
+                </label>
+
                 {/* Show Groups & Sub-groups */}
                 <label className="flex items-center justify-between p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-[#1E1E22] transition-colors cursor-pointer border-t border-[#222226]">
                   <div className="flex flex-col">

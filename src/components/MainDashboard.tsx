@@ -1,4 +1,5 @@
-import React, { useState, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import {
   Cpu, BookmarkPlus, History
 } from 'lucide-react';
@@ -175,6 +176,25 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     }
     return DEFAULT_TARGET_VIEW_SETTINGS;
   });
+
+  // Auto-persist target card settings changes to local storage
+  useEffect(() => {
+    try {
+      localStorage.setItem('il2cpp_target_view_settings_v3', JSON.stringify(cardViewSettings));
+    } catch {
+      // ignore
+    }
+  }, [cardViewSettings]);
+
+  // Sync active profile's stored card settings when switching profiles
+  useEffect(() => {
+    if (activeProfile?.cardViewSettings) {
+      setCardViewSettings((prev) => ({
+        ...prev,
+        ...activeProfile.cardViewSettings,
+      }));
+    }
+  }, [activeProfile?.id]);
 
   const [isCardSettingsModalOpen, setIsCardSettingsModalOpen] = useState(false);
 
@@ -366,19 +386,26 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   //   showToast('Loaded 3 starter profiles with 15 verified targets');
   // };
 
-  // Export / Share Profile as JSON
-  const handleExportProfile = (prof: WatchlistProfile, e?: React.MouseEvent) => {
+  // Export / Share Profile as JSON with Full Card Settings & Default Folder Storage
+  const handleExportProfile = async (prof: WatchlistProfile, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+
+    // Bundle profile details AND complete card settings
     const exportData = {
-      version: '1.0',
+      version: '1.2',
       exportedAt: new Date().toISOString(),
       profile: {
+        id: prof.id,
         name: prof.name,
         description: prof.description,
         targetApp: prof.targetApp,
         codeStylePreset: prof.codeStylePreset || 'cpp_constexpr',
         customCodeStyleTemplate: prof.customCodeStyleTemplate,
+        groupOrder: prof.groupOrder,
+        // Include full target card view settings in export!
+        cardViewSettings: prof.cardViewSettings || cardViewSettings,
         items: prof.items.map((item) => ({
+          id: item.id,
           customName: item.customName,
           groupName: item.groupName,
           subGroupName: item.subGroupName,
@@ -387,6 +414,10 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           memberName: item.memberName,
           kind: item.kind,
           comment: item.comment,
+          offsetHex: item.offsetHex,
+          rvaHex: item.rvaHex,
+          isStatic: item.isStatic,
+          valueType: item.valueType,
           fallbackClassNames: item.fallbackClassNames,
           fallbackMemberNames: item.fallbackMemberNames,
         })),
@@ -394,26 +425,59 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     };
 
     const jsonStr = JSON.stringify(exportData, null, 2);
+    const sanitizedName = prof.name.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const fileName = `IL2Cpp_${sanitizedName}_profile.json`;
 
+    // 1. Copy JSON string to clipboard
     try {
-      const blob = new Blob([jsonStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${prof.name.replace(/[^a-zA-Z0-9_-]/g, '_')}_profile.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(jsonStr);
+      }
     } catch {
-      // Fallback
+      // Fallback ignore copy error
     }
 
-    navigator.clipboard?.writeText(jsonStr).catch(() => {});
-    showToast(`Exported "${prof.name}" JSON file to your downloads & clipboard!`);
+    // 2. Download/save file to default IL2Cpp folder
+    let savedNative = false;
+    try {
+      if ((window as any).Capacitor?.isNativePlatform()) {
+        await Filesystem.writeFile({
+          path: `IL2Cpp/${fileName}`,
+          data: jsonStr,
+          directory: Directory.Documents,
+          encoding: Encoding.UTF8,
+          recursive: true,
+        });
+        savedNative = true;
+      }
+    } catch (err) {
+      console.warn('Capacitor filesystem save fallback:', err);
+    }
+
+    if (!savedNative) {
+      try {
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch {
+        // Blob fallback
+      }
+    }
+
+    showToast(
+      savedNative
+        ? `Shared "${prof.name}"! Saved to IL2Cpp folder & copied to clipboard`
+        : `Exported "${prof.name}"! File downloaded (${fileName}) & copied to clipboard`
+    );
   };
 
-  // Import Profile from JSON File
+  // Import Profile from JSON File (Restores Profile, Targets & Card View Settings)
   const handleImportProfile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -430,6 +494,17 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           return;
         }
 
+        // Restore cardViewSettings if present in profile share code
+        let importedCardSettings: TargetCardViewSettings | undefined = undefined;
+        if (profileData.cardViewSettings && typeof profileData.cardViewSettings === 'object') {
+          const mergedSettings: TargetCardViewSettings = {
+            ...cardViewSettings,
+            ...profileData.cardViewSettings,
+          };
+          importedCardSettings = mergedSettings;
+          setCardViewSettings(mergedSettings);
+        }
+
         const newProfile: WatchlistProfile = {
           id: `prof_${Date.now()}`,
           name: profileData.name || 'Imported Profile',
@@ -437,6 +512,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           targetApp: profileData.targetApp || 'com.game.sample',
           codeStylePreset: profileData.codeStylePreset || 'cpp_constexpr',
           customCodeStyleTemplate: profileData.customCodeStyleTemplate,
+          cardViewSettings: importedCardSettings || profileData.cardViewSettings,
+          groupOrder: Array.isArray(profileData.groupOrder) ? profileData.groupOrder : undefined,
           createdAt: Date.now(),
           updatedAt: Date.now(),
           items: profileData.items.map((it: any, idx: number) => ({
@@ -449,6 +526,10 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
             memberName: it.memberName || '',
             kind: it.kind === 'METHOD' ? 'METHOD' : 'FIELD',
             comment: it.comment || '',
+            offsetHex: it.offsetHex || undefined,
+            rvaHex: it.rvaHex || undefined,
+            isStatic: Boolean(it.isStatic),
+            valueType: it.valueType || undefined,
             fallbackClassNames: Array.isArray(it.fallbackClassNames) ? it.fallbackClassNames : undefined,
             fallbackMemberNames: Array.isArray(it.fallbackMemberNames) ? it.fallbackMemberNames : undefined,
           })),
@@ -458,7 +539,11 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         saveProfiles(updated);
         setActiveProfileId(newProfile.id);
         setSelectedProfileViewId(newProfile.id);
-        showToast(`Imported profile "${newProfile.name}" (${newProfile.items.length} targets)`);
+        showToast(
+          `Imported profile "${newProfile.name}" (${newProfile.items.length} targets${
+            importedCardSettings ? ' + card settings restored' : ''
+          })`
+        );
       } catch (err) {
         showToast('Failed to parse profile JSON file');
       }

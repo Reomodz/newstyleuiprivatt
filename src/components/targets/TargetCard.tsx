@@ -134,7 +134,7 @@ export const TargetCard: React.FC<TargetCardProps> = React.memo(({
           </div>
 
           {/* Resolved Offset / RVA pill if scanned */}
-          {(item.offsetHex || item.rvaHex) && (
+          {cardViewSettings.showResolvedOffset !== false && (item.offsetHex || item.rvaHex) && (
             <div className="flex items-center gap-1.5 mt-0.5 text-[9px] sm:text-[10px] font-mono">
               <span className="text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20">
                 {item.offsetHex || item.rvaHex}

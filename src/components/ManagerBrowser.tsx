@@ -71,7 +71,6 @@ interface ManagerBrowserProps {
   onSelectAssembly: (index: number) => void;
   onSelectNamespace: (ns: string) => void;
   onSelectClass: (index: number) => void;
-  onInspectMethod?: (classIndex: number, methodIndex: number, mode: 'graph' | 'instructions') => void;
   onCopyText: (text: string, label: string) => void;
   isSearchOpen: boolean;
   onCloseSearch: () => void;
@@ -95,7 +94,6 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
   onSelectAssembly,
   onSelectNamespace,
   onSelectClass,
-  onInspectMethod,
   onCopyText,
   isSearchOpen,
   onCloseSearch,
@@ -1162,32 +1160,6 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                                         <span>TypeInfo: {method.typeInfoHex}</span>
                                         <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-purple-400" />
                                       </button>
-                                    )}
-                                    {onInspectMethod && selectedClassIndex !== null && (
-                                      <div className="flex items-center gap-1 ml-auto">
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            onInspectMethod(selectedClassIndex, method.index, 'graph');
-                                          }}
-                                          className="px-1.5 py-0.5 rounded bg-[#252528] hover:bg-[#323236] text-[#A1A1AA] hover:text-white border border-[#3A3A3E] text-[9px] transition-colors"
-                                          title="Inspect Call Graph"
-                                        >
-                                          Graph
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            onInspectMethod(selectedClassIndex, method.index, 'instructions');
-                                          }}
-                                          className="px-1.5 py-0.5 rounded bg-[#252528] hover:bg-[#323236] text-[#A1A1AA] hover:text-white border border-[#3A3A3E] text-[9px] transition-colors"
-                                          title="Inspect Disassembly"
-                                        >
-                                          Disasm
-                                        </button>
-                                      </div>
                                     )}
                                   </div>
                                 )}

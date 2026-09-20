@@ -18,19 +18,6 @@ export enum MemberKind {
   INTERFACE = 6,
 }
 
-export enum InstructionFlowKind {
-  NONE = 0,
-  DIRECT_CALL = 1,
-  DIRECT_BRANCH = 2,
-  INDIRECT_CALL = 3,
-  INDIRECT_BRANCH = 4,
-}
-
-export enum InstructionAddressMode {
-  RVA = 'RVA',
-  VA = 'VA',
-}
-
 export enum ClassTab {
   FIELDS = 'FIELDS',
   METHODS = 'METHODS',
@@ -138,17 +125,6 @@ export interface MethodReferenceDescriptor {
   canOpen?: boolean;
 }
 
-export interface InstructionDescriptor {
-  address: number;
-  rva?: number;
-  bytes: string;
-  mnemonic: string;
-  operands: string;
-  flowKind: InstructionFlowKind;
-  targetInstructionIndex?: number;
-  target?: MethodReferenceDescriptor;
-}
-
 export interface SymbolSearchDescriptor {
   id: string;
   kind: SymbolKind;
@@ -184,39 +160,6 @@ export interface CanvasTabViewData {
   ownerName: string;
   isBusy?: boolean;
   activeSubView: 'graph' | 'instructions' | 'callers' | 'callees';
-}
-
-export interface CallGraphNodeViewData {
-  id: string;
-  classIndex?: number;
-  methodIndex?: number;
-  name: string;
-  ownerName?: string;
-  signature?: string;
-  address: number;
-  addressLabel: string;
-  rva?: number;
-  rvaLabel?: string;
-  isRoot: boolean;
-  canOpen: boolean;
-  depth: number;
-  callCount: number;
-  callerCount: number;
-  callsExpanded: boolean;
-  callersExpanded: boolean;
-  isLoading?: boolean;
-}
-
-export interface CallGraphEdgeViewData {
-  id: string;
-  fromNodeId: string;
-  toNodeId: string;
-  callSiteRva?: string;
-}
-
-export interface CallGraphPosition {
-  x: number;
-  y: number;
 }
 
 export interface BreadcrumbViewData {
@@ -257,6 +200,8 @@ export interface WatchlistTargetItem {
   classIndex?: number;
   memberIndex?: number;
   lastScannedAt?: number;
+  isStatic?: boolean;
+  valueType?: string;
 }
 
 export type CodeStylePreset =
@@ -278,6 +223,7 @@ export interface WatchlistProfile {
   codeStylePreset?: CodeStylePreset;
   customCodeStyleTemplate?: string;
   groupOrder?: string[];
+  cardViewSettings?: Partial<TargetCardViewSettings>;
 }
 
 export interface ScanHistoryRecord {
@@ -345,6 +291,8 @@ export interface TargetCardViewSettings {
   showKindBadge: boolean;
   showComments: boolean;
   showGroups?: boolean;
+  showResolvedOffset?: boolean;
+  showStorageProfileSelect?: boolean;
   density: 'compact' | 'comfortable';
   tabletLayout?: 'grid' | 'list';
   showTargetBanner?: boolean;
@@ -358,6 +306,8 @@ export const DEFAULT_TARGET_VIEW_SETTINGS: TargetCardViewSettings = {
   showKindBadge: false,
   showComments: true,
   showGroups: true,
+  showResolvedOffset: true,
+  showStorageProfileSelect: true,
   density: 'compact',
   tabletLayout: 'list',
   showTargetBanner: true,

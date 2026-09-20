@@ -5,13 +5,9 @@ import {
   ClassInfoDescriptor,
   FieldDescriptor,
   MethodDescriptor,
-  InstructionDescriptor,
-  InstructionFlowKind,
   SymbolSearchDescriptor,
   SymbolKind,
   SearchMatchMode,
-  CallGraphNodeViewData,
-  CallGraphEdgeViewData,
   StorageDumpMeta,
   DumpParseProgress,
 } from '../types';
@@ -43,7 +39,6 @@ class Il2cppEngine {
   private classes: ClassInfoDescriptor[] = [];
   private fields: Record<number, FieldDescriptor[]> = {};
   private methods: Record<number, MethodDescriptor[]> = {};
-  private instructions: Record<string, InstructionDescriptor[]> = {};
   private callRelations: Array<{
     fromClass: number;
     fromMethod: number;
@@ -151,98 +146,6 @@ class Il2cppEngine {
   public getMethod(classIndex: number, methodIndex: number): MethodDescriptor | undefined {
     const list = this.methods[classIndex];
     return list?.find((m) => m.index === methodIndex);
-  }
-
-  public getInstructions(classIndex: number, methodIndex: number): InstructionDescriptor[] {
-    const key = `${classIndex}_${methodIndex}`;
-    if (this.instructions[key]) {
-      return this.instructions[key];
-    }
-
-    // Realistic ARM64 disassembly generation based on method RVA and base address
-    const method = this.getMethod(classIndex, methodIndex);
-    const baseRva = method?.rva ?? 0x01800000 + classIndex * 0x1000 + methodIndex * 0x100;
-    const baseAddr = this.storageMeta.baseAddressHex ? parseInt(this.storageMeta.baseAddressHex, 16) : 0x78f1e0b000;
-    const baseVa = method?.address ?? (baseAddr + baseRva);
-
-    const generated: InstructionDescriptor[] = [
-      {
-        address: baseVa,
-        rva: baseRva,
-        bytes: 'FD 7B BE A9',
-        mnemonic: 'stp',
-        operands: 'x29, x30, [sp, #-32]!',
-        flowKind: InstructionFlowKind.NONE,
-      },
-      {
-        address: baseVa + 4,
-        rva: baseRva + 4,
-        bytes: 'FD 03 00 91',
-        mnemonic: 'mov',
-        operands: 'x29, sp',
-        flowKind: InstructionFlowKind.NONE,
-      },
-      {
-        address: baseVa + 8,
-        rva: baseRva + 8,
-        bytes: 'F3 03 00 AA',
-        mnemonic: 'mov',
-        operands: 'x19, x0',
-        flowKind: InstructionFlowKind.NONE,
-      },
-      {
-        address: baseVa + 12,
-        rva: baseRva + 12,
-        bytes: '60 02 40 F9',
-        mnemonic: 'ldr',
-        operands: 'x0, [x19, #0x20]',
-        flowKind: InstructionFlowKind.NONE,
-      },
-      {
-        address: baseVa + 16,
-        rva: baseRva + 16,
-        bytes: '1F 00 00 F1',
-        mnemonic: 'cmp',
-        operands: 'x0, #0',
-        flowKind: InstructionFlowKind.NONE,
-      },
-      {
-        address: baseVa + 20,
-        rva: baseRva + 20,
-        bytes: '20 00 00 54',
-        mnemonic: 'b.ne',
-        operands: `0x${(baseRva + 28).toString(16).toUpperCase()}`,
-        flowKind: InstructionFlowKind.DIRECT_BRANCH,
-        targetInstructionIndex: 7,
-      },
-      {
-        address: baseVa + 24,
-        rva: baseRva + 24,
-        bytes: 'E0 03 13 AA',
-        mnemonic: 'mov',
-        operands: 'x0, x19',
-        flowKind: InstructionFlowKind.NONE,
-      },
-      {
-        address: baseVa + 28,
-        rva: baseRva + 28,
-        bytes: 'FD 7B C2 A8',
-        mnemonic: 'ldp',
-        operands: 'x29, x30, [sp], #32',
-        flowKind: InstructionFlowKind.NONE,
-      },
-      {
-        address: baseVa + 32,
-        rva: baseRva + 32,
-        bytes: 'C0 03 5F D6',
-        mnemonic: 'ret',
-        operands: '',
-        flowKind: InstructionFlowKind.NONE,
-      },
-    ];
-
-    this.instructions[key] = generated;
-    return generated;
   }
 
   public getCalls(classIndex: number, methodIndex: number): {
@@ -382,96 +285,6 @@ class Il2cppEngine {
     return results;
   }
 
-  public buildCallGraph(
-    rootClassIndex: number,
-    rootMethodIndex: number
-  ): {
-    nodes: CallGraphNodeViewData[];
-    edges: CallGraphEdgeViewData[];
-  } {
-    const rootMethod = this.getMethod(rootClassIndex, rootMethodIndex);
-    const rootClass = this.getClass(rootClassIndex);
-    const rootId = `node_${rootClassIndex}_${rootMethodIndex}`;
-
-    if (!rootMethod || !rootClass) {
-      return { nodes: [], edges: [] };
-    }
-
-    const rootCallers = this.getCallers(rootClassIndex, rootMethodIndex);
-    const rootCalls = this.getCalls(rootClassIndex, rootMethodIndex);
-
-    const rootNode: CallGraphNodeViewData = {
-      id: rootId,
-      classIndex: rootClassIndex,
-      methodIndex: rootMethodIndex,
-      name: rootMethod.name,
-      ownerName: `${rootClass.namespaceName ? rootClass.namespaceName + '.' : ''}${rootClass.name}`,
-      signature: rootMethod.signature || rootMethod.name,
-      address: rootMethod.address || 0x78f1e0b000,
-      addressLabel: rootMethod.address
-        ? `0x${rootMethod.address.toString(16).toUpperCase()}`
-        : '0x78F1E0B000',
-      rva: rootMethod.rva,
-      rvaLabel: rootMethod.rva !== undefined ? `0x${rootMethod.rva.toString(16).toUpperCase()}` : undefined,
-      isRoot: true,
-      canOpen: true,
-      depth: 0,
-      callerCount: rootCallers.length,
-      callCount: rootCalls.length,
-      callsExpanded: true,
-      callersExpanded: false,
-    };
-
-    const nodes: CallGraphNodeViewData[] = [rootNode];
-    const edges: CallGraphEdgeViewData[] = [];
-
-    // Automatically expand direct calls for the root
-    for (const call of rootCalls) {
-      const targetMethod = this.getMethod(call.classIndex, call.methodIndex);
-      const targetClass = this.getClass(call.classIndex);
-      if (!targetMethod || !targetClass) continue;
-
-      const targetId = `node_${call.classIndex}_${call.methodIndex}`;
-      const targetCallers = this.getCallers(call.classIndex, call.methodIndex);
-      const targetCalls = this.getCalls(call.classIndex, call.methodIndex);
-
-      if (!nodes.some((n) => n.id === targetId)) {
-        nodes.push({
-          id: targetId,
-          classIndex: call.classIndex,
-          methodIndex: call.methodIndex,
-          name: targetMethod.name,
-          ownerName: `${targetClass.namespaceName ? targetClass.namespaceName + '.' : ''}${targetClass.name}`,
-          signature: targetMethod.signature || targetMethod.name,
-          address: targetMethod.address || 0x78f1e0b000,
-          addressLabel: targetMethod.address
-            ? `0x${targetMethod.address.toString(16).toUpperCase()}`
-            : '0x78F1E0B000',
-          rva: targetMethod.rva,
-          rvaLabel: targetMethod.rva !== undefined
-            ? `0x${targetMethod.rva.toString(16).toUpperCase()}`
-            : undefined,
-          isRoot: false,
-          canOpen: true,
-          depth: 1,
-          callerCount: targetCallers.length,
-          callCount: targetCalls.length,
-          callsExpanded: false,
-          callersExpanded: false,
-        });
-      }
-
-      edges.push({
-        id: `edge_${rootId}_${targetId}`,
-        fromNodeId: rootId,
-        toNodeId: targetId,
-        callSiteRva: call.callSiteRva,
-      });
-    }
-
-    return { nodes, edges };
-  }
-
   public async parseDumpCsFile(
     file: File,
     onProgress?: (progress: DumpParseProgress) => void,
@@ -483,7 +296,7 @@ class Il2cppEngine {
     assembliesCount: number;
   }> {
     const totalBytes = file.size;
-    const CHUNK_SIZE = 4 * 1024 * 1024; // 4 MB chunks
+    const CHUNK_SIZE = 2 * 1024 * 1024; // 2 MB chunks for mobile memory safety
     let offset = 0;
     const decoder = new TextDecoder('utf-8');
     let remainder = '';
@@ -540,8 +353,8 @@ class Il2cppEngine {
       : 0x78f1e0b000;
 
     // Precompiled regexes for maximum performance on 75MB+
-    const asmRegex1 = /^\/\/\s*(?:Assembly:\s*|Image:\s*|Image\s*\d+:\s*)?([a-zA-Z0-9_.-]+\.dll)/i;
-    const asmRegex2 = /^\/\/\s*([a-zA-Z0-9_.-]+\.dll)$/i;
+    const asmRegex1 = /^\/\/\s*(?:Assembly:\s*|Image:\s*|Image\s*\d+:\s*)?([a-zA-Z0-9_.-]+(?:\.dll)?)/i;
+    const asmRegex2 = /^\/\/\s*([a-zA-Z0-9_.-]+(?:\.dll)?)$/i;
     const nsCommentRegex = /^\/\/\s*Namespace:\s*([a-zA-Z0-9_.]*)/i;
     const nsRegex = /^namespace\s+([a-zA-Z0-9_.]+)\s*\{?/;
     const classRegex = /^(?:\[.*?\]\s*)*(?:public|private|internal|protected)?\s*(?:abstract\s+|sealed\s+|static\s+)?(class|struct|enum|interface)\s+([a-zA-Z0-9_.<>]+)(?:\s*:\s*([a-zA-Z0-9_.<>]+))?/;
@@ -555,7 +368,12 @@ class Il2cppEngine {
       const buffer = await slice.arrayBuffer();
       offset += slice.size;
 
-      const chunkText = remainder + decoder.decode(buffer, { stream: offset < totalBytes });
+      let chunkText = remainder + decoder.decode(buffer, { stream: offset < totalBytes });
+      if (offset === slice.size) {
+        // Strip BOM if present at start of file
+        chunkText = chunkText.replace(/^\uFEFF/, '');
+      }
+
       const lines = chunkText.split(/\r?\n/);
       // Keep last partial line for next iteration if not at EOF
       remainder = offset < totalBytes ? lines.pop() || '' : '';
@@ -569,7 +387,9 @@ class Il2cppEngine {
         if (line.startsWith('//')) {
           const asmMatch = line.match(asmRegex1) || line.match(asmRegex2);
           if (asmMatch) {
-            currentAsmName = asmMatch[1].trim();
+            let asmName = asmMatch[1].trim();
+            if (!asmName.endsWith('.dll')) asmName += '.dll';
+            currentAsmName = asmName;
             const asm = getOrCreateAssembly(currentAsmName);
             currentAsmIdx = asm.index;
             continue;
@@ -596,14 +416,17 @@ class Il2cppEngine {
           }
         }
 
+        // Strip trailing comment for class structure checks (e.g. // TypeDefIndex: 123)
+        const lineNoComment = line.split('//')[0].trim();
+
         // Class / Struct / Enum / Interface
         if (
-          !line.includes('(') &&
-          !line.includes(';') &&
-          !line.includes('=') &&
-          (line.includes('class ') || line.includes('struct ') || line.includes('enum ') || line.includes('interface '))
+          !lineNoComment.includes('(') &&
+          !lineNoComment.includes(';') &&
+          !lineNoComment.includes('=') &&
+          (lineNoComment.includes('class ') || lineNoComment.includes('struct ') || lineNoComment.includes('enum ') || lineNoComment.includes('interface '))
         ) {
-          const classMatch = line.match(classRegex);
+          const classMatch = lineNoComment.match(classRegex) || line.match(classRegex);
           if (classMatch) {
             const kind = classMatch[1];
             let fullClassName = classMatch[2].trim();

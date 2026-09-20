@@ -3,7 +3,6 @@ import {
   FolderOpen,
   RefreshCw,
   Upload,
-  Play,
   ChevronDown,
   Terminal,
   FileCode,
@@ -11,6 +10,10 @@ import {
   CheckCircle2,
   Maximize2,
   X,
+  Layers,
+  Zap,
+  Copy,
+  Check,
 } from 'lucide-react';
 import {
   WatchlistProfile,
@@ -61,6 +64,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
   const [isDraggingCs, setIsDraggingCs] = useState(false);
   const [isDraggingH, setIsDraggingH] = useState(false);
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+  const [copiedLogs, setCopiedLogs] = useState(false);
 
   const handleCsFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -96,8 +100,18 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
     }
   };
 
+  const handleCopyLogs = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!scanLogs.length) return;
+    const logContent = scanLogs.map((l) => `[${l.time}] [${l.type.toUpperCase()}] ${l.text}`).join('\n');
+    navigator.clipboard.writeText(logContent);
+    setCopiedLogs(true);
+    setTimeout(() => setCopiedLogs(false), 2000);
+  };
+
   const hasDumpCs = Boolean(storageMeta.dumpCsFileName);
   const hasIl2cppH = Boolean(storageMeta.il2cppHFileName);
+  const targetCount = activeProfile?.items.length || 0;
 
   return (
     <div className="flex flex-col max-w-4xl mx-auto w-full gap-3 sm:gap-4 md:gap-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -106,14 +120,14 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
         type="file"
         ref={dumpCsInputRef}
         onChange={handleCsFileChange}
-        accept=".cs,.txt"
+        accept=".cs,.txt,text/plain,text/x-csharp,text/csharp,application/octet-stream,*/*"
         className="hidden"
       />
       <input
         type="file"
         ref={il2cppHInputRef}
         onChange={handleHFileChange}
-        accept=".h,.hpp,.txt"
+        accept=".h,.hpp,.txt,text/plain,text/x-chdr,application/octet-stream,*/*"
         className="hidden"
       />
 
@@ -339,36 +353,75 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
           </div>
         </div>
 
-        {/* Profile Target Offset Extraction Trigger */}
-        <div className="bg-[#1E1E20] border border-[#2D2D30] rounded-lg sm:rounded-2xl p-1.5 sm:p-3 pl-3 sm:pl-5 shadow-lg flex items-center justify-between gap-1.5 sm:gap-3 relative overflow-hidden">
-          <div className="absolute left-0 top-0 bottom-0 w-[2.5px] sm:w-[3px] bg-gradient-to-b from-sky-400 via-indigo-500 to-purple-600 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+        {/* REDESIGNED: Profile Target Select & Resolve Offsets Trigger Card */}
+        {cardViewSettings.showStorageProfileSelect !== false && (
+          <div className="bg-[#18181B] border border-[#2D2D32] hover:border-[#383840] rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-xl transition-all relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4">
+            <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-indigo-500 via-purple-500 to-sky-500 shadow-[0_0_10px_rgba(99,102,241,0.6)]" />
 
-          {/* Profile Picker */}
-          <div className="relative flex-1 min-w-0">
-            <select
-              value={activeProfileId}
-              onChange={(e) => setActiveProfileId(e.target.value)}
-              className="w-full pl-2 sm:pl-3 pr-6 sm:pr-8 py-1 sm:py-2 bg-[#141416] hover:bg-[#18181B] border border-[#353538] focus:border-indigo-500 rounded-md sm:rounded-xl text-[9px] sm:text-xs font-bold text-[#E2E2E4] focus:outline-none appearance-none cursor-pointer truncate transition-colors"
+            {/* Profile Select Section */}
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 pl-1">
+              <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
+                <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </div>
+
+              <div className="flex flex-col min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-indigo-400/90">
+                    Target Profile
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-mono text-[8.5px] sm:text-[9.5px] font-semibold">
+                    {targetCount} {targetCount === 1 ? 'target' : 'targets'}
+                  </span>
+                </div>
+
+                <div className="relative w-full">
+                  <select
+                    value={activeProfileId}
+                    onChange={(e) => setActiveProfileId(e.target.value)}
+                    className="w-full pl-2.5 sm:pl-3 pr-7 sm:pr-8 py-1.5 sm:py-2 bg-[#101012] hover:bg-[#151518] border border-[#323238] focus:border-indigo-500 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold text-[#E2E2E4] focus:outline-none appearance-none cursor-pointer truncate transition-colors shadow-inner"
+                  >
+                    {profiles.map((p) => (
+                      <option key={p.id} value={p.id} className="bg-[#18181B] text-[#E2E2E4]">
+                        {p.name} ({p.items.length} {p.items.length === 1 ? 'target' : 'targets'})
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#8E8E93] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+            </div>
+
+            {/* Resolve Offsets Action Button */}
+            <button
+              onClick={handleScanProfile}
+              disabled={isScanning || !activeProfile || targetCount === 0}
+              className={`flex items-center justify-center gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-[10px] sm:text-xs shadow-lg transition-all active:scale-[0.98] shrink-0 w-full sm:w-auto ${
+                isScanning
+                  ? 'bg-amber-600/90 text-white cursor-wait animate-pulse'
+                  : !activeProfile || targetCount === 0
+                  ? 'bg-[#25252A] text-[#707075] border border-[#303035] cursor-not-allowed opacity-60'
+                  : 'bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-indigo-600/30 hover:shadow-indigo-600/40 border border-indigo-400/30'
+              }`}
             >
-              {profiles.map((p) => (
-                <option key={p.id} value={p.id} className="bg-[#1E1E20] text-[#E2E2E4]">
-                  {p.name} ({p.items.length} targets)
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 text-[#8E8E93] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              {isScanning ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-200" />
+                  <span>Resolving Offsets...</span>
+                </>
+              ) : (
+                <>
+                  <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+                  <span>Resolve Offsets</span>
+                  {targetCount > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-md bg-white/20 text-white font-mono text-[9px] sm:text-[10px]">
+                      {targetCount}
+                    </span>
+                  )}
+                </>
+              )}
+            </button>
           </div>
-
-          {/* Scan Action Button */}
-          <button
-            onClick={handleScanProfile}
-            disabled={isScanning || !activeProfile || activeProfile.items.length === 0}
-            className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-4 py-1 sm:py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-md sm:rounded-xl font-bold text-[9px] sm:text-xs shadow-md shadow-indigo-600/30 transition-all active:scale-98 shrink-0"
-          >
-            <Play className={`w-2.5 h-2.5 sm:w-3 sm:h-3 fill-current ${isScanning ? 'animate-spin' : ''}`} />
-            <span>{isScanning ? 'Resolving...' : 'Resolve Offsets'}</span>
-          </button>
-        </div>
+        )}
       </div>
 
       {/* Storage Offset Resolution & Execution Log Card */}
@@ -376,30 +429,66 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
         <>
           <div
             onClick={() => setIsLogModalOpen(true)}
-            className="bg-[#151517] border border-[#2D2D30] hover:border-[#404046] rounded-lg sm:rounded-xl md:rounded-2xl p-2 sm:p-3 md:p-4 shadow-lg flex flex-col gap-1.5 sm:gap-2 w-full min-h-[140px] max-h-[260px] sm:max-h-[320px] md:max-h-[380px] cursor-pointer group transition-all"
-            title="Click to view resolution log in center of screen"
+            className="bg-[#121214] border border-[#28282D] hover:border-[#3E3E45] rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-xl flex flex-col gap-2 w-full min-h-[150px] max-h-[260px] sm:max-h-[320px] md:max-h-[380px] cursor-pointer group transition-all"
+            title="Click to expand resolution log in screen center"
           >
-            <div className="flex items-center justify-between pb-1.5 sm:pb-2 border-b border-[#28282B]">
-              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                <Terminal className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-emerald-400 shrink-0" />
-                <span className="text-[9.5px] sm:text-xs md:text-sm font-semibold text-[#E2E2E4] truncate">
-                  Storage Dump Resolution Log
-                </span>
+            {/* Terminal Top Bar */}
+            <div className="flex items-center justify-between pb-2 border-b border-[#242428]">
+              <div className="flex items-center gap-2 min-w-0">
+                {/* OS Traffic Light Dots */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+                </div>
+                <div className="flex items-center gap-1.5 min-w-0 pl-1">
+                  <Terminal className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span className="text-[10px] sm:text-xs font-semibold text-[#E2E2E4] truncate">
+                    Storage Dump Resolution Log
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded bg-[#202025] text-[#8E8E93] text-[8.5px] sm:text-[9.5px] font-mono border border-[#2E2E35]">
+                    {scanLogs.length} {scanLogs.length === 1 ? 'log' : 'logs'}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {isScanning && (
-                  <span className="flex items-center gap-1 sm:gap-1.5 text-[8px] sm:text-[9.5px] md:text-[10px] text-amber-400 animate-pulse">
-                    <span className="w-1 sm:w-1.5 h-1 sm:h-1.5 rounded-full bg-amber-400" />
+
+              {/* Action Toolbar */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                {isScanning ? (
+                  <span className="flex items-center gap-1 text-[8.5px] sm:text-[10px] text-amber-400 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 animate-pulse">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                     Resolving...
                   </span>
+                ) : (
+                  <span className="hidden sm:inline-flex items-center gap-1 text-[8.5px] sm:text-[9.5px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    Ready
+                  </span>
                 )}
+
+                {/* Copy Logs Button */}
+                <button
+                  type="button"
+                  onClick={handleCopyLogs}
+                  className="flex items-center gap-1 px-1.5 py-1 text-[#8E8E93] group-hover:text-[#E2E2E4] bg-[#1E1E22] hover:bg-[#28282E] rounded-md border border-[#323238] transition-colors text-[9px] sm:text-[10px]"
+                  title="Copy resolution logs"
+                >
+                  {copiedLogs ? (
+                    <Check className="w-3 h-3 text-emerald-400" />
+                  ) : (
+                    <Copy className="w-3 h-3 text-[#A0A0A5]" />
+                  )}
+                  <span className="hidden md:inline">{copiedLogs ? 'Copied' : 'Copy'}</span>
+                </button>
+
+                {/* Maximize Button */}
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsLogModalOpen(true);
                   }}
-                  className="p-1 text-[#8E8E93] group-hover:text-white bg-[#202024] group-hover:bg-[#2C2C32] rounded border border-[#35353A] transition-colors"
+                  className="p-1 text-[#8E8E93] group-hover:text-white bg-[#1E1E22] hover:bg-[#28282E] rounded-md border border-[#323238] transition-colors"
                   title="Open log in center of screen"
                 >
                   <Maximize2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -407,72 +496,117 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto font-mono text-[8.5px] sm:text-[10px] md:text-[11px] space-y-1 sm:space-y-1.5 p-1.5 sm:p-2.5 md:p-3 bg-[#0E0E10] rounded-md sm:rounded-lg md:rounded-xl border border-[#222225] select-text">
-              {scanLogs.map((log, index) => (
-                <div key={index} className="flex items-start gap-1.5 sm:gap-2 leading-tight sm:leading-relaxed">
-                  <span className="text-[#55555A] shrink-0 text-[8px] sm:text-[9.5px] md:text-[10px]">{log.time}</span>
-                  <span
-                    className={`break-all sm:break-words ${
-                      log.type === 'success'
-                        ? 'text-emerald-400 font-medium'
-                        : log.type === 'warn'
-                        ? 'text-amber-400 font-medium'
-                        : log.type === 'error'
-                        ? 'text-red-400 font-medium'
-                        : 'text-[#A0A0A5]'
-                    }`}
-                  >
-                    {log.text}
-                  </span>
+            {/* Terminal Console View */}
+            <div className="flex-1 overflow-y-auto font-mono text-[9px] sm:text-[10.5px] md:text-[11px] space-y-1.5 p-2 sm:p-3 bg-[#0A0A0C] rounded-lg sm:rounded-xl border border-[#202025] select-text shadow-inner">
+              {scanLogs.length === 0 ? (
+                <div className="py-6 text-center text-[#606065] text-[9.5px] sm:text-xs italic">
+                  No resolution logs yet. Click &apos;Resolve Offsets&apos; above to parse target profile.
                 </div>
-              ))}
+              ) : (
+                scanLogs.map((log, index) => (
+                  <div key={index} className="flex items-start gap-1.5 sm:gap-2 leading-tight sm:leading-relaxed">
+                    <span className="text-[#55555A] shrink-0 text-[8.5px] sm:text-[9.5px]">{log.time}</span>
+                    <span
+                      className={`break-all sm:break-words ${
+                        log.type === 'success'
+                          ? 'text-emerald-400 font-medium'
+                          : log.type === 'warn'
+                          ? 'text-amber-400 font-medium'
+                          : log.type === 'error'
+                          ? 'text-rose-400 font-medium'
+                          : 'text-[#B0B0B8]'
+                      }`}
+                    >
+                      {log.text}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
-          {/* Centered Resolution Log Modal Popup */}
+          {/* Centered Resolution Log Modal Popup (Optimized for Small Mobile & High-Res Displays) */}
           {isLogModalOpen && (
-            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm p-3 sm:p-6 flex items-center justify-center animate-in fade-in duration-200">
-              <div className="bg-[#151517] border border-[#3A3A3E] rounded-2xl sm:rounded-3xl p-4 sm:p-6 max-w-3xl w-full shadow-2xl flex flex-col gap-3 my-auto max-h-[85vh] overflow-hidden">
-                <div className="flex items-center justify-between pb-3 border-b border-[#28282B]">
-                  <div className="flex items-center gap-2">
-                    <Terminal className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
-                    <h3 className="text-xs sm:text-sm md:text-base font-bold text-[#E2E2E4]">
-                      Storage Dump Resolution Log
-                    </h3>
-                  </div>
-                  <button
-                    onClick={() => setIsLogModalOpen(false)}
-                    className="p-1.5 bg-[#202024] hover:bg-[#2C2C32] text-[#8E8E93] hover:text-white rounded-xl border border-[#353538] transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto font-mono text-xs sm:text-sm space-y-2 p-3 sm:p-4 bg-[#0E0E10] rounded-xl border border-[#222225] select-text max-h-[60vh]">
-                  {scanLogs.map((log, index) => (
-                    <div key={index} className="flex items-start gap-2 leading-relaxed">
-                      <span className="text-[#55555A] shrink-0 text-xs">{log.time}</span>
-                      <span
-                        className={`break-words ${
-                          log.type === 'success'
-                            ? 'text-emerald-400 font-medium'
-                            : log.type === 'warn'
-                            ? 'text-amber-400 font-medium'
-                            : log.type === 'error'
-                            ? 'text-red-400 font-medium'
-                            : 'text-[#A0A0A5]'
-                        }`}
-                      >
-                        {log.text}
+            <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md p-2.5 sm:p-6 flex items-center justify-center animate-in fade-in duration-200">
+              <div className="bg-[#141416] border border-[#333338] rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 max-w-3xl w-full shadow-2xl flex flex-col gap-3 my-auto max-h-[88vh] sm:max-h-[85vh] overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between pb-3 border-b border-[#26262B]">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                      <Terminal className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <h3 className="text-xs sm:text-sm md:text-base font-bold text-[#E2E2E4] truncate">
+                        Storage Dump Resolution Log
+                      </h3>
+                      <span className="text-[9px] sm:text-[10.5px] text-[#8E8E93]">
+                        {scanLogs.length} total entries parsed
                       </span>
                     </div>
-                  ))}
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={handleCopyLogs}
+                      className="flex items-center gap-1 px-2.5 py-1.5 bg-[#202024] hover:bg-[#2C2C32] text-[#E2E2E4] rounded-xl border border-[#353538] transition-colors text-xs font-semibold"
+                    >
+                      {copiedLogs ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Copied</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 text-[#A0A0A5]" />
+                          <span>Copy Logs</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setIsLogModalOpen(false)}
+                      className="p-1.5 bg-[#202024] hover:bg-[#2C2C32] text-[#8E8E93] hover:text-white rounded-xl border border-[#353538] transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex justify-end pt-2 border-t border-[#28282B]">
+                {/* Stream Console */}
+                <div className="flex-1 overflow-y-auto font-mono text-xs sm:text-sm space-y-2 p-3 sm:p-4 bg-[#0A0A0C] rounded-xl border border-[#202025] select-text max-h-[60vh] shadow-inner">
+                  {scanLogs.length === 0 ? (
+                    <div className="py-12 text-center text-[#606065] italic">
+                      No logs to display yet.
+                    </div>
+                  ) : (
+                    scanLogs.map((log, index) => (
+                      <div key={index} className="flex items-start gap-2 leading-relaxed">
+                        <span className="text-[#55555A] shrink-0 text-xs">{log.time}</span>
+                        <span
+                          className={`break-words ${
+                            log.type === 'success'
+                              ? 'text-emerald-400 font-medium'
+                              : log.type === 'warn'
+                              ? 'text-amber-400 font-medium'
+                              : log.type === 'error'
+                              ? 'text-rose-400 font-medium'
+                              : 'text-[#B0B0B8]'
+                          }`}
+                        >
+                          {log.text}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="flex justify-between items-center pt-2 border-t border-[#26262B]">
+                  <span className="text-[10px] sm:text-xs text-[#707075] font-mono">
+                    Status: {isScanning ? 'Resolving...' : 'Idle'}
+                  </span>
                   <button
                     onClick={() => setIsLogModalOpen(false)}
-                    className="px-4 py-2 bg-[#262629] hover:bg-[#323236] text-white rounded-xl text-xs sm:text-sm font-bold transition-colors"
+                    className="px-4 py-2 bg-[#222226] hover:bg-[#2E2E34] text-white rounded-xl text-xs sm:text-sm font-bold transition-colors border border-[#333338]"
                   >
                     Close Log
                   </button>
