@@ -256,17 +256,20 @@ export function useMemoryScanner(initialHistory: ScanHistoryRecord[] = []) {
             // 1. Direct class name match
             if (cNameLower === cleanInput) return true;
 
-            // 2. Namespace::ClassName match (e.g. COW.GamePlay::CameraControllerBase)
-            if (cleanInput.includes('::')) {
-              const parts = cleanInput.split('::').map((p) => p.trim());
-              if (parts.length === 2) {
-                const [nsPart, namePart] = parts;
+            // 2. Namespace:ClassName match (e.g. COW.GamePlay:CameraControllerBase or COW.GamePlay::CameraControllerBase)
+            if (cleanInput.includes(':')) {
+              const delimiter = cleanInput.includes('::') ? '::' : ':';
+              const parts = cleanInput.split(delimiter).map((p) => p.trim());
+              if (parts.length >= 2) {
+                const nsPart = parts[0];
+                const namePart = parts.slice(1).join(':');
                 return cNameLower === namePart && (nsLower === nsPart || (!nsLower && !nsPart));
               }
             }
 
-            // 3. Namespace.ClassName match (e.g. COW.GamePlay.CameraControllerBase)
+            // 3. Namespace.ClassName / Namespace:ClassName match
             if (nsLower) {
+              if (`${nsLower}:${cNameLower}` === cleanInput) return true;
               if (`${nsLower}::${cNameLower}` === cleanInput) return true;
               if (`${nsLower}.${cNameLower}` === cleanInput) return true;
             }

@@ -268,7 +268,7 @@ export const TargetDetailModal: React.FC<TargetDetailModalProps> = ({
                       onClick={() =>
                         handleCopy(
                           viewingTargetItem.namespaceName
-                            ? `${viewingTargetItem.namespaceName}::${viewingTargetItem.className || ''}`
+                            ? `${viewingTargetItem.namespaceName}:${viewingTargetItem.className || ''}`
                             : viewingTargetItem.className || '',
                           'Class Name',
                           'class'
@@ -284,7 +284,7 @@ export const TargetDetailModal: React.FC<TargetDetailModalProps> = ({
                     {viewingTargetItem.namespaceName ? (
                       <>
                         <span className="text-amber-300/90">{viewingTargetItem.namespaceName}</span>
-                        <span className="text-indigo-400">::</span>
+                        <span className="text-indigo-400">:</span>
                         <span>{viewingTargetItem.className}</span>
                       </>
                     ) : (

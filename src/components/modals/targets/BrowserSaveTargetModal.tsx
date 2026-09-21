@@ -1,5 +1,5 @@
 import React from 'react';
-import { Target, X, BookmarkPlus, Shield, Layers, Box, Code2 } from 'lucide-react';
+import { Target, X, BookmarkPlus, Shield, Layers, Box, Code2, AlertTriangle } from 'lucide-react';
 import { WatchlistProfile } from '../../../types';
 
 interface BrowserSaveTargetModalProps {
@@ -50,6 +50,8 @@ export const BrowserSaveTargetModal: React.FC<BrowserSaveTargetModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
+  const hasProfiles = profiles && profiles.length > 0;
+
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm p-2 sm:p-4 flex justify-center items-center overflow-y-auto">
       <div className="bg-[#1C1C1F] border border-[#38383E] rounded-xl sm:rounded-2xl max-w-md w-full shadow-2xl flex flex-col max-h-[92vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200 my-auto">
@@ -90,8 +92,21 @@ export const BrowserSaveTargetModal: React.FC<BrowserSaveTargetModalProps> = ({
 
         {/* Scrollable Form Body */}
         <div className="p-2.5 sm:p-4 flex-1 overflow-y-auto space-y-2.5 sm:space-y-3">
+          {/* Warning banner if no profile is active / created */}
+          {!hasProfiles && (
+            <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div className="flex-1 text-[11px] leading-relaxed">
+                <div className="font-semibold text-amber-200">No Active Profile Found</div>
+                <div className="text-amber-300/80 mt-0.5">
+                  A new <span className="font-semibold text-amber-200">"Default Profile"</span> will be automatically created and activated for you upon saving this target.
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Target Profile Selection */}
-          {profiles.length > 0 && (
+          {hasProfiles && (
             <div className="flex flex-col gap-0.5">
               <label className="text-[9px] sm:text-[10px] font-semibold text-[#8E8E93] uppercase tracking-wider">
                 Destination Profile
@@ -149,12 +164,12 @@ export const BrowserSaveTargetModal: React.FC<BrowserSaveTargetModalProps> = ({
               type="text"
               value={className}
               onChange={(e) => setClassName(e.target.value)}
-              placeholder="e.g. COW.GamePlay::CameraControllerBase or CameraControllerBase"
+              placeholder="e.g. COW.GamePlay:CameraControllerBase or CameraControllerBase"
               className="w-full px-2.5 py-1.5 bg-[#141416] border border-[#333338] rounded-lg text-xs text-[#E2E2E4] font-mono focus:outline-none focus:border-indigo-500"
               required
             />
             <span className="text-[8.5px] text-[#71717A] ml-0.5 font-mono">
-              Format: <span className="text-indigo-300">Namespace::ClassName</span> or <span className="text-indigo-300">ClassName</span>.
+              Format: <span className="text-indigo-300">Namespace:ClassName</span> or <span className="text-indigo-300">ClassName</span>.
             </span>
           </div>
 

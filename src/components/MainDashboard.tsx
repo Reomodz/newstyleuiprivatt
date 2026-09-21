@@ -13,6 +13,7 @@ import {
   CardSettingsModal,
   ProfileCardSettingsModal,
   HistoryCardSettingsModal,
+  JsonDiagnosticModal,
 } from "./modals";
 import { ConfirmDialog } from "./ui";
 import { HistoryTab } from "./dashboard/HistoryTab";
@@ -21,6 +22,7 @@ import { ProfileSidebar } from "./dashboard/ProfileSidebar";
 
 import { useWatchlistManager } from '../hooks/useWatchlistManager';
 import { useMemoryScanner } from '../hooks/useMemoryScanner';
+import { validateAndParseProfileJson, JsonDiagnosticResult } from '../utils/jsonValidator';
 
 import {
   ProcessDescriptor,
@@ -214,6 +216,10 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   });
 
   const [isHistoryCardSettingsModalOpen, setIsHistoryCardSettingsModalOpen] = useState(false);
+
+  // JSON Safety & Diagnostic Modal State
+  const [jsonDiagnostic, setJsonDiagnostic] = useState<JsonDiagnosticResult | null>(null);
+  const [isJsonDiagModalOpen, setIsJsonDiagModalOpen] = useState(false);
 
   // Target Detail Modal State (View Mode)
   const [viewingTargetItem, setViewingTargetItem] = useState<WatchlistTargetItem | null>(null);
@@ -554,7 +560,27 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     );
   };
 
-  // Import Profile from JSON File (Restores Profile, Targets & Card View Settings)
+  // Apply validated / recovered profile to state & local persistence
+  const handleApplyImportedProfile = (newProfile: WatchlistProfile, cardSettingsToApply?: TargetCardViewSettings) => {
+    if (cardSettingsToApply) {
+      const mergedSettings: TargetCardViewSettings = {
+        ...cardViewSettings,
+        ...cardSettingsToApply,
+      };
+      setCardViewSettings(mergedSettings);
+    }
+    const updated = [newProfile, ...profiles];
+    saveProfiles(updated);
+    setActiveProfileId(newProfile.id);
+    setSelectedProfileViewId(newProfile.id);
+    showToast(
+      `Imported profile "${newProfile.name}" (${newProfile.items.length} targets${
+        cardSettingsToApply ? ' + card settings restored' : ''
+      })`
+    );
+  };
+
+  // Import Profile from JSON File (with Safety Diagnostic & Error Recovery)
   const handleImportProfile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -562,104 +588,26 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const text = event.target?.result as string;
-        const parsed = JSON.parse(text);
-        const profileData = parsed.profile || parsed;
+        const text = (event.target?.result as string) || '';
+        const diag = validateAndParseProfileJson(text);
 
-        if (!profileData || !profileData.name || !Array.isArray(profileData.items)) {
-          showToast('Invalid profile JSON format');
-          return;
+        if (diag.status === 'valid' && diag.recoveredProfile) {
+          handleApplyImportedProfile(diag.recoveredProfile, diag.recoveredCardSettings);
+        } else {
+          // Open JSON Safety Diagnostic & Error dialog for unsupported and partial formats
+          setJsonDiagnostic(diag);
+          setIsJsonDiagModalOpen(true);
         }
-
-        // Restore cardViewSettings if present in profile share code
-        let importedCardSettings: TargetCardViewSettings | undefined = undefined;
-        if (profileData.cardViewSettings && typeof profileData.cardViewSettings === 'object') {
-          const mergedSettings: TargetCardViewSettings = {
-            ...cardViewSettings,
-            ...profileData.cardViewSettings,
-          };
-          importedCardSettings = mergedSettings;
-          setCardViewSettings(mergedSettings);
-        }
-
-        const newProfile: WatchlistProfile = {
-          id: `prof_${Date.now()}`,
-          name: profileData.name || 'Imported Profile',
-          description: profileData.description || 'Imported profile offsets',
-          targetApp: profileData.targetApp || 'com.game.sample',
-          codeStylePreset: profileData.codeStylePreset || 'cpp_constexpr',
-          customCodeStyleTemplate: profileData.customCodeStyleTemplate,
-          cardViewSettings: importedCardSettings || profileData.cardViewSettings,
-          groupOrder: Array.isArray(profileData.groupOrder) ? profileData.groupOrder : undefined,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-          items: profileData.items.map((it: any, idx: number) => {
-            if (it.isIl2cppSymbol || it.groupName === '. Core / GameFacade') {
-              return {
-                id: `t_${Date.now()}_${idx}`,
-                isCustom: false,
-                isIl2cppSymbol: true,
-                il2cppSymbolName: it.il2cppSymbolName || it.memberName,
-                customName: it.customName || undefined,
-                groupName: '. Core / GameFacade',
-                subGroupName: undefined,
-                assemblyName: 'il2cpp',
-                className: it.className || 'GameFacade',
-                memberName: it.memberName || it.il2cppSymbolName || 'IL2CPP_SYMBOL',
-                kind: 'FIELD' as const,
-                comment: it.comment || '',
-                offsetHex: it.offsetHex || it.defaultOffset || undefined,
-                defaultOffset: it.defaultOffset || it.offsetHex || undefined,
-                resolved: Boolean(it.offsetHex || it.defaultOffset),
-              };
-            }
-            const isCustom = Boolean(it.isCustom || (!it.className && !it.memberName && it.customName));
-            if (isCustom) {
-              return {
-                id: `t_${Date.now()}_${idx}`,
-                isCustom: true,
-                customName: it.customName || undefined,
-                groupName: it.groupName || undefined,
-                subGroupName: it.subGroupName || undefined,
-                comment: it.comment || undefined,
-                offsetHex: it.offsetHex || it.defaultOffset || undefined,
-                defaultOffset: it.defaultOffset || it.offsetHex || undefined,
-                resolved: Boolean(it.offsetHex || it.defaultOffset),
-              };
-            }
-            return {
-              id: `t_${Date.now()}_${idx}`,
-              isCustom: false,
-              customName: it.customName || undefined,
-              groupName: it.groupName || undefined,
-              subGroupName: it.subGroupName || undefined,
-              assemblyName: it.assemblyName || undefined,
-              className: it.className || '',
-              memberName: it.memberName || '',
-              kind: it.kind === 'METHOD' ? 'METHOD' : 'FIELD',
-              comment: it.comment || '',
-              offsetHex: it.offsetHex || undefined,
-              rvaHex: it.rvaHex || undefined,
-              isStatic: Boolean(it.isStatic),
-              valueType: it.valueType || undefined,
-              fallbackClassNames: Array.isArray(it.fallbackClassNames) ? it.fallbackClassNames : undefined,
-              fallbackMemberNames: Array.isArray(it.fallbackMemberNames) ? it.fallbackMemberNames : undefined,
-              resolved: Boolean(it.offsetHex || it.rvaHex),
-            };
-          }),
-        };
-
-        const updated = [newProfile, ...profiles];
-        saveProfiles(updated);
-        setActiveProfileId(newProfile.id);
-        setSelectedProfileViewId(newProfile.id);
-        showToast(
-          `Imported profile "${newProfile.name}" (${newProfile.items.length} targets${
-            importedCardSettings ? ' + card settings restored' : ''
-          })`
-        );
-      } catch (err) {
-        showToast('Failed to parse profile JSON file');
+      } catch (err: any) {
+        setJsonDiagnostic({
+          status: 'unsupported',
+          errorTitle: 'File Read Failure',
+          errors: [`Failed to read file: ${err?.message || 'Unknown error'}`],
+          warnings: [],
+          info: [],
+          recoveredProfile: null,
+        });
+        setIsJsonDiagModalOpen(true);
       }
     };
     reader.readAsText(file);
@@ -727,7 +675,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     setEditTargetCustomName(item.customName || '');
     setEditTargetAssemblyName(item.assemblyName || item.resolvedAssemblyName || '');
     setEditTargetNamespaceName(item.namespaceName || '');
-    setEditTargetClassName(item.className ? (item.namespaceName ? `${item.namespaceName}::${item.className}` : item.className) : '');
+    setEditTargetClassName(item.className ? (item.namespaceName ? `${item.namespaceName}:${item.className}` : item.className) : '');
     setEditTargetMemberName(item.memberName || '');
     setEditTargetKind(item.kind || 'FIELD');
     setEditTargetComment(item.comment || '');
@@ -753,10 +701,14 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
     let parsedNs = editTargetNamespaceName.trim() || undefined;
     let parsedClass = editTargetClassName.trim();
-    if (parsedClass.includes('::')) {
+    if (parsedClass.includes(':')) {
+      const parts = parsedClass.split(':');
+      parsedNs = parts[0].trim() || undefined;
+      parsedClass = parts.slice(1).join(':').trim();
+    } else if (parsedClass.includes('::')) {
       const parts = parsedClass.split('::');
       parsedNs = parts[0].trim() || undefined;
-      parsedClass = parts.slice(1).join('::').trim();
+      parsedClass = parts.slice(1).join(':').trim();
     }
 
     const cleanOffset = editTargetDefaultOffset.trim();
@@ -859,10 +811,14 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
     let parsedNs = newTargetNamespaceName.trim() || undefined;
     let parsedClass = newTargetClassName.trim();
-    if (parsedClass.includes('::')) {
+    if (parsedClass.includes(':')) {
+      const parts = parsedClass.split(':');
+      parsedNs = parts[0].trim() || undefined;
+      parsedClass = parts.slice(1).join(':').trim();
+    } else if (parsedClass.includes('::')) {
       const parts = parsedClass.split('::');
       parsedNs = parts[0].trim() || undefined;
-      parsedClass = parts.slice(1).join('::').trim();
+      parsedClass = parts.slice(1).join(':').trim();
     }
 
     const cleanOffset = newTargetDefaultOffset.trim();
@@ -1239,6 +1195,19 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         onClose={() => setIsHistoryCardSettingsModalOpen(false)}
         config={historyCardSettings}
         setConfig={setHistoryCardSettings}
+      />
+
+      {/* JSON Safety & Diagnostic Modal */}
+      <JsonDiagnosticModal
+        isOpen={isJsonDiagModalOpen}
+        onClose={() => {
+          setIsJsonDiagModalOpen(false);
+          setJsonDiagnostic(null);
+        }}
+        diagnostic={jsonDiagnostic}
+        onConfirmImport={(profile, cardSettings) => {
+          handleApplyImportedProfile(profile, cardSettings);
+        }}
       />
 
       {/* Confirmation Modal: Clear All History */}

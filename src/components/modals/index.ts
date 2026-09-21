@@ -12,6 +12,7 @@ export { MakeSubgroupModal } from './groups/MakeSubgroupModal';
 export { CreateProfileModal } from './profiles/CreateProfileModal';
 export { EditProfileModal } from './profiles/EditProfileModal';
 export { ProfileCardSettingsModal } from './profiles/ProfileCardSettingsModal';
+export { JsonDiagnosticModal } from './profiles/JsonDiagnosticModal';
 
 // History Modals
 export { HistoryDetailModal } from './history/HistoryDetailModal';

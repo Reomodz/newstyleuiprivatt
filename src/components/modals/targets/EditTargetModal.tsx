@@ -327,11 +327,11 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
               type="text"
               value={editTargetClassName}
               onChange={(e) => setEditTargetClassName(e.target.value)}
-              placeholder="e.g. COW.GamePlay::CameraControllerBase or CameraControllerBase"
+              placeholder="e.g. COW.GamePlay:CameraControllerBase or CameraControllerBase"
               className="w-full px-2 sm:px-3 py-1.5 sm:py-2 bg-[#141416] border border-[#353538] rounded-lg sm:rounded-xl text-[10px] sm:text-xs text-[#E2E2E4] focus:outline-none focus:border-indigo-500 font-mono placeholder:text-[#55555A]"
             />
             <span className="text-[8.5px] sm:text-[9px] text-[#71717A] ml-0.5 font-mono">
-              Format: <span className="text-indigo-300">Namespace::ClassName</span> (e.g. <span className="text-amber-300">COW.GamePlay::Player</span>) or just <span className="text-indigo-300">ClassName</span> if no namespace.
+              Format: <span className="text-indigo-300">Namespace:ClassName</span> (e.g. <span className="text-amber-300">COW.GamePlay:Player</span>) or just <span className="text-indigo-300">ClassName</span> if no namespace.
             </span>
           </div>
 

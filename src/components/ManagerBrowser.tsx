@@ -311,19 +311,62 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
 
   // Helper to determine if a member is already saved in active profile
   const isTargetSavedInProfile = (
-    className: string,
+    classNameOrOwner: string,
     memberName: string,
-    kind: 'FIELD' | 'METHOD'
+    kind: 'FIELD' | 'METHOD',
+    classIndex?: number
   ): boolean => {
     if (!activeProfile || !activeProfile.items) return false;
-    return activeProfile.items.some(
-      (t) =>
-        t.className &&
-        t.memberName &&
-        t.className.toLowerCase() === className.toLowerCase() &&
-        t.memberName.toLowerCase() === memberName.toLowerCase() &&
-        t.kind === kind
-    );
+
+    let targetCls = classNameOrOwner.trim();
+    let targetNs = '';
+
+    if (classIndex !== undefined && classIndex >= 0) {
+      const cls = il2cppEngine.getClass(classIndex);
+      if (cls) {
+        targetCls = cls.name;
+        targetNs = cls.namespaceName || '';
+      }
+    }
+
+    if (!targetNs) {
+      if (targetCls.includes(':')) {
+        const parts = targetCls.split(':');
+        targetNs = parts[0].trim();
+        targetCls = parts.slice(1).join(':').trim();
+      } else if (targetCls.includes('::')) {
+        const parts = targetCls.split('::');
+        targetNs = parts[0].trim();
+        targetCls = parts.slice(1).join(':').trim();
+      }
+    }
+
+    const targetClsLower = targetCls.toLowerCase();
+    const targetNsLower = targetNs.toLowerCase();
+    const targetMemberLower = memberName.trim().toLowerCase();
+
+    return activeProfile.items.some((t) => {
+      if (t.kind !== kind) return false;
+      if (!t.memberName || t.memberName.trim().toLowerCase() !== targetMemberLower) return false;
+
+      let itemNs = (t.namespaceName || '').trim().toLowerCase();
+      let itemCls = (t.className || '').trim();
+      if (itemCls.includes(':')) {
+        const parts = itemCls.split(':');
+        itemNs = parts[0].trim().toLowerCase() || itemNs;
+        itemCls = parts.slice(1).join(':').trim();
+      } else if (itemCls.includes('::')) {
+        const parts = itemCls.split('::');
+        itemNs = parts[0].trim().toLowerCase() || itemNs;
+        itemCls = parts.slice(1).join(':').trim();
+      }
+      const itemClsLower = itemCls.toLowerCase();
+
+      if (itemClsLower === targetClsLower) {
+        if (!targetNsLower || !itemNs || targetNsLower === itemNs) return true;
+      }
+      return false;
+    });
   };
 
   const savedTargetsInCurrentClass = useMemo(() => {
@@ -347,10 +390,21 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
     if (!target) return;
     setTargetEditKind(target.kind);
     setTargetEditAssemblyName(target.assemblyName || currentClassInfo?.assemblyName || '');
-    const ns = target.namespaceName || currentClassInfo?.namespaceName || '';
-    const cls = target.className || currentClassInfo?.name || '';
+    
+    let ns = target.namespaceName || currentClassInfo?.namespaceName || '';
+    let cls = target.className || currentClassInfo?.name || '';
+    if (cls.includes(':')) {
+      const parts = cls.split(':');
+      ns = parts[0].trim() || ns;
+      cls = parts.slice(1).join(':').trim();
+    } else if (cls.includes('::')) {
+      const parts = cls.split('::');
+      ns = parts[0].trim() || ns;
+      cls = parts.slice(1).join(':').trim();
+    }
+
     setTargetEditNamespace(ns);
-    setTargetEditClassName(ns ? `${ns}::${cls}` : cls);
+    setTargetEditClassName(ns ? `${ns}:${cls}` : cls);
     setTargetEditMemberName(target.memberName);
     setTargetEditCustomName(target.memberName);
     setTargetEditGroupName('');
@@ -371,10 +425,14 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
 
     let parsedNs = targetEditNamespace.trim() || undefined;
     let parsedClass = targetEditClassName.trim();
-    if (parsedClass.includes('::')) {
+    if (parsedClass.includes(':')) {
+      const parts = parsedClass.split(':');
+      parsedNs = parts[0].trim() || undefined;
+      parsedClass = parts.slice(1).join(':').trim();
+    } else if (parsedClass.includes('::')) {
       const parts = parsedClass.split('::');
       parsedNs = parts[0].trim() || undefined;
-      parsedClass = parts.slice(1).join('::').trim();
+      parsedClass = parts.slice(1).join(':').trim();
     }
 
     const itemToSave: Omit<WatchlistTargetItem, 'id'> = {
@@ -618,7 +676,8 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                         const isGlobalSaved = isTargetSavedInProfile(
                           res.ownerName,
                           res.name,
-                          res.kind === SymbolKind.FIELD ? 'FIELD' : 'METHOD'
+                          res.kind === SymbolKind.FIELD ? 'FIELD' : 'METHOD',
+                          res.classIndex
                         );
                         return isGlobalSaved ? (
                           <span
@@ -634,11 +693,13 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
+                              const clsObj = res.classIndex !== undefined ? il2cppEngine.getClass(res.classIndex) : undefined;
                               handleOpenSaveTargetModal({
                                 kind: res.kind === SymbolKind.FIELD ? 'FIELD' : 'METHOD',
-                                className: res.ownerName,
+                                className: clsObj?.name || res.ownerName,
+                                namespaceName: clsObj?.namespaceName || undefined,
                                 memberName: res.name,
-                                assemblyName: res.assemblyName,
+                                assemblyName: clsObj?.assemblyName || res.assemblyName,
                                 signature: res.signature,
                               });
                             }}

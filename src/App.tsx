@@ -4,6 +4,7 @@ import {
   BreadcrumbViewData,
   CanvasTabViewData,
   WatchlistTargetItem,
+  WatchlistProfile,
 } from './types';
 import { il2cppEngine } from './services/il2cppEngine';
 import { useWatchlistManager } from './hooks/useWatchlistManager';
@@ -77,52 +78,100 @@ export const App: React.FC = () => {
     targetData: Omit<WatchlistTargetItem, 'id'>,
     targetProfileId?: string
   ) => {
-    const profId = targetProfileId || activeProfileId;
-    const targetProf = profiles.find((p) => p.id === profId) || activeProfile;
+    let targetProf = profiles.find((p) => p.id === (targetProfileId || activeProfileId)) || activeProfile;
+    let nextProfiles = [...profiles];
+
+    // If no profile exists at all, auto-create a default profile so saving never fails
     if (!targetProf) {
-      showToast('No active profile. Please create a profile first.');
-      return;
+      const newDefaultProfile: WatchlistProfile = {
+        id: `prof_${Date.now()}`,
+        name: 'Default Profile',
+        description: 'Auto-created profile for saved targets',
+        targetApp: 'com.game.sample',
+        codeStylePreset: 'cpp_constexpr',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        items: [],
+      };
+      nextProfiles = [newDefaultProfile, ...profiles];
+      targetProf = newDefaultProfile;
+      setActiveProfileId(newDefaultProfile.id);
     }
 
-    const existingIdx = targetProf.items.findIndex(
-      (t) =>
-        t.className &&
-        targetData.className &&
-        t.className.toLowerCase() === targetData.className.toLowerCase() &&
-        t.memberName &&
-        targetData.memberName &&
-        t.memberName.toLowerCase() === targetData.memberName.toLowerCase() &&
-        t.kind === targetData.kind
-    );
+    // Normalize target class and namespace
+    let targetNs = targetData.namespaceName?.trim() || '';
+    let targetCls = targetData.className?.trim() || '';
+    if (targetCls.includes(':')) {
+      const parts = targetCls.split(':');
+      targetNs = parts[0].trim() || targetNs;
+      targetCls = parts.slice(1).join(':').trim();
+    } else if (targetCls.includes('::')) {
+      const parts = targetCls.split('::');
+      targetNs = parts[0].trim() || targetNs;
+      targetCls = parts.slice(1).join(':').trim();
+    }
+
+    const cleanTargetData = {
+      ...targetData,
+      namespaceName: targetNs || undefined,
+      className: targetCls,
+    };
+
+    const targetNsLower = targetNs.toLowerCase();
+    const targetClsLower = targetCls.toLowerCase();
+    const targetMemberLower = (targetData.memberName || '').trim().toLowerCase();
+
+    const existingIdx = targetProf.items.findIndex((t) => {
+      if (t.kind !== cleanTargetData.kind) return false;
+      if (!t.memberName || t.memberName.trim().toLowerCase() !== targetMemberLower) return false;
+
+      let itemNs = (t.namespaceName || '').trim().toLowerCase();
+      let itemCls = (t.className || '').trim();
+      if (itemCls.includes(':')) {
+        const parts = itemCls.split(':');
+        itemNs = parts[0].trim().toLowerCase() || itemNs;
+        itemCls = parts.slice(1).join(':').trim();
+      } else if (itemCls.includes('::')) {
+        const parts = itemCls.split('::');
+        itemNs = parts[0].trim().toLowerCase() || itemNs;
+        itemCls = parts.slice(1).join(':').trim();
+      }
+      itemCls = itemCls.toLowerCase();
+
+      if (itemCls === targetClsLower) {
+        if (!targetNsLower || !itemNs || targetNsLower === itemNs) return true;
+      }
+      return false;
+    });
 
     let updatedItems: WatchlistTargetItem[];
     if (existingIdx >= 0) {
       updatedItems = [...targetProf.items];
       updatedItems[existingIdx] = {
         ...updatedItems[existingIdx],
-        ...targetData,
-        offsetHex: targetData.offsetHex,
-        rvaHex: targetData.rvaHex,
-        vaHex: targetData.vaHex,
-        resolved: true,
+        ...cleanTargetData,
+        offsetHex: cleanTargetData.offsetHex || updatedItems[existingIdx].offsetHex,
+        rvaHex: cleanTargetData.rvaHex || updatedItems[existingIdx].rvaHex,
+        vaHex: cleanTargetData.vaHex || updatedItems[existingIdx].vaHex,
+        resolved: Boolean(cleanTargetData.offsetHex || cleanTargetData.rvaHex || updatedItems[existingIdx].resolved),
         lastScannedAt: Date.now(),
       };
-      showToast(`Updated "${targetData.memberName}" in profile "${targetProf.name}"`);
+      showToast(`Updated "${cleanTargetData.memberName}" in profile "${targetProf.name}"`);
     } else {
       const newItem: WatchlistTargetItem = {
-        ...targetData,
+        ...cleanTargetData,
         id: `t_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        resolved: true,
+        resolved: Boolean(cleanTargetData.offsetHex || cleanTargetData.rvaHex),
         lastScannedAt: Date.now(),
       };
       updatedItems = [...targetProf.items, newItem];
-      showToast(`Saved "${targetData.memberName}" to profile "${targetProf.name}"`);
+      showToast(`Saved "${cleanTargetData.memberName}" to profile "${targetProf.name}"`);
     }
 
-    const nextProfiles = profiles.map((p) =>
-      p.id === targetProf.id ? { ...p, items: updatedItems, updatedAt: Date.now() } : p
+    const finalProfiles = nextProfiles.map((p) =>
+      p.id === targetProf!.id ? { ...p, items: updatedItems, updatedAt: Date.now() } : p
     );
-    saveProfiles(nextProfiles);
+    saveProfiles(finalProfiles);
   };
 
   // Compute Breadcrumbs
