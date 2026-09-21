@@ -117,41 +117,46 @@
 /* --------------------------------------------------------------------------
    CUSTOM WALLPAPER ACTIVE: KEEP APP SHELL TRANSPARENT & CARDS TRANSLUCENT
    -------------------------------------------------------------------------- */
+/* Transparent workspace wrappers when custom wallpaper or translucency is enabled */
 .has-custom-bg body,
 .has-custom-bg #root,
 .has-custom-bg .app-root-container,
 .has-custom-bg main,
 .has-custom-bg .dashboard-workspace-container,
 .has-custom-bg .browser-workspace-container,
-.has-custom-bg .bg-\[\#18181A\],
-.has-custom-bg .bg-\[\#242426\],
-.has-custom-bg .bg-\[\#121214\],
-.has-custom-bg .bg-\[\#101012\],
-.has-custom-bg .bg-\[\#0E0E10\],
-.has-custom-bg .bg-\[\#0A0A0C\] {
+.custom-card-translucent body,
+.custom-card-translucent #root,
+.custom-card-translucent .app-root-container,
+.custom-card-translucent main,
+.custom-card-translucent .dashboard-workspace-container,
+.custom-card-translucent .browser-workspace-container {
   background-color: transparent !important;
 }
 
-/* Full App Screen Top Header: wallpaper shines through continuously */
+/* Full App Screen Top Header: dynamic opacity & blur */
 .has-custom-bg .app-top-header,
-.has-custom-bg header {
-  background-color: rgba(22, 22, 26, 0.45) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
+.has-custom-bg header,
+.custom-card-translucent .app-top-header,
+.custom-card-translucent header {
+  background-color: rgba(20, 20, 24, var(--header-opacity, 0.75)) !important;
+  backdrop-filter: blur(var(--glass-blur, 0px)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur, 0px)) !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
-/* Dashboard Tab Bar: subtle frosted glass strip */
-.has-custom-bg .dashboard-tab-bar {
-  background-color: rgba(22, 22, 26, 0.45) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
+/* Dashboard Tab Bar & Sticky Sub-Toolbars: subtle frosted glass strip */
+.has-custom-bg .dashboard-tab-bar,
+.custom-card-translucent .dashboard-tab-bar {
+  background-color: rgba(20, 20, 24, var(--panel-opacity, 0.75)) !important;
+  backdrop-filter: blur(var(--glass-blur, 0px)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur, 0px)) !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
 /* Storage dump workspace, profile cards, target cards, group cards, and all primary cards */
 .has-custom-bg .bg-\[\#1E1E20\],
 .has-custom-bg .bg-\[\#1C1C1E\],
+.has-custom-bg .bg-\[\#1C1C1F\],
 .has-custom-bg .bg-\[\#1C1C20\],
 .has-custom-bg .bg-\[\#202020\],
 .has-custom-bg .bg-\[\#202022\],
@@ -165,22 +170,47 @@
 .has-custom-bg .bg-\[\#1A1A1D\],
 .has-custom-bg .bg-\[\#1E1E22\],
 .has-custom-bg .bg-\[\#222226\],
-.has-custom-bg .bg-\[\#121214\],
-.has-custom-bg .bg-\[\#121214\]\/80,
-.has-custom-bg .bg-\[\#121214\]\/60,
-.has-custom-bg .bg-\[\#141416\] {
-  background-color: rgba(28, 28, 32, var(--card-opacity, 0.92)) !important;
-  backdrop-filter: blur(14px) !important;
-  -webkit-backdrop-filter: blur(14px) !important;
-}
-
-.has-custom-bg .bg-\[\#18181C\],
+.has-custom-bg .bg-\[\#252528\],
+.has-custom-bg .bg-\[\#25252A\],
+.has-custom-bg .bg-\[\#25252E\],
 .has-custom-bg .bg-\[\#262629\],
 .has-custom-bg .bg-\[\#242426\],
 .has-custom-bg .bg-\[\#242428\],
 .has-custom-bg .bg-\[\#28282A\],
-.has-custom-bg .bg-\[\#323236\] {
-  background-color: rgba(36, 36, 42, var(--card-opacity, 0.92)) !important;
+.has-custom-bg .bg-\[\#323236\],
+.has-custom-bg .bg-\[\#121214\],
+.has-custom-bg .bg-\[\#131315\],
+.has-custom-bg .bg-\[\#141416\],
+.custom-card-translucent .bg-\[\#1E1E20\],
+.custom-card-translucent .bg-\[\#1C1C1E\],
+.custom-card-translucent .bg-\[\#1C1C1F\],
+.custom-card-translucent .bg-\[\#1C1C20\],
+.custom-card-translucent .bg-\[\#202020\],
+.custom-card-translucent .bg-\[\#202022\],
+.custom-card-translucent .bg-\[\#202024\],
+.custom-card-translucent .bg-\[\#18181A\],
+.custom-card-translucent .bg-\[\#18181B\],
+.custom-card-translucent .bg-\[\#18181C\],
+.custom-card-translucent .bg-\[\#161618\],
+.custom-card-translucent .bg-\[\#17171A\],
+.custom-card-translucent .bg-\[\#1A1A1E\],
+.custom-card-translucent .bg-\[\#1A1A1D\],
+.custom-card-translucent .bg-\[\#1E1E22\],
+.custom-card-translucent .bg-\[\#222226\],
+.custom-card-translucent .bg-\[\#252528\],
+.custom-card-translucent .bg-\[\#25252A\],
+.custom-card-translucent .bg-\[\#25252E\],
+.custom-card-translucent .bg-\[\#262629\],
+.custom-card-translucent .bg-\[\#242426\],
+.custom-card-translucent .bg-\[\#242428\],
+.custom-card-translucent .bg-\[\#28282A\],
+.custom-card-translucent .bg-\[\#323236\],
+.custom-card-translucent .bg-\[\#121214\],
+.custom-card-translucent .bg-\[\#131315\],
+.custom-card-translucent .bg-\[\#141416\] {
+  background-color: rgba(26, 26, 30, var(--card-opacity, 0.92)) !important;
+  backdrop-filter: blur(var(--glass-blur, 0px)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur, 0px)) !important;
 }
 
 /* Neutralize opaque gradients when custom wallpaper or custom opacity is active */
@@ -191,75 +221,6 @@
 .theme-day .md\:bg-gradient-to-br,
 .theme-day [class*="from-\[#1E1E22\]"] {
   background-image: none !important;
-}
-
-/* In OLED mode with custom wallpaper */
-.has-custom-bg.theme-oled .bg-\[\#1E1E20\],
-.has-custom-bg.theme-oled .bg-\[\#1C1C1E\],
-.has-custom-bg.theme-oled .bg-\[\#1C1C20\],
-.has-custom-bg.theme-oled .bg-\[\#202020\],
-.has-custom-bg.theme-oled .bg-\[\#202022\],
-.has-custom-bg.theme-oled .bg-\[\#202024\],
-.has-custom-bg.theme-oled .bg-\[\#161618\],
-.has-custom-bg.theme-oled .bg-\[\#17171A\],
-.has-custom-bg.theme-oled .bg-\[\#1A1A1E\],
-.has-custom-bg.theme-oled .bg-\[\#1A1A1D\],
-.has-custom-bg.theme-oled .bg-\[\#1E1E22\],
-.has-custom-bg.theme-oled .bg-\[\#222226\],
-.has-custom-bg.theme-oled .bg-\[\#121214\],
-.has-custom-bg.theme-oled .bg-\[\#121214\]\/80,
-.has-custom-bg.theme-oled .bg-\[\#121214\]\/60,
-.has-custom-bg.theme-oled .bg-\[\#141416\] {
-  background-color: rgba(4, 4, 6, var(--card-opacity, 0.92)) !important;
-  backdrop-filter: blur(14px) !important;
-  -webkit-backdrop-filter: blur(14px) !important;
-}
-
-/* In Day mode with custom wallpaper */
-.has-custom-bg.theme-day .bg-\[\#1E1E20\],
-.has-custom-bg.theme-day .bg-\[\#1C1C1E\],
-.has-custom-bg.theme-day .bg-\[\#1C1C20\],
-.has-custom-bg.theme-day .bg-\[\#202020\],
-.has-custom-bg.theme-day .bg-\[\#202022\],
-.has-custom-bg.theme-day .bg-\[\#202024\],
-.has-custom-bg.theme-day .bg-\[\#161618\],
-.has-custom-bg.theme-day .bg-\[\#17171A\],
-.has-custom-bg.theme-day .bg-\[\#1A1A1E\],
-.has-custom-bg.theme-day .bg-\[\#1A1A1D\],
-.has-custom-bg.theme-day .bg-\[\#1E1E22\],
-.has-custom-bg.theme-day .bg-\[\#222226\],
-.has-custom-bg.theme-day .bg-\[\#121214\],
-.has-custom-bg.theme-day .bg-\[\#121214\]\/80,
-.has-custom-bg.theme-day .bg-\[\#121214\]\/60,
-.has-custom-bg.theme-day .bg-\[\#141416\] {
-  background-color: rgba(255, 255, 255, var(--card-opacity, 0.92)) !important;
-  backdrop-filter: blur(14px) !important;
-  -webkit-backdrop-filter: blur(14px) !important;
-  border-color: rgba(229, 231, 235, 0.8) !important;
-}
-
-/* Translucent frosted glass effect on panels when card opacity is lowered */
-.custom-card-translucent .bg-\[\#1E1E20\],
-.custom-card-translucent .bg-\[\#1C1C1E\],
-.custom-card-translucent .bg-\[\#1C1C20\],
-.custom-card-translucent .bg-\[\#202022\],
-.custom-card-translucent .bg-\[\#202024\],
-.custom-card-translucent .bg-\[\#161618\],
-.custom-card-translucent .bg-\[\#17171A\],
-.custom-card-translucent .bg-\[\#1A1A1E\],
-.custom-card-translucent .bg-\[\#1A1A1D\],
-.custom-card-translucent .bg-\[\#1E1E22\],
-.custom-card-translucent .bg-\[\#222226\],
-.custom-card-translucent .bg-\[\#262629\],
-.custom-card-translucent .bg-\[\#242426\],
-.custom-card-translucent .bg-\[\#242428\],
-.custom-card-translucent .bg-\[\#121214\],
-.custom-card-translucent .bg-\[\#121214\]\/80,
-.custom-card-translucent .bg-\[\#121214\]\/60,
-.custom-card-translucent .bg-\[\#141416\] {
-  background-color: rgba(28, 28, 30, var(--card-opacity, 0.92)) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
 }
 
 /* ==========================================================================

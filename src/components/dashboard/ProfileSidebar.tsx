@@ -98,10 +98,14 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
   const [makeSubgroupParentGroup, setMakeSubgroupParentGroup] = useState<string | null>(null);
   const [selectTargetsConfig, setSelectTargetsConfig] = useState<{ groupName: string; subGroupName?: string } | null>(null);
 
-  // List of ungrouped targets in the active profile
+  // Helper to detect special IL2CPP Core group
+  const isCoreGroup = (groupName?: string) =>
+    groupName === '. Core / GameFacade' || groupName?.startsWith('. Core');
+
+  // List of ungrouped targets in the active profile (excluding core isolated targets)
   const ungroupedTargets = useMemo(() => {
     if (!activeProfile) return [];
-    return activeProfile.items.filter((it) => !it.groupName?.trim());
+    return activeProfile.items.filter((it) => !it.groupName?.trim() && !it.isIl2cppSymbol);
   }, [activeProfile]);
 
   // All known group names across items and custom created groups
@@ -120,17 +124,26 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
   const getAvailableForSubgroup = (groupName: string, subGroupName: string) => {
     if (!activeProfile) return [];
     return activeProfile.items.filter((it) => {
+      if (isCoreGroup(it.groupName) || it.isIl2cppSymbol) return false;
       if (!it.groupName?.trim()) return true;
       if (it.groupName.trim() === groupName && it.subGroupName?.trim() !== subGroupName) return true;
       return false;
     });
   };
 
-  // Assign a single target to a group / subgroup
+  // Assign a single target to a group / subgroup (protecting core group isolation)
   const handleAssignTarget = (targetId: string, groupName?: string, subGroupName?: string) => {
     if (!activeProfile || !handleReorderTargets) return;
     const updated = activeProfile.items.map((it) => {
       if (it.id !== targetId) return it;
+      // Core targets cannot be moved to another group
+      if (isCoreGroup(it.groupName) || it.isIl2cppSymbol) {
+        return it;
+      }
+      // External targets cannot be assigned to core group
+      if (isCoreGroup(groupName)) {
+        return it;
+      }
       return {
         ...it,
         groupName: groupName || undefined,
@@ -140,12 +153,14 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
     handleReorderTargets(activeProfile.id, updated);
   };
 
-  // Assign multiple targets in batch
+  // Assign multiple targets in batch (protecting core group isolation)
   const handleBatchAssign = (targetIds: string[], groupName: string, subGroupName?: string) => {
     if (!activeProfile || !handleReorderTargets) return;
+    if (isCoreGroup(groupName)) return; // External targets cannot be batch-assigned to Core
     const idSet = new Set(targetIds);
     const updated = activeProfile.items.map((it) => {
       if (!idSet.has(it.id)) return it;
+      if (isCoreGroup(it.groupName) || it.isIl2cppSymbol) return it;
       return {
         ...it,
         groupName,
@@ -264,11 +279,26 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
 
     const [draggedItem] = allItems.splice(draggedIndex, 1);
 
-    // Adopt the group & subgroup of the target item so it integrates into that section
+    // If dragged item is from Core group, it must remain in Core group and cannot change group
+    // If dragged item is external, it cannot adopt Core group
+    const isDraggedCore = isCoreGroup(draggedItem.groupName) || Boolean(draggedItem.isIl2cppSymbol);
+    const isTargetCore = isCoreGroup(targetItem.groupName) || Boolean(targetItem.isIl2cppSymbol);
+
+    let newGroupName = targetItem.groupName;
+    let newSubGroupName = targetItem.subGroupName;
+
+    if (isDraggedCore && !isTargetCore) {
+      newGroupName = draggedItem.groupName;
+      newSubGroupName = draggedItem.subGroupName;
+    } else if (!isDraggedCore && isTargetCore) {
+      newGroupName = draggedItem.groupName;
+      newSubGroupName = draggedItem.subGroupName;
+    }
+
     const updatedDraggedItem: WatchlistTargetItem = {
       ...draggedItem,
-      groupName: targetItem.groupName,
-      subGroupName: targetItem.subGroupName,
+      groupName: newGroupName,
+      subGroupName: newSubGroupName,
     };
 
     const targetIndex = allItems.findIndex((it) => it.id === targetItem.id);
@@ -317,10 +347,24 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
 
     const [draggedItem] = allItems.splice(draggedIndex, 1);
 
+    const isDraggedCore = isCoreGroup(draggedItem.groupName) || Boolean(draggedItem.isIl2cppSymbol);
+    const isTargetCore = isCoreGroup(targetGroupName || undefined);
+
+    let finalGroupName = targetGroupName || undefined;
+    let finalSubGroupName = targetSubGroupName || undefined;
+
+    if (isDraggedCore && !isTargetCore) {
+      finalGroupName = draggedItem.groupName;
+      finalSubGroupName = draggedItem.subGroupName;
+    } else if (!isDraggedCore && isTargetCore) {
+      finalGroupName = draggedItem.groupName;
+      finalSubGroupName = draggedItem.subGroupName;
+    }
+
     const updatedDraggedItem: WatchlistTargetItem = {
       ...draggedItem,
-      groupName: targetGroupName || undefined,
-      subGroupName: targetSubGroupName || undefined,
+      groupName: finalGroupName,
+      subGroupName: finalSubGroupName,
     };
 
     // Find the last item in this group/subgroup to place it at the end of that group
@@ -682,15 +726,17 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
                       setSelectedProfileViewId(prof.id);
                     }}
                     className={`bg-[#1E1E20] hover:bg-[#242428] border ${
-                      isScanActive ? 'border-blue-500/50 shadow-md shadow-blue-500/5' : 'border-[#2D2D30] hover:border-blue-500/40'
-                    } ${
                       isCompact ? 'p-2.5 sm:p-3 pl-3.5 sm:pl-4 gap-1.5' : 'p-3 sm:p-3.5 pl-4 sm:pl-5 gap-2'
                     } rounded-xl sm:rounded-2xl shadow-sm flex flex-col cursor-pointer transition-all active:scale-[0.99] group/pcard relative overflow-hidden`}
+                    style={{
+                      borderColor: isScanActive ? 'rgba(var(--app-accent-rgb), 0.55)' : '#2D2D30',
+                      boxShadow: isScanActive ? '0 4px 14px rgba(var(--app-accent-rgb), 0.12)' : undefined,
+                    }}
                   >
                     {/* Profile Identity Accent Line on Left Side */}
                     <div
                       className={`absolute left-0 top-0 bottom-0 transition-all duration-200 ${
-                        isScanActive ? 'w-[2px]' : 'w-[1px] group-hover/pcard:w-[2px]'
+                        isScanActive ? 'w-[2.5px]' : 'w-[1.5px] group-hover/pcard:w-[2.5px]'
                       }`}
                       style={{
                         background: isScanActive
@@ -703,11 +749,18 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-bold text-xs sm:text-sm text-[#E2E2E4] group-hover/pcard:text-blue-300 transition-colors truncate">
+                          <span className="font-bold text-xs sm:text-sm text-[#E2E2E4] group-hover/pcard:text-white transition-colors truncate">
                             {prof.name}
                           </span>
                           {profileCardSettings.showActiveBadge && isScanActive && (
-                            <span className="text-[8px] sm:text-[9px] font-mono px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-300 border border-blue-500/30 font-semibold shrink-0">
+                            <span
+                              className="text-[8px] sm:text-[9px] font-mono px-1.5 py-0.2 rounded font-semibold shrink-0 transition-colors"
+                              style={{
+                                backgroundColor: 'rgba(var(--app-accent-rgb), 0.15)',
+                                color: 'var(--app-accent-hex)',
+                                border: '1px solid rgba(var(--app-accent-rgb), 0.35)',
+                              }}
+                            >
                               Active
                             </span>
                           )}
@@ -738,7 +791,7 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
                         <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={(e) => handleOpenEditProfile(prof, e)}
-                            className="p-1 sm:p-1.5 text-[#8E8E93] hover:text-blue-400 bg-[#262629] hover:bg-[#323236] rounded-md sm:rounded-lg transition-colors"
+                            className="p-1 sm:p-1.5 text-[#8E8E93] hover:text-white bg-[#262629] hover:bg-[#323236] rounded-md sm:rounded-lg transition-colors"
                             title="Edit Profile Name"
                           >
                             <Pencil className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -793,7 +846,10 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
                       </div>
 
                       {profileCardSettings.showOpenIndicator && (
-                        <div className="flex items-center gap-0.5 text-[10px] sm:text-xs font-semibold text-blue-400 group-hover/pcard:text-blue-300 ml-auto">
+                        <div
+                          className="flex items-center gap-0.5 text-[10px] sm:text-xs font-semibold ml-auto transition-colors"
+                          style={{ color: 'var(--app-accent-hex)' }}
+                        >
                           <span>Open</span>
                           <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 group-hover/pcard:translate-x-0.5 transition-transform" />
                         </div>
@@ -871,41 +927,28 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
               >
                 <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </button>
-
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (activeProfile) {
-                    setProfileToDelete(activeProfile);
-                  }
-                }}
-                className="p-1.5 sm:p-2 text-[#8E8E93] hover:text-red-400 bg-[#262629] hover:bg-[#323236] rounded-lg border border-[#353538] transition-colors"
-                title="Delete This Profile"
-              >
-                <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-              </button>
             </div>
           </div>
 
           {/* Sticky Toolbar: Targets Search Filter, Make Group & Target Card Settings */}
           <div className="sticky top-0 z-20 -mx-1 px-1 sm:-mx-2 sm:px-2 py-2 bg-[#18181A]/95 backdrop-blur-md border-b border-[#2D2D32] shadow-md flex items-center gap-1.5 sm:gap-2 transition-all rounded-b-xl">
             <div className="relative flex-1 min-w-0">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#8E8E93]" />
+              <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 text-indigo-400 pointer-events-none z-10" />
               <input
                 type="text"
                 value={watchlistFilter}
                 onChange={(e) => setWatchlistFilter(e.target.value)}
-                placeholder="Search targets..."
-                className="w-full pl-8 pr-8 py-1.5 sm:py-2 bg-[#1E1E20] border border-[#2D2D30] rounded-lg sm:rounded-xl text-xs text-[#E2E2E4] placeholder-[#6C6C70] focus:outline-none focus:border-indigo-500 shadow-sm"
+                placeholder="Search targets by member, class, group or offset..."
+                className="w-full pl-8 sm:pl-9 pr-8 py-1.5 sm:py-2 bg-[#1E1E20] border border-[#2D2D30] focus:border-indigo-500 rounded-lg sm:rounded-xl text-xs text-[#E2E2E4] placeholder-[#6C6C70] focus:outline-none shadow-sm transition-colors"
               />
               {watchlistFilter && (
                 <button
                   type="button"
                   onClick={() => setWatchlistFilter('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8E8E93] hover:text-white p-0.5 rounded-full"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8E8E93] hover:text-white p-0.5 rounded-full z-10"
                   title="Clear search filter"
                 >
-                  <X className="w-3 h-3" />
+                  <X className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 </button>
               )}
             </div>
@@ -988,7 +1031,7 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
                     }}
                     onMakeSubgroup={() => setMakeSubgroupParentGroup(group.groupName)}
                     onAddTargetsToGroup={() => setSelectTargetsConfig({ groupName: group.groupName! })}
-                    onOpenAddNewTarget={() => onOpenAddTarget(undefined, undefined)}
+                    onOpenAddNewTarget={() => onOpenAddTarget(group.groupName || undefined, undefined)}
                     onDeleteGroup={() => handleDeleteCreatedGroup(group.groupName!)}
                   >
                     {group.subGroups.map((subGroup) => {

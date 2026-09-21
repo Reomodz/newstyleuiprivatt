@@ -350,15 +350,46 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   // Create Profile
   const handleCreateProfile = () => {
     if (!newProfileName.trim()) return;
+
+    const now = Date.now();
+    const defaultCoreItems: WatchlistTargetItem[] = [
+      {
+        id: `target_${now}_initbase`,
+        customName: 'InitBase',
+        groupName: '. Core / GameFacade',
+        assemblyName: 'il2cpp',
+        className: 'GameFacade',
+        memberName: 't_GameFacade_TypeInfo',
+        il2cppSymbolName: 't_GameFacade_TypeInfo',
+        isIl2cppSymbol: true,
+        kind: 'FIELD',
+        comment: 'TypeInfo Base Address',
+        resolved: false,
+      },
+      {
+        id: `target_${now}_staticclass`,
+        customName: 'StaticClass',
+        groupName: '. Core / GameFacade',
+        assemblyName: 'il2cpp',
+        className: 'GameFacade',
+        memberName: 'IL2CPP_STATIC_FIELDS_OFFSET',
+        il2cppSymbolName: 'IL2CPP_STATIC_FIELDS_OFFSET',
+        isIl2cppSymbol: true,
+        kind: 'FIELD',
+        comment: 'Static Field Custom Name',
+        resolved: false,
+      },
+    ];
+
     const newProf: WatchlistProfile = {
-      id: `prof_${Date.now()}`,
+      id: `prof_${now}`,
       name: newProfileName.trim(),
       description: newProfileDesc.trim() || 'Custom offset profile',
       codeStylePreset: newProfileCodeStyle,
       customCodeStyleTemplate: newProfileCustomTemplate.trim() || undefined,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      items: [],
+      createdAt: now,
+      updatedAt: now,
+      items: defaultCoreItems,
     };
     const next = [newProf, ...profiles];
     saveProfiles(next);
@@ -369,7 +400,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     setNewProfileCodeStyle('cpp_constexpr');
     setNewProfileCustomTemplate('constexpr uintptr_t {name} = {offset};');
     setIsNewProfileModalOpen(false);
-    showToast(`Created profile "${newProf.name}"`);
+    showToast(`Created profile "${newProf.name}" with Core targets`);
   };
 
   // Open Edit Profile Name Modal
@@ -421,6 +452,22 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         // Include full target card view settings in export!
         cardViewSettings: prof.cardViewSettings || cardViewSettings,
         items: prof.items.map((item) => {
+          if (item.isIl2cppSymbol || item.groupName === '. Core / GameFacade') {
+            return {
+              id: item.id,
+              isIl2cppSymbol: true,
+              il2cppSymbolName: item.il2cppSymbolName || item.memberName,
+              customName: item.customName,
+              groupName: '. Core / GameFacade',
+              subGroupName: undefined,
+              assemblyName: 'il2cpp',
+              className: item.className || 'GameFacade',
+              memberName: item.memberName || item.il2cppSymbolName || 'IL2CPP_SYMBOL',
+              comment: item.comment,
+              offsetHex: item.offsetHex,
+              defaultOffset: item.defaultOffset,
+            };
+          }
           if (item.isCustom) {
             return {
               id: item.id,
@@ -547,6 +594,25 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           createdAt: Date.now(),
           updatedAt: Date.now(),
           items: profileData.items.map((it: any, idx: number) => {
+            if (it.isIl2cppSymbol || it.groupName === '. Core / GameFacade') {
+              return {
+                id: `t_${Date.now()}_${idx}`,
+                isCustom: false,
+                isIl2cppSymbol: true,
+                il2cppSymbolName: it.il2cppSymbolName || it.memberName,
+                customName: it.customName || undefined,
+                groupName: '. Core / GameFacade',
+                subGroupName: undefined,
+                assemblyName: 'il2cpp',
+                className: it.className || 'GameFacade',
+                memberName: it.memberName || it.il2cppSymbolName || 'IL2CPP_SYMBOL',
+                kind: 'FIELD' as const,
+                comment: it.comment || '',
+                offsetHex: it.offsetHex || it.defaultOffset || undefined,
+                defaultOffset: it.defaultOffset || it.offsetHex || undefined,
+                resolved: Boolean(it.offsetHex || it.defaultOffset),
+              };
+            }
             const isCustom = Boolean(it.isCustom || (!it.className && !it.memberName && it.customName));
             if (isCustom) {
               return {
@@ -700,7 +766,30 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         : `0x${cleanOffset}`
       : undefined;
 
-    const updatedItem: WatchlistTargetItem = editTargetIsCustom
+    const isCore =
+      editingTargetItem.isIl2cppSymbol ||
+      editingTargetItem.groupName === '. Core / GameFacade' ||
+      editingTargetItem.groupName?.startsWith('. Core');
+
+    const updatedItem: WatchlistTargetItem = isCore
+      ? {
+          ...editingTargetItem,
+          isCustom: false,
+          isIl2cppSymbol: true,
+          assemblyName: 'il2cpp',
+          resolvedAssemblyName: 'il2cpp',
+          customName: editTargetCustomName.trim() || undefined,
+          memberName: editTargetMemberName.trim() || editTargetCustomName.trim() || 'IL2CPP_SYMBOL',
+          il2cppSymbolName: editTargetMemberName.trim() || undefined,
+          className: editingTargetItem.className || 'GameFacade',
+          defaultOffset: formattedOffset,
+          offsetHex: formattedOffset || editingTargetItem.offsetHex,
+          comment: editTargetComment.trim() || undefined,
+          groupName: '. Core / GameFacade',
+          subGroupName: undefined,
+          resolved: Boolean(formattedOffset) || editingTargetItem.resolved,
+        }
+      : editTargetIsCustom
       ? {
           id: editingTargetItem.id,
           isCustom: true,
@@ -756,7 +845,13 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   const handleAddTarget = () => {
     if (!activeProfile) return;
 
-    if (newTargetIsCustom) {
+    const isCore =
+      newTargetGroupName === '. Core / GameFacade' ||
+      newTargetGroupName?.startsWith('. Core');
+
+    if (isCore) {
+      if (!newTargetCustomName.trim() && !newTargetMemberName.trim()) return;
+    } else if (newTargetIsCustom) {
       if (!newTargetCustomName.trim()) return;
     } else {
       if (!newTargetClassName.trim() || !newTargetMemberName.trim()) return;
@@ -777,7 +872,25 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         : `0x${cleanOffset}`
       : undefined;
 
-    const newItem: WatchlistTargetItem = newTargetIsCustom
+    const newItem: WatchlistTargetItem = isCore
+      ? {
+          id: `t_${Date.now()}`,
+          isCustom: false,
+          isIl2cppSymbol: true,
+          assemblyName: 'il2cpp',
+          resolvedAssemblyName: 'il2cpp',
+          customName: newTargetCustomName.trim() || undefined,
+          memberName: newTargetMemberName.trim() || newTargetCustomName.trim() || 'IL2CPP_SYMBOL',
+          il2cppSymbolName: newTargetMemberName.trim() || undefined,
+          className: 'GameFacade',
+          defaultOffset: formattedOffset,
+          offsetHex: formattedOffset,
+          groupName: '. Core / GameFacade',
+          subGroupName: undefined,
+          comment: newTargetComment.trim() || undefined,
+          resolved: Boolean(formattedOffset),
+        }
+      : newTargetIsCustom
       ? {
           id: `t_${Date.now()}`,
           isCustom: true,
@@ -863,41 +976,44 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
   return (
     <div className="dashboard-workspace-container flex-1 flex flex-col h-full bg-[#18181A] text-[#E2E2E4] overflow-hidden relative">
-      {/* Top Tab Navigation (Responsive Bar / Card Style on Tablet & Big Screen) */}
-      <div className="dashboard-tab-bar bg-[#1E1E20] border-b border-[#2D2D30] px-1.5 sm:px-4 pt-1 sm:pt-2 pb-1 shrink-0">
-        <div className="max-w-5xl mx-auto flex md:bg-[#141416] md:p-1 md:rounded-2xl md:border md:border-[#2D2D30] md:shadow-inner">
+      {/* Top Tab Navigation (Clean Underline Style across Mobile, Tablet & Big Screen) */}
+      <div className="dashboard-tab-bar bg-[#1E1E20] border-b border-[#2D2D30] px-1 sm:px-4 shrink-0">
+        <div className="max-w-5xl mx-auto flex items-center justify-center">
           <button
             onClick={() => setActiveTab('target')}
-            className={`flex-1 py-1.5 sm:py-2.5 md:py-2 text-[10px] sm:text-xs md:text-sm font-semibold transition-all border-b-2 md:border-b-0 md:rounded-xl flex justify-center items-center gap-1 sm:gap-2 ${
+            style={activeTab === 'target' ? { borderColor: 'var(--app-accent-hex)', color: 'var(--app-accent-hex)' } : undefined}
+            className={`flex-1 py-2 sm:py-2.5 px-1 sm:px-4 text-[10.5px] xs:text-xs md:text-sm font-semibold transition-all border-b-2 flex justify-center items-center gap-1 sm:gap-2 whitespace-nowrap ${
               activeTab === 'target'
-                ? 'border-indigo-500 text-indigo-400 md:bg-indigo-600 md:text-white md:shadow-md'
-                : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4] md:hover:bg-[#1C1C1F]'
+                ? 'font-bold'
+                : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4] hover:border-[#3D3D42]'
             }`}
           >
-            <Cpu className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span>Storage Dump</span>
+            <Cpu className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="whitespace-nowrap">Storage Dump</span>
           </button>
           <button
             onClick={() => setActiveTab('watchlist')}
-            className={`flex-1 py-1.5 sm:py-2.5 md:py-2 text-[10px] sm:text-xs md:text-sm font-semibold transition-all border-b-2 md:border-b-0 md:rounded-xl flex justify-center items-center gap-1 sm:gap-2 ${
+            style={activeTab === 'watchlist' ? { borderColor: 'var(--app-accent-hex)', color: 'var(--app-accent-hex)' } : undefined}
+            className={`flex-1 py-2 sm:py-2.5 px-1 sm:px-4 text-[10.5px] xs:text-xs md:text-sm font-semibold transition-all border-b-2 flex justify-center items-center gap-1 sm:gap-2 whitespace-nowrap ${
               activeTab === 'watchlist'
-                ? 'border-indigo-500 text-indigo-400 md:bg-indigo-600 md:text-white md:shadow-md'
-                : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4] md:hover:bg-[#1C1C1F]'
+                ? 'font-bold'
+                : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4] hover:border-[#3D3D42]'
             }`}
           >
-            <BookmarkPlus className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span>Profiles & Offsets</span>
+            <BookmarkPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="whitespace-nowrap">Profiles & Offsets</span>
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`flex-1 py-1.5 sm:py-2.5 md:py-2 text-[10px] sm:text-xs md:text-sm font-semibold transition-all border-b-2 md:border-b-0 md:rounded-xl flex justify-center items-center gap-1 sm:gap-2 ${
+            style={activeTab === 'history' ? { borderColor: 'var(--app-accent-hex)', color: 'var(--app-accent-hex)' } : undefined}
+            className={`flex-1 py-2 sm:py-2.5 px-1 sm:px-4 text-[10.5px] xs:text-xs md:text-sm font-semibold transition-all border-b-2 flex justify-center items-center gap-1 sm:gap-2 whitespace-nowrap ${
               activeTab === 'history'
-                ? 'border-indigo-500 text-indigo-400 md:bg-indigo-600 md:text-white md:shadow-md'
-                : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4] md:hover:bg-[#1C1C1F]'
+                ? 'font-bold'
+                : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4] hover:border-[#3D3D42]'
             }`}
           >
-            <History className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span>History</span>
+            <History className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="whitespace-nowrap">History</span>
           </button>
         </div>
       </div>

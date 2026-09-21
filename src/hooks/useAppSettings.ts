@@ -121,11 +121,17 @@ export function useAppSettings() {
     root.style.setProperty('--app-accent-hex', accent.hex);
     root.style.setProperty('--app-accent-rgb', accent.rgb);
 
-    // Card opacity
-    root.style.setProperty('--card-opacity', (settings.cardOpacity / 100).toString());
+    // CSS variables for atmosphere, blur & card/panel display
+    const opacityNorm = settings.cardOpacity / 100;
+    root.style.setProperty('--card-opacity', opacityNorm.toString());
+    root.style.setProperty('--panel-opacity', Math.max(0.3, opacityNorm * 0.9).toString());
+    root.style.setProperty('--header-opacity', Math.max(0.35, opacityNorm * 0.85).toString());
+    root.style.setProperty('--bg-blur', `${settings.bgBlur}px`);
+    root.style.setProperty('--glass-blur', `${settings.bgBlur}px`);
+    root.style.setProperty('--bg-dim', (settings.bgDim / 100).toString());
 
     // Enable custom translucent class if cardOpacity < 100 or custom background is set
-    if (settings.cardOpacity < 98 || settings.customBgImage) {
+    if (settings.cardOpacity < 100 || settings.customBgImage) {
       root.classList.add('custom-card-translucent');
     } else {
       root.classList.remove('custom-card-translucent');

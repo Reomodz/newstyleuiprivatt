@@ -395,7 +395,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
         </div>
 
         {/* REDESIGNED: Profile Target Select & Resolve Offsets Trigger Card */}
-        {cardViewSettings.showStorageProfileSelect !== false && (
+        {hasDumpCs && cardViewSettings.showStorageProfileSelect !== false && (
           <div className="bg-[#1E1E20] border border-[#2D2D32] hover:border-[#383840] rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-xl transition-all relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4">
             <div
               className="absolute left-0 top-0 bottom-0 w-[3px] transition-all"
@@ -451,12 +451,20 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
             <button
               onClick={handleScanProfile}
               disabled={isScanning || !activeProfile || targetCount === 0}
-              className={`flex items-center justify-center gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-[10px] sm:text-xs shadow-lg transition-all active:scale-[0.98] shrink-0 w-full sm:w-auto ${
+              style={
+                !isScanning && activeProfile && targetCount > 0
+                  ? {
+                      backgroundColor: 'var(--app-accent-hex)',
+                      boxShadow: '0 4px 16px rgba(var(--app-accent-rgb), 0.4)',
+                    }
+                  : undefined
+              }
+              className={`flex items-center justify-center gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-[10px] sm:text-xs shadow-lg transition-all active:scale-[0.98] shrink-0 w-full sm:w-auto hover:brightness-110 ${
                 isScanning
                   ? 'bg-amber-600/90 text-white cursor-wait animate-pulse'
                   : !activeProfile || targetCount === 0
                   ? 'bg-[#25252A] text-[#707075] border border-[#303035] cursor-not-allowed opacity-60'
-                  : 'bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-indigo-600/30 hover:shadow-indigo-600/40 border border-indigo-400/30'
+                  : 'text-white border border-white/20'
               }`}
             >
               {isScanning ? (
@@ -481,7 +489,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
       </div>
 
       {/* Storage Offset Resolution & Execution Log Card */}
-      {cardViewSettings.showScanLogCard && (
+      {hasDumpCs && cardViewSettings.showScanLogCard && (
         <>
           <div
             onClick={() => setIsLogModalOpen(true)}

@@ -222,7 +222,7 @@ export const App: React.FC = () => {
   return (
     <div
       className={`app-root-container flex flex-col h-screen w-screen overflow-hidden text-[#E2E2E4] relative transition-colors duration-300 ${
-        themeSettings.customBgImage
+        themeSettings.customBgImage || themeSettings.cardOpacity < 100
           ? 'bg-transparent'
           : themeSettings.themeMode === 'day'
           ? 'bg-[#F4F5F7]'
@@ -231,28 +231,27 @@ export const App: React.FC = () => {
           : 'bg-[#18181A]'
       }`}
     >
-      {/* Custom Wallpaper Layer (Blurred if set) */}
-      {themeSettings.customBgImage && (
-        <div
-          className="fixed inset-0 z-0 pointer-events-none transition-all duration-300 bg-cover bg-center bg-no-repeat overflow-hidden"
-          style={{
-            backgroundImage: `url(${themeSettings.customBgImage})`,
-            filter: `blur(${themeSettings.bgBlur}px)`,
-            transform: themeSettings.bgBlur > 0 ? 'scale(1.05)' : 'none',
-          }}
-        />
-      )}
+      {/* Atmosphere Backdrop / Custom Wallpaper Layer (Smooth GPU blur with overflow margin) */}
+      <div
+        className="fixed -inset-8 z-0 pointer-events-none transition-all duration-300 bg-cover bg-center bg-no-repeat overflow-hidden"
+        style={{
+          backgroundImage: themeSettings.customBgImage
+            ? `url(${themeSettings.customBgImage})`
+            : `radial-gradient(circle at 18% 18%, rgba(var(--app-accent-rgb), 0.16) 0%, transparent 45%), radial-gradient(circle at 82% 82%, rgba(var(--app-accent-rgb), 0.10) 0%, transparent 50%), radial-gradient(circle at 50% 50%, rgba(24, 24, 30, 0.7) 0%, #121215 100%)`,
+          filter: themeSettings.bgBlur > 0 ? `blur(${themeSettings.bgBlur}px)` : 'none',
+          transform: themeSettings.bgBlur > 0 ? 'scale(1.08)' : 'scale(1)',
+          willChange: 'filter, transform',
+        }}
+      />
 
-      {/* Pure Neutral Dark Dimming Overlay (No white haze) */}
-      {themeSettings.customBgImage && (
-        <div
-          className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-300"
-          style={{
-            backgroundColor: '#000000',
-            opacity: (themeSettings.bgDim * 0.75) / 100,
-          }}
-        />
-      )}
+      {/* Pure Neutral Dark Ambient Dimming Overlay */}
+      <div
+        className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-300"
+        style={{
+          backgroundColor: '#000000',
+          opacity: (themeSettings.bgDim * (themeSettings.customBgImage ? 0.75 : 0.55)) / 100,
+        }}
+      />
 
       {/* Header */}
       <div className="relative z-10">

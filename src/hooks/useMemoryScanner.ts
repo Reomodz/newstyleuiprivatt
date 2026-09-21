@@ -66,6 +66,9 @@ export function useMemoryScanner(initialHistory: ScanHistoryRecord[] = []) {
       addLog(`[INDEX] ${allClasses.length} total types mapped.`);
 
       let resolvedCount = 0;
+      const storageMeta = il2cppEngine.getStorageMeta();
+      const hasIl2cpp = Boolean(storageMeta.il2cppHFileName);
+
       const scannedItems: WatchlistTargetItem[] = activeProfile.items.map((item) => {
         // Direct Offset & Custom Target mode
         if (item.isCustom) {
@@ -80,6 +83,146 @@ export function useMemoryScanner(initialHistory: ScanHistoryRecord[] = []) {
             rvaHex: item.kind === 'METHOD' ? directOffset : undefined,
             lastScannedAt: Date.now(),
           };
+        }
+
+        const isCoreGroupTarget = Boolean(
+          item.isIl2cppSymbol ||
+          item.groupName === '. Core / GameFacade' ||
+          item.groupName?.startsWith('. Core') ||
+          item.assemblyName === 'il2cpp'
+        );
+
+        const customNameLower = (item.customName || '').trim().toLowerCase();
+        const memberNameLower = (item.memberName || '').trim().toLowerCase();
+        const symbolNameLower = (item.il2cppSymbolName || '').trim().toLowerCase();
+
+        // If it is a Core / IL2CPP Target, scan exclusively in il2cpp.h (skip dump.cs completely)
+        if (isCoreGroupTarget) {
+          // Check for InitBase (TypeInfo Base Address) / t_GameFacade_TypeInfo
+          const isInitBase =
+            customNameLower === 'initbase' ||
+            memberNameLower === 'initbase' ||
+            symbolNameLower === 'initbase' ||
+            memberNameLower.includes('typeinfo') ||
+            symbolNameLower.includes('typeinfo') ||
+            customNameLower.includes('typeinfo') ||
+            memberNameLower.includes('t_gamefacade');
+
+          if (isInitBase) {
+            const baseHex = storageMeta.baseAddressHex && storageMeta.baseAddressHex !== '0x0'
+              ? storageMeta.baseAddressHex
+              : item.defaultOffset;
+
+            if (baseHex && baseHex !== '0x0') {
+              resolvedCount++;
+              addLog(`[IL2CPP] "${item.customName || item.memberName || 'InitBase'}" -> Base Address: ${baseHex}`, 'success');
+              return {
+                ...item,
+                resolved: true,
+                resolvedViaFallback: false,
+                assemblyName: 'il2cpp',
+                resolvedAssemblyName: 'il2cpp',
+                resolvedClassName: item.className || 'GameFacade',
+                resolvedMemberName: item.memberName || 't_GameFacade_TypeInfo',
+                offsetHex: baseHex,
+                rvaHex: baseHex,
+                comment: item.comment && !item.comment.includes('missing il2cpp') ? item.comment : 'TypeInfo Base Address',
+                lastScannedAt: Date.now(),
+              };
+            } else {
+              addLog(`[IL2CPP] "${item.customName || item.memberName || 'InitBase'}" -> // missing il2cpp (Upload il2cpp.h for TypeInfo)`, 'warn');
+              return {
+                ...item,
+                resolved: false,
+                resolvedViaFallback: false,
+                assemblyName: 'il2cpp',
+                resolvedAssemblyName: 'il2cpp',
+                resolvedClassName: item.className || 'GameFacade',
+                resolvedMemberName: item.memberName || 't_GameFacade_TypeInfo',
+                offsetHex: '0x0',
+                rvaHex: '0x0',
+                comment: '// missing il2cpp',
+                lastScannedAt: Date.now(),
+              };
+            }
+          }
+
+          // Check for StaticClass (Static Field Offset) / IL2CPP_STATIC_FIELDS_OFFSET
+          const isStaticClass =
+            customNameLower === 'staticclass' ||
+            memberNameLower === 'staticclass' ||
+            symbolNameLower === 'staticclass' ||
+            memberNameLower.includes('static_field') ||
+            symbolNameLower.includes('static_field') ||
+            memberNameLower.includes('staticfield') ||
+            symbolNameLower.includes('staticfield') ||
+            customNameLower.includes('static');
+
+          if (isStaticClass) {
+            const staticOffset = storageMeta.staticFieldsOffsetHex || item.defaultOffset || (hasIl2cpp ? '0xB8' : undefined);
+            if (staticOffset) {
+              resolvedCount++;
+              addLog(`[IL2CPP] "${item.customName || item.memberName || 'StaticClass'}" -> Static Field Offset: ${staticOffset}`, 'success');
+              return {
+                ...item,
+                resolved: true,
+                resolvedViaFallback: false,
+                assemblyName: 'il2cpp',
+                resolvedAssemblyName: 'il2cpp',
+                resolvedClassName: item.className || 'GameFacade',
+                resolvedMemberName: item.memberName || 'IL2CPP_STATIC_FIELDS_OFFSET',
+                offsetHex: staticOffset,
+                rvaHex: staticOffset,
+                comment: item.comment && !item.comment.includes('missing il2cpp') ? item.comment : 'Static Field Offset',
+                lastScannedAt: Date.now(),
+              };
+            } else {
+              addLog(`[IL2CPP] "${item.customName || item.memberName || 'StaticClass'}" -> // missing il2cpp (Upload il2cpp.h for static field offset)`, 'warn');
+              return {
+                ...item,
+                resolved: false,
+                resolvedViaFallback: false,
+                assemblyName: 'il2cpp',
+                resolvedAssemblyName: 'il2cpp',
+                resolvedClassName: item.className || 'GameFacade',
+                resolvedMemberName: item.memberName || 'IL2CPP_STATIC_FIELDS_OFFSET',
+                offsetHex: '0x0',
+                rvaHex: '0x0',
+                comment: '// missing il2cpp',
+                lastScannedAt: Date.now(),
+              };
+            }
+          }
+
+          // Any other symbol in Core / IL2CPP Group
+          const customIl2cppOffset = item.defaultOffset || (hasIl2cpp ? '0x0' : undefined);
+          if (customIl2cppOffset && customIl2cppOffset !== '0x0') {
+            resolvedCount++;
+            addLog(`[IL2CPP] "${item.customName || item.memberName}" -> Offset: ${customIl2cppOffset}`, 'success');
+            return {
+              ...item,
+              resolved: true,
+              resolvedViaFallback: false,
+              assemblyName: 'il2cpp',
+              resolvedAssemblyName: 'il2cpp',
+              offsetHex: customIl2cppOffset,
+              rvaHex: customIl2cppOffset,
+              lastScannedAt: Date.now(),
+            };
+          } else {
+            addLog(`[IL2CPP] "${item.customName || item.memberName}" -> // missing il2cpp or offset`, 'warn');
+            return {
+              ...item,
+              resolved: false,
+              resolvedViaFallback: false,
+              assemblyName: 'il2cpp',
+              resolvedAssemblyName: 'il2cpp',
+              offsetHex: '0x0',
+              rvaHex: '0x0',
+              comment: item.comment || '// missing il2cpp',
+              lastScannedAt: Date.now(),
+            };
+          }
         }
 
         const candidateClasses = [

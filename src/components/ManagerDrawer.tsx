@@ -79,11 +79,9 @@ export const ManagerDrawer: React.FC<ManagerDrawerProps> = ({
       <div
         className="pointer-events-auto w-[90vw] sm:w-[350px] border-l border-white/10 h-full flex flex-col justify-between text-[#E2E2E4] shadow-2xl transition-all duration-200 relative z-10 overflow-hidden"
         style={{
-          backgroundColor: settings.customBgImage
-            ? `rgba(20, 20, 24, ${Math.max(0.35, (settings.cardOpacity / 100) * 0.65)})`
-            : 'rgba(22, 22, 25, 0.95)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
+          backgroundColor: `rgba(18, 18, 22, ${Math.max(0.35, (settings.cardOpacity / 100) * (settings.customBgImage ? 0.75 : 0.88))})`,
+          backdropFilter: settings.bgBlur > 0 ? `blur(${settings.bgBlur}px)` : 'none',
+          WebkitBackdropFilter: settings.bgBlur > 0 ? `blur(${settings.bgBlur}px)` : 'none',
         }}
       >
         {/* Dynamic Accent Left Line */}
@@ -99,7 +97,7 @@ export const ManagerDrawer: React.FC<ManagerDrawerProps> = ({
         <div
           className="flex items-center justify-between px-3.5 py-3 border-b border-white/10 shrink-0"
           style={{
-            backgroundColor: settings.customBgImage ? 'rgba(20, 20, 24, 0.4)' : 'rgba(18, 18, 20, 0.8)',
+            backgroundColor: `rgba(16, 16, 20, ${Math.max(0.4, (settings.cardOpacity / 100) * 0.85)})`,
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
           }}
@@ -361,7 +359,7 @@ export const ManagerDrawer: React.FC<ManagerDrawerProps> = ({
         <div
           className="px-3.5 py-2.5 border-t border-white/10 flex items-center justify-between shrink-0"
           style={{
-            backgroundColor: settings.customBgImage ? 'rgba(20, 20, 24, 0.45)' : 'rgba(18, 18, 20, 0.8)',
+            backgroundColor: `rgba(16, 16, 20, ${Math.max(0.4, (settings.cardOpacity / 100) * 0.85)})`,
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
           }}

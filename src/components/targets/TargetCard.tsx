@@ -248,7 +248,7 @@ export const TargetCard: React.FC<TargetCardProps> = React.memo(({
             </button>
           )}
 
-          {item.groupName && (
+          {item.groupName && item.groupName !== '. Core / GameFacade' && !item.groupName.startsWith('. Core') && !item.isIl2cppSymbol && (
             <button
               type="button"
               onClick={(e) => {

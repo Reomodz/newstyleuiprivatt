@@ -150,7 +150,59 @@ export const TargetDetailModal: React.FC<TargetDetailModalProps> = ({
         <div className="p-2.5 sm:p-3.5 flex-1 overflow-y-auto space-y-2.5 overscroll-contain text-[10px] sm:text-xs pr-1.5">
           
           {/* Target Assembly, Class & Method/Field Details */}
-          {viewingTargetItem.isCustom ? (
+          {(viewingTargetItem.isIl2cppSymbol || viewingTargetItem.groupName === '. Core / GameFacade' || viewingTargetItem.groupName?.startsWith('. Core')) ? (
+            <div className="p-2.5 sm:p-3 rounded-lg sm:rounded-xl bg-[#141417] border border-[#27272B] space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-purple-400 font-bold text-xs sm:text-sm flex items-center gap-1.5">
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span>IL2CPP Core Target</span>
+                </span>
+                <span className="px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-mono bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                  il2cpp.h Symbol
+                </span>
+              </div>
+
+              {/* Assembly: il2cpp */}
+              <div className="flex flex-col gap-0.5 p-2 rounded-lg bg-[#18181C] border border-[#26262B]">
+                <div className="flex items-center justify-between">
+                  <span className="text-[#8E8E93] uppercase text-[8px] sm:text-[9px] font-semibold tracking-wider flex items-center gap-1">
+                    <span>Source Assembly / Module</span>
+                  </span>
+                  <span className="text-[8px] sm:text-[9px] text-[#71717A] font-mono">il2cpp</span>
+                </div>
+                <span className="text-indigo-300 font-mono text-[10px] sm:text-xs font-semibold truncate select-all">
+                  il2cpp
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] sm:text-xs">
+                {/* Target / Custom Name */}
+                <div className="flex flex-col gap-0.5 p-2 rounded-lg bg-[#18181C] border border-[#26262B]">
+                  <span className="text-[#8E8E93] uppercase text-[8px] sm:text-[9px] font-semibold tracking-wider">Target Name</span>
+                  <span className="text-[#F4F4F5] font-semibold text-[11px] sm:text-xs truncate">
+                    {viewingTargetItem.customName || viewingTargetItem.memberName || 'Core Symbol'}
+                  </span>
+                </div>
+
+                {/* IL2CPP Symbol String */}
+                <div className="flex flex-col gap-0.5 p-2 rounded-lg bg-[#18181C] border border-[#26262B]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#8E8E93] uppercase text-[8px] sm:text-[9px] font-semibold tracking-wider">IL2CPP Symbol</span>
+                    <button
+                      onClick={() => handleCopy(viewingTargetItem.il2cppSymbolName || viewingTargetItem.memberName || '', 'IL2CPP Symbol', 'il2cpp')}
+                      className="text-[#A1A1AA] hover:text-sky-300 transition-colors p-0.5"
+                      title="Copy IL2CPP Symbol"
+                    >
+                      {copiedKey === 'il2cpp' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    </button>
+                  </div>
+                  <span className="text-sky-300 font-mono text-[10px] sm:text-xs font-bold truncate select-all">
+                    {viewingTargetItem.il2cppSymbolName || viewingTargetItem.memberName || 'IL2CPP_STATIC_FIELDS_OFFSET'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : viewingTargetItem.isCustom ? (
             <div className="p-2.5 sm:p-3 rounded-lg sm:rounded-xl bg-[#141417] border border-[#27272B] space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-indigo-400 font-bold text-xs sm:text-sm flex items-center gap-1.5">

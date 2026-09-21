@@ -122,8 +122,10 @@ export function generateFullProfileCode(
   const lines = profile.items
     .map((item) => {
       const line = formatTargetCodeSnippet(item, preset, customTemplate);
-      const note = item.comment ? ` // ${item.comment}` : '';
-      return `    ${line}${preset === 'cpp_constexpr' || preset === 'cs_const' ? (item.comment ? note : '') : ''}`;
+      const rawComment = (item.comment || '').trim();
+      const cleanComment = rawComment.replace(/^(\/\/\s*)+/, '').trim();
+      const note = cleanComment ? ` // ${cleanComment}` : '';
+      return `    ${line}${preset === 'cpp_constexpr' || preset === 'cs_const' || preset === 'cheat_engine' ? note : ''}`;
     })
     .join('\n');
 
@@ -202,8 +204,10 @@ export function generateScanHistoryCode(
   const lines = targetItems
     .map((item) => {
       const line = formatTargetCodeSnippet(item, preset, customTemplate);
-      const note = item.comment ? ` // ${item.comment}` : '';
-      return `    ${line}${preset === 'cpp_constexpr' || preset === 'cs_const' ? (item.comment ? note : '') : ''}`;
+      const rawComment = (item.comment || '').trim();
+      const cleanComment = rawComment.replace(/^(\/\/\s*)+/, '').trim();
+      const note = cleanComment ? ` // ${cleanComment}` : '';
+      return `    ${line}${preset === 'cpp_constexpr' || preset === 'cs_const' || preset === 'cheat_engine' ? note : ''}`;
     })
     .join('\n');
 

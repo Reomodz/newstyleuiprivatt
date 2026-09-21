@@ -46,6 +46,7 @@ export const AddTargetModal: React.FC<AddTargetModalProps> = ({
   newTargetCustomName, setNewTargetCustomName,
   newTargetIsCustom = false, setNewTargetIsCustom,
   newTargetDefaultOffset = '', setNewTargetDefaultOffset,
+  newTargetGroupName = '',
   newTargetAssemblyName, setNewTargetAssemblyName,
   newTargetClassName, setNewTargetClassName,
   newTargetMemberName, setNewTargetMemberName, newTargetComment, setNewTargetComment,
@@ -55,7 +56,14 @@ export const AddTargetModal: React.FC<AddTargetModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const isFormValid = newTargetIsCustom
+  const isIl2cppTarget = Boolean(
+    newTargetGroupName === '. Core / GameFacade' ||
+    newTargetGroupName?.startsWith('. Core')
+  );
+
+  const isFormValid = isIl2cppTarget
+    ? Boolean(newTargetMemberName.trim() || newTargetCustomName.trim())
+    : newTargetIsCustom
     ? Boolean(newTargetCustomName.trim() && newTargetDefaultOffset.trim())
     : Boolean(newTargetClassName.trim() && newTargetMemberName.trim());
 
@@ -70,37 +78,48 @@ export const AddTargetModal: React.FC<AddTargetModalProps> = ({
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <h3 className="text-xs sm:text-sm font-bold text-[#E2E2E4] truncate">Add Target</h3>
+                <h3 className="text-xs sm:text-sm font-bold text-[#E2E2E4] truncate">
+                  {isIl2cppTarget ? 'Add IL2CPP Core Target' : 'Add Target'}
+                </h3>
                 <span className={`text-[8.5px] sm:text-[9.5px] font-mono font-semibold px-1.5 py-0.2 rounded border ${
-                  newTargetIsCustom
+                  isIl2cppTarget
+                    ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                    : newTargetIsCustom
                     ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
                     : 'bg-[#222226] text-[#A0A0A5] border-[#353538]'
                 }`}>
-                  {newTargetIsCustom ? 'Direct Offset' : 'IL2CPP Scan'}
+                  {isIl2cppTarget ? 'IL2CPP Scan' : newTargetIsCustom ? 'Direct Offset' : 'Dump.cs Scan'}
                 </span>
               </div>
               <p className="text-[10px] text-[#8E8E93] truncate">
                 Profile: <span className="text-indigo-300 font-semibold">{activeProfile?.name || 'Active'}</span>
+                {newTargetGroupName && (
+                  <span className="text-[#8E8E93] ml-1">
+                    • Group: <span className="text-purple-300 font-semibold">{newTargetGroupName}</span>
+                  </span>
+                )}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
             {/* Logo on top left side of X close button to toggle Direct Offset mode with one click */}
-            <button
-              type="button"
-              id="btn-toggle-direct-offset-header"
-              onClick={() => setNewTargetIsCustom?.(!newTargetIsCustom)}
-              title={newTargetIsCustom ? "Direct Offset Mode Active (Click to switch to Standard Scan)" : "Switch to Direct Offset Mode"}
-              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] sm:text-xs font-semibold border transition-all ${
-                newTargetIsCustom
-                  ? 'bg-indigo-600/25 text-indigo-300 border-indigo-500/50 shadow-sm'
-                  : 'bg-[#262629] hover:bg-[#323236] text-[#A0A0A5] hover:text-white border-[#353538]'
-              }`}
-            >
-              <Sliders className="w-3.5 h-3.5 text-indigo-400" />
-              <span>{newTargetIsCustom ? 'Direct Mode' : 'Direct Mode'}</span>
-            </button>
+            {!isIl2cppTarget && (
+              <button
+                type="button"
+                id="btn-toggle-direct-offset-header"
+                onClick={() => setNewTargetIsCustom?.(!newTargetIsCustom)}
+                title={newTargetIsCustom ? "Direct Offset Mode Active (Click to switch to Standard Scan)" : "Switch to Direct Offset Mode"}
+                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] sm:text-xs font-semibold border transition-all ${
+                  newTargetIsCustom
+                    ? 'bg-indigo-600/25 text-indigo-300 border-indigo-500/50 shadow-sm'
+                    : 'bg-[#262629] hover:bg-[#323236] text-[#A0A0A5] hover:text-white border-[#353538]'
+                }`}
+              >
+                <Sliders className="w-3.5 h-3.5 text-indigo-400" />
+                <span>{newTargetIsCustom ? 'Direct Mode' : 'Direct Mode'}</span>
+              </button>
+            )}
 
             <button
               type="button"
@@ -114,7 +133,84 @@ export const AddTargetModal: React.FC<AddTargetModalProps> = ({
 
         {/* Scrollable Modal Body */}
         <div className="p-2.5 sm:p-3.5 flex-1 overflow-y-auto space-y-2.5 sm:space-y-3 overscroll-contain pr-1.5">
-          {newTargetIsCustom ? (
+          {isIl2cppTarget ? (
+            /* SPECIAL IL2CPP CORE TARGET MODE (. Core / GameFacade) */
+            <div className="space-y-2.5 sm:space-y-3 animate-in fade-in duration-200">
+              {/* Assembly Badge / Info */}
+              <div className="flex items-center justify-between p-2 rounded-lg bg-[#141416] border border-[#2D2D32]">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] sm:text-[10px] text-[#8E8E93] font-medium">Source Header:</span>
+                  <span className="px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-300 font-mono text-[9px] sm:text-[10px] font-bold border border-indigo-500/30">
+                    il2cpp
+                  </span>
+                </div>
+                <span className="text-[8.5px] sm:text-[9.5px] font-mono text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded border border-purple-500/20">
+                  . Core / GameFacade
+                </span>
+              </div>
+
+              {/* Custom Display Label */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] sm:text-[10px] font-medium text-[#E2E2E4] ml-0.5 flex items-center justify-between">
+                  <span>Custom Target Name</span>
+                  <span className="text-[8px] sm:text-[9px] text-[#8E8E93]">Display & Export Label</span>
+                </label>
+                <input
+                  type="text"
+                  value={newTargetCustomName}
+                  onChange={(e) => setNewTargetCustomName(e.target.value)}
+                  placeholder="e.g. InitBase, StaticClass, PlayerTypeInfo"
+                  className="w-full px-2 sm:px-3 py-1.5 sm:py-2 bg-[#141416] border border-[#353538] focus:border-indigo-500 rounded-lg sm:rounded-xl text-[10px] sm:text-xs text-[#E2E2E4] focus:outline-none font-mono placeholder:text-[#55555A]"
+                  autoFocus
+                />
+              </div>
+
+              {/* Single IL2CPP Field Name / Symbol String */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] sm:text-[10px] font-medium text-[#E2E2E4] ml-0.5 flex items-center justify-between">
+                  <span>IL2CPP Symbol / Field Name <span className="text-red-400">*</span></span>
+                  <span className="text-[8.5px] sm:text-[9px] text-indigo-300 font-mono">from il2cpp.h</span>
+                </label>
+                <input
+                  type="text"
+                  value={newTargetMemberName}
+                  onChange={(e) => setNewTargetMemberName(e.target.value)}
+                  placeholder="e.g. IL2CPP_STATIC_FIELDS_OFFSET or t_GameFacade_TypeInfo"
+                  className="w-full px-2 sm:px-3 py-1.5 sm:py-2 bg-[#141416] border border-[#353538] focus:border-indigo-500 rounded-lg sm:rounded-xl text-[10px] sm:text-xs text-sky-300 focus:outline-none font-mono placeholder:text-[#55555A]"
+                />
+              </div>
+
+              {/* Default / Fallback Offset (Hex) */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] sm:text-[10px] font-medium text-[#8E8E93] ml-0.5 flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <Hash className="w-3 h-3 text-emerald-400" />
+                    <span>Default / Known Offset (Hex) (Optional)</span>
+                  </span>
+                  <span className="text-[8.5px] sm:text-[9px] text-[#8E8E93] font-mono">e.g. 0xB8</span>
+                </label>
+                <input
+                  type="text"
+                  value={newTargetDefaultOffset}
+                  onChange={(e) => setNewTargetDefaultOffset?.(e.target.value)}
+                  placeholder="e.g. 0xB8 or leave blank to scan il2cpp.h"
+                  className="w-full px-2 sm:px-3 py-1.5 sm:py-2 bg-[#141416] border border-[#353538] focus:border-emerald-500 rounded-lg sm:rounded-xl text-[10px] sm:text-xs text-emerald-300 focus:outline-none font-mono placeholder:text-[#55555A]"
+                />
+              </div>
+
+              {/* Comment / Notes */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] sm:text-[10px] font-medium text-[#8E8E93] ml-0.5">Comment / Notes (Optional)</label>
+                <input
+                  type="text"
+                  value={newTargetComment}
+                  onChange={(e) => setNewTargetComment(e.target.value)}
+                  placeholder="e.g. TypeInfo Base Address or Static Field Offset"
+                  className="w-full px-2 sm:px-3 py-1.5 sm:py-2 bg-[#141416] border border-[#353538] rounded-lg sm:rounded-xl text-[10px] sm:text-xs text-[#E2E2E4] focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+            </div>
+          ) : newTargetIsCustom ? (
             /* DIRECT OFFSET MODE: Assembly, Namespace, Class, Member & Fallbacks are hidden */
             <div className="space-y-2.5 sm:space-y-3 animate-in fade-in duration-200">
               {/* Custom Target Name (Required in direct mode) */}

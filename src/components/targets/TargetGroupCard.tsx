@@ -53,12 +53,13 @@ export const TargetGroupCard: React.FC<TargetGroupCardProps> = ({
   children,
 }) => {
   const isNamedGroup = Boolean(group.groupName);
+  const isCoreGroup = group.groupName === '. Core / GameFacade' || group.groupName?.startsWith('. Core');
 
   return (
     <div
-      onDragOver={onGroupDragOver}
-      onDragLeave={onGroupDragLeave}
-      onDrop={onGroupDrop}
+      onDragOver={isCoreGroup ? undefined : onGroupDragOver}
+      onDragLeave={isCoreGroup ? undefined : onGroupDragLeave}
+      onDrop={isCoreGroup ? undefined : onGroupDrop}
       className={`group/groupcard rounded-xl sm:rounded-2xl border transition-all ${
         isBeingDragged
           ? 'opacity-35 scale-[0.99] border-dashed border-purple-500/70 bg-purple-950/20'
@@ -66,7 +67,7 @@ export const TargetGroupCard: React.FC<TargetGroupCardProps> = ({
           ? dragOverGroupPosition === 'before'
             ? 'border-t-2 border-t-purple-500 border-[#3A3A40] bg-[#1A1A1E] shadow-[0_-6px_20px_rgba(168,85,247,0.3)]'
             : 'border-b-2 border-b-purple-500 border-[#3A3A40] bg-[#1A1A1E] shadow-[0_6px_20px_rgba(168,85,247,0.3)]'
-          : isTargetDragOver
+          : isTargetDragOver && !isCoreGroup
           ? 'border-indigo-500 bg-indigo-950/20 shadow-lg shadow-indigo-500/10 ring-1 ring-indigo-500/40'
           : 'border-[#2D2D30] bg-[#161618] hover:border-[#3A3A40]'
       } overflow-hidden p-2.5 sm:p-3.5 flex flex-col gap-2.5`}
@@ -93,13 +94,22 @@ export const TargetGroupCard: React.FC<TargetGroupCardProps> = ({
             onClick={onToggleCollapse}
             className="flex items-center gap-2 text-left min-w-0 flex-1 hover:text-indigo-300 transition-colors group/gtitle ml-0.5"
           >
-            <div className="p-1 rounded-lg bg-[#202024] text-purple-400 border border-[#2F2F35] shrink-0">
+            <div className={`p-1 rounded-lg border shrink-0 ${
+              isCoreGroup
+                ? 'bg-purple-500/10 text-purple-400 border-purple-500/25'
+                : 'bg-[#202024] text-purple-400 border-[#2F2F35]'
+            }`}>
               {isCollapsed ? <Folder className="w-3.5 h-3.5" /> : <FolderOpen className="w-3.5 h-3.5" />}
             </div>
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="text-xs sm:text-sm font-bold text-[#E2E2E4] group-hover/gtitle:text-indigo-200 truncate">
                 {group.groupName ? group.groupName : 'Ungrouped Targets'}
               </span>
+              {isCoreGroup && (
+                <span className="text-[8px] sm:text-[9px] font-mono px-1 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                  il2cpp
+                </span>
+              )}
               <span className="text-[9px] sm:text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#242428] text-[#8E8E93] border border-[#323238] shrink-0">
                 {group.totalCount}
               </span>
@@ -116,34 +126,44 @@ export const TargetGroupCard: React.FC<TargetGroupCardProps> = ({
         <div className="flex items-center gap-1.5 shrink-0">
           {isNamedGroup ? (
             <>
-              {/* Make Subgroup button */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMakeSubgroup();
-                }}
-                className="flex items-center gap-1 px-1.5 py-0.5 text-[9.5px] sm:text-[10.5px] font-semibold text-sky-300 hover:text-white bg-sky-600/20 hover:bg-sky-600/30 border border-sky-500/30 rounded-md transition-colors shrink-0 active:scale-95"
-                title={`Make a Subgroup inside ${group.groupName}`}
-              >
-                <Layers className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-sky-400" />
-                <span className="hidden sm:inline">Make Subgroup</span>
-                <span className="sm:hidden">Subgroup</span>
-              </button>
+              {/* Make Subgroup button - hidden for Core group */}
+              {!isCoreGroup && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMakeSubgroup();
+                  }}
+                  className="flex items-center gap-1 px-1.5 py-0.5 text-[9.5px] sm:text-[10.5px] font-semibold text-sky-300 hover:text-white bg-sky-600/20 hover:bg-sky-600/30 border border-sky-500/30 rounded-md transition-colors shrink-0 active:scale-95"
+                  title={`Make a Subgroup inside ${group.groupName}`}
+                >
+                  <Layers className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-sky-400" />
+                  <span className="hidden sm:inline">Make Subgroup</span>
+                  <span className="sm:hidden">Subgroup</span>
+                </button>
+              )}
 
-              {/* Add Target Button */}
+              {/* Add Target Button: For Core Group, directly opens special IL2CPP Target modal */}
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onAddTargetsToGroup();
+                  if (isCoreGroup) {
+                    onOpenAddNewTarget();
+                  } else {
+                    onAddTargetsToGroup();
+                  }
                 }}
-                className="flex items-center gap-1 px-1.5 py-0.5 text-[9.5px] sm:text-[10.5px] font-semibold text-indigo-300 hover:text-white bg-indigo-600/20 hover:bg-indigo-600/35 border border-indigo-500/30 hover:border-indigo-500/50 rounded-md transition-colors shrink-0 active:scale-95 shadow-sm"
-                title={`Add targets to ${group.groupName}`}
+                className={`flex items-center gap-1 px-1.5 py-0.5 text-[9.5px] sm:text-[10.5px] font-semibold rounded-md transition-colors shrink-0 active:scale-95 shadow-sm border ${
+                  isCoreGroup
+                    ? 'text-purple-300 hover:text-white bg-purple-600/20 hover:bg-purple-600/35 border-purple-500/30 hover:border-purple-500/50'
+                    : 'text-indigo-300 hover:text-white bg-indigo-600/20 hover:bg-indigo-600/35 border-indigo-500/30 hover:border-indigo-500/50'
+                }`}
+                title={isCoreGroup ? `Add new IL2CPP Target to ${group.groupName}` : `Add targets to ${group.groupName}`}
               >
-                <Plus className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-indigo-400" />
+                <Plus className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${isCoreGroup ? 'text-purple-400' : 'text-indigo-400'}`} />
                 <span>Target</span>
-                {ungroupedTargetsCount > 0 && (
+                {!isCoreGroup && ungroupedTargetsCount > 0 && (
                   <span className="text-[8px] font-mono px-0.5 rounded bg-indigo-500/25 text-indigo-300">
                     {ungroupedTargetsCount}
                   </span>
@@ -151,7 +171,7 @@ export const TargetGroupCard: React.FC<TargetGroupCardProps> = ({
               </button>
 
               {/* Delete empty group button */}
-              {group.totalCount === 0 && (
+              {group.totalCount === 0 && !isCoreGroup && (
                 <button
                   type="button"
                   onClick={(e) => {

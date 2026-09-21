@@ -204,6 +204,8 @@ export interface WatchlistTargetItem {
   isStatic?: boolean;
   valueType?: string;
   isCustom?: boolean;
+  isIl2cppSymbol?: boolean;
+  il2cppSymbolName?: string;
   defaultOffset?: string;
 }
 

@@ -51,7 +51,15 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
 }) => {
   if (!isOpen || !editingTargetItem) return null;
 
-  const isFormValid = editTargetIsCustom
+  const isIl2cppTarget = Boolean(
+    editingTargetItem.isIl2cppSymbol ||
+    editingTargetItem.groupName === '. Core / GameFacade' ||
+    editingTargetItem.groupName?.startsWith('. Core')
+  );
+
+  const isFormValid = isIl2cppTarget
+    ? Boolean(editTargetMemberName.trim() || editTargetCustomName.trim())
+    : editTargetIsCustom
     ? Boolean(editTargetCustomName.trim() && editTargetDefaultOffset.trim())
     : Boolean(editTargetClassName.trim() && editTargetMemberName.trim());
 
@@ -65,15 +73,21 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
               <Pencil className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
               <span className="truncate">Edit Target</span>
             </h3>
-            <span
-              className={`text-[8px] sm:text-[10px] font-mono font-semibold px-1.5 py-0.2 rounded border ${
-                editTargetKind === 'FIELD'
-                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                  : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-              }`}
-            >
-              {editTargetKind === 'FIELD' ? 'FIELD' : 'METHOD'}
-            </span>
+            {isIl2cppTarget ? (
+              <span className="text-[8px] sm:text-[10px] font-mono font-semibold px-1.5 py-0.2 rounded border bg-purple-500/20 text-purple-300 border-purple-500/30">
+                IL2CPP Scan
+              </span>
+            ) : (
+              <span
+                className={`text-[8px] sm:text-[10px] font-mono font-semibold px-1.5 py-0.2 rounded border ${
+                  editTargetKind === 'FIELD'
+                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                    : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                }`}
+              >
+                {editTargetKind === 'FIELD' ? 'FIELD' : 'METHOD'}
+              </span>
+            )}
           </div>
 
           {/* Next / Back navigation in Edit modal */}
@@ -127,7 +141,84 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
 
         {/* Scrollable Modal Body */}
         <div className="p-2.5 sm:p-3.5 flex-1 overflow-y-auto space-y-2 sm:space-y-2.5 overscroll-contain pr-1.5">
-          {editTargetIsCustom ? (
+          {isIl2cppTarget ? (
+            /* SPECIAL IL2CPP CORE TARGET MODE (. Core / GameFacade) */
+            <div className="space-y-2.5 sm:space-y-3 animate-in fade-in duration-200">
+              {/* Assembly Badge / Info */}
+              <div className="flex items-center justify-between p-2 rounded-lg bg-[#141416] border border-[#2D2D32]">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] sm:text-[10px] text-[#8E8E93] font-medium">Source Header:</span>
+                  <span className="px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-300 font-mono text-[9px] sm:text-[10px] font-bold border border-indigo-500/30">
+                    il2cpp
+                  </span>
+                </div>
+                <span className="text-[8.5px] sm:text-[9.5px] font-mono text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded border border-purple-500/20">
+                  . Core / GameFacade
+                </span>
+              </div>
+
+              {/* Custom Display Label */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] sm:text-[10px] font-medium text-[#E2E2E4] ml-0.5 flex items-center justify-between">
+                  <span>Custom Target Name</span>
+                  <span className="text-[8px] sm:text-[9px] text-[#8E8E93]">Display & Export Label</span>
+                </label>
+                <input
+                  type="text"
+                  value={editTargetCustomName}
+                  onChange={(e) => setEditTargetCustomName(e.target.value)}
+                  placeholder="e.g. InitBase, StaticClass, PlayerTypeInfo"
+                  className="w-full px-2 sm:px-3 py-1.5 sm:py-2 bg-[#141416] border border-[#353538] focus:border-indigo-500 rounded-lg sm:rounded-xl text-[10px] sm:text-xs text-[#E2E2E4] focus:outline-none font-mono placeholder:text-[#55555A]"
+                  autoFocus
+                />
+              </div>
+
+              {/* Single IL2CPP Field Name / Symbol String */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] sm:text-[10px] font-medium text-[#E2E2E4] ml-0.5 flex items-center justify-between">
+                  <span>IL2CPP Symbol / Field Name <span className="text-red-400">*</span></span>
+                  <span className="text-[8.5px] sm:text-[9px] text-indigo-300 font-mono">from il2cpp.h</span>
+                </label>
+                <input
+                  type="text"
+                  value={editTargetMemberName}
+                  onChange={(e) => setEditTargetMemberName(e.target.value)}
+                  placeholder="e.g. IL2CPP_STATIC_FIELDS_OFFSET or t_GameFacade_TypeInfo"
+                  className="w-full px-2 sm:px-3 py-1.5 sm:py-2 bg-[#141416] border border-[#353538] focus:border-indigo-500 rounded-lg sm:rounded-xl text-[10px] sm:text-xs text-sky-300 focus:outline-none font-mono placeholder:text-[#55555A]"
+                />
+              </div>
+
+              {/* Default / Fallback Offset (Hex) */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] sm:text-[10px] font-medium text-[#8E8E93] ml-0.5 flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <Hash className="w-3 h-3 text-emerald-400" />
+                    <span>Default / Known Offset (Hex) (Optional)</span>
+                  </span>
+                  <span className="text-[8.5px] sm:text-[9px] text-[#8E8E93] font-mono">e.g. 0xB8</span>
+                </label>
+                <input
+                  type="text"
+                  value={editTargetDefaultOffset}
+                  onChange={(e) => setEditTargetDefaultOffset?.(e.target.value)}
+                  placeholder="e.g. 0xB8 or leave blank to scan il2cpp.h"
+                  className="w-full px-2 sm:px-3 py-1.5 sm:py-2 bg-[#141416] border border-[#353538] focus:border-emerald-500 rounded-lg sm:rounded-xl text-[10px] sm:text-xs text-emerald-300 focus:outline-none font-mono placeholder:text-[#55555A]"
+                />
+              </div>
+
+              {/* Comment / Notes */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] sm:text-[10px] font-medium text-[#8E8E93] ml-0.5">Comment / Notes (Optional)</label>
+                <input
+                  type="text"
+                  value={editTargetComment}
+                  onChange={(e) => setEditTargetComment(e.target.value)}
+                  placeholder="e.g. TypeInfo Base Address or Static Field Offset"
+                  className="w-full px-2 sm:px-3 py-1.5 sm:py-2 bg-[#141416] border border-[#353538] rounded-lg sm:rounded-xl text-[10px] sm:text-xs text-[#E2E2E4] focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+            </div>
+          ) : editTargetIsCustom ? (
             /* DIRECT OFFSET MODE: Assembly, Namespace, Class, Member & Fallbacks are hidden */
             <div className="space-y-2.5 sm:space-y-3 animate-in fade-in duration-200">
               {/* Custom Target Name (Required in direct mode) */}
