@@ -149,12 +149,26 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
-/* Storage dump workspace, profile cards, and all primary cards: solid & consistent */
+/* Storage dump workspace, profile cards, target cards, group cards, and all primary cards */
 .has-custom-bg .bg-\[\#1E1E20\],
 .has-custom-bg .bg-\[\#1C1C1E\],
+.has-custom-bg .bg-\[\#1C1C20\],
 .has-custom-bg .bg-\[\#202020\],
 .has-custom-bg .bg-\[\#202022\],
-.has-custom-bg .bg-\[\#18181B\] {
+.has-custom-bg .bg-\[\#202024\],
+.has-custom-bg .bg-\[\#18181A\],
+.has-custom-bg .bg-\[\#18181B\],
+.has-custom-bg .bg-\[\#18181C\],
+.has-custom-bg .bg-\[\#161618\],
+.has-custom-bg .bg-\[\#17171A\],
+.has-custom-bg .bg-\[\#1A1A1E\],
+.has-custom-bg .bg-\[\#1A1A1D\],
+.has-custom-bg .bg-\[\#1E1E22\],
+.has-custom-bg .bg-\[\#222226\],
+.has-custom-bg .bg-\[\#121214\],
+.has-custom-bg .bg-\[\#121214\]\/80,
+.has-custom-bg .bg-\[\#121214\]\/60,
+.has-custom-bg .bg-\[\#141416\] {
   background-color: rgba(28, 28, 32, var(--card-opacity, 0.92)) !important;
   backdrop-filter: blur(14px) !important;
   -webkit-backdrop-filter: blur(14px) !important;
@@ -162,16 +176,39 @@
 
 .has-custom-bg .bg-\[\#18181C\],
 .has-custom-bg .bg-\[\#262629\],
+.has-custom-bg .bg-\[\#242426\],
 .has-custom-bg .bg-\[\#242428\],
-.has-custom-bg .bg-\[\#28282A\] {
+.has-custom-bg .bg-\[\#28282A\],
+.has-custom-bg .bg-\[\#323236\] {
   background-color: rgba(36, 36, 42, var(--card-opacity, 0.92)) !important;
+}
+
+/* Neutralize opaque gradients when custom wallpaper or custom opacity is active */
+.has-custom-bg .md\:bg-gradient-to-br,
+.has-custom-bg [class*="from-\[#1E1E22\]"],
+.custom-card-translucent .md\:bg-gradient-to-br,
+.custom-card-translucent [class*="from-\[#1E1E22\]"],
+.theme-day .md\:bg-gradient-to-br,
+.theme-day [class*="from-\[#1E1E22\]"] {
+  background-image: none !important;
 }
 
 /* In OLED mode with custom wallpaper */
 .has-custom-bg.theme-oled .bg-\[\#1E1E20\],
 .has-custom-bg.theme-oled .bg-\[\#1C1C1E\],
+.has-custom-bg.theme-oled .bg-\[\#1C1C20\],
 .has-custom-bg.theme-oled .bg-\[\#202020\],
 .has-custom-bg.theme-oled .bg-\[\#202022\],
+.has-custom-bg.theme-oled .bg-\[\#202024\],
+.has-custom-bg.theme-oled .bg-\[\#161618\],
+.has-custom-bg.theme-oled .bg-\[\#17171A\],
+.has-custom-bg.theme-oled .bg-\[\#1A1A1E\],
+.has-custom-bg.theme-oled .bg-\[\#1A1A1D\],
+.has-custom-bg.theme-oled .bg-\[\#1E1E22\],
+.has-custom-bg.theme-oled .bg-\[\#222226\],
+.has-custom-bg.theme-oled .bg-\[\#121214\],
+.has-custom-bg.theme-oled .bg-\[\#121214\]\/80,
+.has-custom-bg.theme-oled .bg-\[\#121214\]\/60,
 .has-custom-bg.theme-oled .bg-\[\#141416\] {
   background-color: rgba(4, 4, 6, var(--card-opacity, 0.92)) !important;
   backdrop-filter: blur(14px) !important;
@@ -181,8 +218,19 @@
 /* In Day mode with custom wallpaper */
 .has-custom-bg.theme-day .bg-\[\#1E1E20\],
 .has-custom-bg.theme-day .bg-\[\#1C1C1E\],
+.has-custom-bg.theme-day .bg-\[\#1C1C20\],
 .has-custom-bg.theme-day .bg-\[\#202020\],
 .has-custom-bg.theme-day .bg-\[\#202022\],
+.has-custom-bg.theme-day .bg-\[\#202024\],
+.has-custom-bg.theme-day .bg-\[\#161618\],
+.has-custom-bg.theme-day .bg-\[\#17171A\],
+.has-custom-bg.theme-day .bg-\[\#1A1A1E\],
+.has-custom-bg.theme-day .bg-\[\#1A1A1D\],
+.has-custom-bg.theme-day .bg-\[\#1E1E22\],
+.has-custom-bg.theme-day .bg-\[\#222226\],
+.has-custom-bg.theme-day .bg-\[\#121214\],
+.has-custom-bg.theme-day .bg-\[\#121214\]\/80,
+.has-custom-bg.theme-day .bg-\[\#121214\]\/60,
 .has-custom-bg.theme-day .bg-\[\#141416\] {
   background-color: rgba(255, 255, 255, var(--card-opacity, 0.92)) !important;
   backdrop-filter: blur(14px) !important;
@@ -193,8 +241,21 @@
 /* Translucent frosted glass effect on panels when card opacity is lowered */
 .custom-card-translucent .bg-\[\#1E1E20\],
 .custom-card-translucent .bg-\[\#1C1C1E\],
+.custom-card-translucent .bg-\[\#1C1C20\],
 .custom-card-translucent .bg-\[\#202022\],
+.custom-card-translucent .bg-\[\#202024\],
+.custom-card-translucent .bg-\[\#161618\],
+.custom-card-translucent .bg-\[\#17171A\],
+.custom-card-translucent .bg-\[\#1A1A1E\],
+.custom-card-translucent .bg-\[\#1A1A1D\],
+.custom-card-translucent .bg-\[\#1E1E22\],
+.custom-card-translucent .bg-\[\#222226\],
 .custom-card-translucent .bg-\[\#262629\],
+.custom-card-translucent .bg-\[\#242426\],
+.custom-card-translucent .bg-\[\#242428\],
+.custom-card-translucent .bg-\[\#121214\],
+.custom-card-translucent .bg-\[\#121214\]\/80,
+.custom-card-translucent .bg-\[\#121214\]\/60,
 .custom-card-translucent .bg-\[\#141416\] {
   background-color: rgba(28, 28, 30, var(--card-opacity, 0.92)) !important;
   backdrop-filter: blur(16px) !important;
@@ -211,14 +272,26 @@
 .theme-day:not(.has-custom-bg) .bg-\[\#18181A\],
 .theme-day:not(.has-custom-bg) .bg-\[\#121214\],
 .theme-day:not(.has-custom-bg) .bg-\[\#101012\],
-.theme-day:not(.has-custom-bg) .bg-\[\#0E0E10\] {
+.theme-day:not(.has-custom-bg) .bg-\[\#0E0E10\],
+.theme-day:not(.has-custom-bg) .bg-\[\#161618\] {
   background-color: #F8F9FA !important;
 }
 
 .theme-day .bg-\[\#1E1E20\],
 .theme-day .bg-\[\#1C1C1E\],
+.theme-day .bg-\[\#1C1C20\],
 .theme-day .bg-\[\#202020\],
 .theme-day .bg-\[\#202022\],
+.theme-day .bg-\[\#202024\],
+.theme-day .bg-\[\#161618\],
+.theme-day .bg-\[\#17171A\],
+.theme-day .bg-\[\#1A1A1E\],
+.theme-day .bg-\[\#1A1A1D\],
+.theme-day .bg-\[\#1E1E22\],
+.theme-day .bg-\[\#222226\],
+.theme-day .bg-\[\#121214\],
+.theme-day .bg-\[\#121214\]\/80,
+.theme-day .bg-\[\#121214\]\/60,
 .theme-day .bg-\[\#141416\] {
   background-color: rgba(255, 255, 255, var(--card-opacity, 0.98)) !important;
   color: #111827 !important;
@@ -227,6 +300,7 @@
 }
 
 .theme-day .bg-\[\#262629\],
+.theme-day .bg-\[\#242426\],
 .theme-day .bg-\[\#242428\],
 .theme-day .bg-\[\#28282A\],
 .theme-day .bg-\[\#323236\] {
@@ -240,7 +314,12 @@
 .theme-day .border-\[\#323238\],
 .theme-day .border-\[\#353538\],
 .theme-day .border-\[\#262628\],
-.theme-day .border-\[\#2D2D32\] {
+.theme-day .border-\[\#26262A\],
+.theme-day .border-\[\#222226\],
+.theme-day .border-\[\#202024\],
+.theme-day .border-\[\#2F2F35\],
+.theme-day .border-\[\#2D2D32\],
+.theme-day .border-\[\#38383E\] {
   border-color: #E5E7EB !important;
 }
 
@@ -304,15 +383,28 @@
 
 .theme-oled .bg-\[\#1E1E20\],
 .theme-oled .bg-\[\#1C1C1E\],
+.theme-oled .bg-\[\#1C1C20\],
 .theme-oled .bg-\[\#202020\],
-.theme-oled .bg-\[\#202022\] {
+.theme-oled .bg-\[\#202022\],
+.theme-oled .bg-\[\#202024\],
+.theme-oled .bg-\[\#161618\],
+.theme-oled .bg-\[\#17171A\],
+.theme-oled .bg-\[\#1A1A1E\],
+.theme-oled .bg-\[\#1A1A1D\],
+.theme-oled .bg-\[\#1E1E22\],
+.theme-oled .bg-\[\#222226\],
+.theme-oled .bg-\[\#121214\],
+.theme-oled .bg-\[\#121214\]\/80,
+.theme-oled .bg-\[\#121214\]\/60 {
   background-color: rgba(8, 8, 10, var(--card-opacity, 0.95)) !important;
   border-color: #1E1E22 !important;
 }
 
 .theme-oled .bg-\[\#262629\],
+.theme-oled .bg-\[\#242426\],
 .theme-oled .bg-\[\#242428\],
-.theme-oled .bg-\[\#28282A\] {
+.theme-oled .bg-\[\#28282A\],
+.theme-oled .bg-\[\#323236\] {
   background-color: #121214 !important;
   border-color: #222226 !important;
 }
