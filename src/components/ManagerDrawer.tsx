@@ -130,6 +130,75 @@ export const ManagerDrawer: React.FC<ManagerDrawerProps> = ({
 
         {/* Compact Scrollable Settings Body */}
         <div className="flex-1 overflow-y-auto px-3.5 py-3 space-y-4">
+          {/* MASTER SWITCH: Background Wallpaper & Atmosphere Tuning */}
+          <div
+            className="p-3 rounded-xl border border-white/10 flex items-center justify-between gap-2.5 transition-all shadow-md"
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            }}
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors"
+                style={{
+                  backgroundColor: (settings.enableAtmosphere ?? true)
+                    ? 'rgba(var(--app-accent-rgb), 0.15)'
+                    : 'rgba(255, 255, 255, 0.05)',
+                  border: `1px solid ${(settings.enableAtmosphere ?? true) ? 'rgba(var(--app-accent-rgb), 0.35)' : 'rgba(255, 255, 255, 0.1)'}`,
+                  color: (settings.enableAtmosphere ?? true) ? 'var(--app-accent-hex)' : '#8E8E93',
+                }}
+              >
+                <Sliders className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <span>Atmosphere & Wallpaper</span>
+                  {(settings.enableAtmosphere ?? true) ? (
+                    <span className="text-[9px] px-1.5 py-0.2 rounded-full font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      ON
+                    </span>
+                  ) : (
+                    <span className="text-[9px] px-1.5 py-0.2 rounded-full font-mono bg-zinc-500/20 text-zinc-400 border border-zinc-500/30">
+                      OFF
+                    </span>
+                  )}
+                </div>
+                <div className="text-[10px] text-[#8E8E93] truncate">
+                  Wallpaper, display & atmosphere tuning
+                </div>
+              </div>
+            </div>
+
+            {/* Master Toggle Switch */}
+            <button
+              type="button"
+              role="switch"
+              aria-checked={settings.enableAtmosphere ?? true}
+              onClick={() => {
+                const nextVal = !(settings.enableAtmosphere ?? true);
+                updateSettings({ enableAtmosphere: nextVal });
+                showToast?.(nextVal ? 'Atmosphere & Wallpaper enabled' : 'Atmosphere & Wallpaper disabled');
+              }}
+              className={`w-11 h-6 flex items-center rounded-full p-0.5 transition-colors cursor-pointer shrink-0 ${
+                (settings.enableAtmosphere ?? true)
+                  ? 'bg-indigo-600'
+                  : 'bg-[#2E2E34]'
+              }`}
+              style={{
+                backgroundColor: (settings.enableAtmosphere ?? true)
+                  ? 'var(--app-accent-hex, #6366f1)'
+                  : undefined,
+              }}
+              title="Toggle wallpaper, display and atmosphere tuning"
+            >
+              <div
+                className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform ${
+                  (settings.enableAtmosphere ?? true) ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
           {/* SECTION 1: ACCENT COLOR (App-wide) */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
@@ -167,8 +236,11 @@ export const ManagerDrawer: React.FC<ManagerDrawerProps> = ({
             </div>
           </div>
 
-          {/* SECTION 2: BACKGROUND WALLPAPER */}
-          <div className="space-y-2 pt-1 border-t border-white/10">
+          {/* CONDITIONAL ATMOSPHERE & WALLPAPER CONTROLS */}
+          {(settings.enableAtmosphere ?? true) ? (
+            <>
+              {/* SECTION 2: BACKGROUND WALLPAPER */}
+              <div className="space-y-2 pt-1 border-t border-white/10">
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-bold uppercase tracking-wider text-[#A0A0A5] flex items-center gap-1.5">
                 <ImageIcon className="w-3 h-3 text-emerald-400" />
@@ -353,6 +425,36 @@ export const ManagerDrawer: React.FC<ManagerDrawerProps> = ({
               </span>
             </div>
           </div>
+            </>
+          ) : (
+            /* ATMOSPHERE OFF FALLBACK STATUS BANNER */
+            <div className="p-3 bg-black/30 border border-white/10 rounded-xl flex flex-col gap-2 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-zinc-500" />
+                <span className="font-bold text-xs text-[#E2E2E4]">Atmosphere & Wallpaper is OFF</span>
+              </div>
+              <p className="text-[11px] leading-relaxed text-[#8E8E93]">
+                Custom wallpaper and atmosphere tuning are hidden. Standard default theme is active:
+              </p>
+              <div className="grid grid-cols-3 gap-1.5 py-1">
+                <div className="bg-[#141416] border border-white/5 rounded-lg p-1.5 text-center">
+                  <div className="text-[9px] text-zinc-400 font-medium">Dimming</div>
+                  <div className="text-xs font-mono font-bold text-[#E2E2E4]">90%</div>
+                </div>
+                <div className="bg-[#141416] border border-white/5 rounded-lg p-1.5 text-center">
+                  <div className="text-[9px] text-zinc-400 font-medium">Blur</div>
+                  <div className="text-xs font-mono font-bold text-[#E2E2E4]">25px</div>
+                </div>
+                <div className="bg-[#141416] border border-white/5 rounded-lg p-1.5 text-center">
+                  <div className="text-[9px] text-zinc-400 font-medium">Card Opacity</div>
+                  <div className="text-xs font-mono font-bold text-emerald-400">100%</div>
+                </div>
+              </div>
+              <p className="text-[10px] text-zinc-400 italic">
+                Toggle the switch above to reveal your saved wallpaper and custom tuning settings automatically.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Compact Bottom Actions */}

@@ -261,7 +261,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
       const idx = list.findIndex((m) => m.name.toLowerCase() === targetName);
       if (idx !== -1) {
         const isCompact = browserSettings.density === 'compact';
-        const rowHeight = isCompact ? 40 : 54;
+        const rowHeight = isCompact ? 56 : 72;
         const targetScrollTop = Math.max(0, idx * rowHeight - 40);
         scrollContainerRef.current.scrollTo({
           top: targetScrollTop,
@@ -615,7 +615,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
               <VirtualScrollList
                 items={globalSearchResults}
                 scrollContainerRef={scrollContainerRef}
-                estimatedItemHeight={isCompact ? 46 : 64}
+                estimatedItemHeight={isCompact ? 54 : 72}
                 columns={getColumnsConfig('standard')}
                 gridClassName={getGridClasses('standard')}
                 renderItem={(res) => (
@@ -628,7 +628,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                       onSelectClass(res.classIndex);
                     }}
                     className={`${
-                      isCompact ? 'p-1.5 sm:p-2.5' : 'p-2.5 sm:p-4'
+                      isCompact ? 'p-1.5 sm:p-2.5 min-h-[50px]' : 'p-2.5 sm:p-4 min-h-[62px]'
                     } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] hover:bg-[#2C2C2E] md:hover:to-[#1F1F24] border border-[#353535] md:border-[#38383E] hover:border-indigo-500/40 rounded-lg sm:rounded-xl cursor-pointer flex items-center justify-between group transition-all shadow-sm`}
                   >
                     <div className="min-w-0 pr-2 sm:pr-3">
@@ -751,7 +751,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                 <VirtualScrollList
                   items={matched}
                   scrollContainerRef={scrollContainerRef}
-                  estimatedItemHeight={isCompact ? 42 : 56}
+                  estimatedItemHeight={isCompact ? 54 : 70}
                   columns={getColumnsConfig('standard')}
                   gridClassName={getGridClasses('standard')}
                   renderItem={(asm) => (
@@ -759,7 +759,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                       key={asm.index}
                       onClick={() => handleSelectAssemblyAndClear(asm.index)}
                       className={`flex items-center justify-between ${
-                        isCompact ? 'p-1.5 sm:p-2.5' : 'p-2.5 sm:p-3.5'
+                        isCompact ? 'p-1.5 sm:p-2.5 min-h-[48px]' : 'p-2.5 sm:p-3.5 min-h-[58px]'
                       } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] hover:bg-[#2C2C2E] md:hover:to-[#1F1F24] border border-[#353535] md:border-[#38383E] hover:border-indigo-500/40 rounded-lg sm:rounded-xl cursor-pointer group transition-all shadow-sm`}
                     >
                       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -797,7 +797,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                 <VirtualScrollList
                   items={matched}
                   scrollContainerRef={scrollContainerRef}
-                  estimatedItemHeight={isCompact ? 42 : 56}
+                  estimatedItemHeight={isCompact ? 52 : 68}
                   columns={getColumnsConfig('standard')}
                   gridClassName={getGridClasses('standard')}
                   renderItem={(ns) => (
@@ -805,7 +805,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                       key={ns.index}
                       onClick={() => handleSelectNamespaceAndClear(ns.name)}
                       className={`flex items-center justify-between ${
-                        isCompact ? 'p-1.5 sm:p-2.5' : 'p-2.5 sm:p-3.5'
+                        isCompact ? 'p-1.5 sm:p-2.5 min-h-[48px]' : 'p-2.5 sm:p-3.5 min-h-[58px]'
                       } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] hover:bg-[#2C2C2E] md:hover:to-[#1F1F24] border border-[#353535] md:border-[#38383E] hover:border-amber-500/40 rounded-lg sm:rounded-xl cursor-pointer group transition-all shadow-sm`}
                     >
                       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -848,7 +848,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                 <VirtualScrollList
                   items={matchedClasses}
                   scrollContainerRef={scrollContainerRef}
-                  estimatedItemHeight={isCompact ? 42 : 56}
+                  estimatedItemHeight={isCompact ? 58 : 74}
                   columns={getColumnsConfig('standard')}
                   gridClassName={getGridClasses('standard')}
                   renderItem={(cls) => {
@@ -858,7 +858,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                         key={cls.index}
                         onClick={() => handleSelectClassAndClear(cls.index)}
                         className={`flex items-center justify-between ${
-                          isCompact ? 'p-1.5 sm:p-2.5' : 'p-2.5 sm:p-3.5'
+                          isCompact ? 'p-1.5 sm:p-2.5 min-h-[50px] sm:min-h-[58px]' : 'p-2.5 sm:p-3.5 min-h-[60px] sm:min-h-[68px]'
                         } bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] hover:bg-[#2C2C2E] md:hover:to-[#1F1F24] border border-[#353535] md:border-[#38383E] hover:border-purple-500/40 rounded-lg sm:rounded-xl cursor-pointer group transition-all shadow-sm`}
                       >
                         <div className="flex items-center gap-2 sm:gap-3 min-w-0 pr-1.5 sm:pr-2">
@@ -1027,7 +1027,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                       <VirtualScrollList
                         items={matchedFields}
                         scrollContainerRef={scrollContainerRef}
-                        estimatedItemHeight={isCompact ? 40 : 54}
+                        estimatedItemHeight={isCompact ? 56 : 72}
                         columns={getColumnsConfig('standard')}
                         gridClassName={getGridClasses('standard')}
                         renderItem={(field) => {
@@ -1053,7 +1053,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                                 setIsTargetSelectionActive(true);
                               }}
                               className={`${
-                                isCompact ? 'p-1.5 sm:p-2.5' : 'p-2.5 sm:p-3.5'
+                                isCompact ? 'p-1.5 sm:p-2.5 min-h-[48px] sm:min-h-[56px]' : 'p-2.5 sm:p-3.5 min-h-[58px] sm:min-h-[66px]'
                               } ${
                                 isSelected
                                   ? 'bg-[#25252E] border-indigo-500 ring-2 ring-indigo-500/50 shadow-lg shadow-indigo-950/40'
@@ -1143,7 +1143,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                       <VirtualScrollList
                         items={matchedMethods}
                         scrollContainerRef={scrollContainerRef}
-                        estimatedItemHeight={isCompact ? 52 : 70}
+                        estimatedItemHeight={isCompact ? 64 : 82}
                         columns={getColumnsConfig('methods')}
                         gridClassName={getGridClasses('methods')}
                         renderItem={(method) => {
@@ -1169,7 +1169,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
                                 setIsTargetSelectionActive(true);
                               }}
                               className={`${
-                                isCompact ? 'p-1.5 sm:p-2.5' : 'p-2.5 sm:p-3.5'
+                                isCompact ? 'p-1.5 sm:p-2.5 min-h-[56px] sm:min-h-[66px]' : 'p-2.5 sm:p-3.5 min-h-[64px] sm:min-h-[76px]'
                               } ${
                                 isSelected
                                   ? 'bg-[#25252E] border-indigo-500 ring-2 ring-indigo-500/50 shadow-lg shadow-indigo-950/40'

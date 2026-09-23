@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AppThemeSettings, DEFAULT_THEME_SETTINGS, AccentColor } from '../types/theme';
 
 const STORAGE_KEY = 'il2cpp_app_theme_settings';
@@ -108,6 +108,24 @@ export function useAppSettings() {
     }
   }, []);
 
+  const isAtmosphereActive = settings.enableAtmosphere ?? true;
+
+  // Effective theme settings:
+  // When Atmosphere & Wallpaper is OFF: hide wallpaper, default dimming: 90, blur: 25, opacity: 100
+  // When Atmosphere & Wallpaper is ON: restore user's custom tuning automatically
+  const effectiveSettings: AppThemeSettings = useMemo(() => {
+    if (!isAtmosphereActive) {
+      return {
+        ...settings,
+        bgDim: 90,
+        bgBlur: 25,
+        cardOpacity: 100,
+        customBgImage: null,
+      };
+    }
+    return settings;
+  }, [settings, isAtmosphereActive]);
+
   // Update theme classes and CSS variables on :root
   useEffect(() => {
     const root = document.documentElement;
@@ -121,24 +139,31 @@ export function useAppSettings() {
     root.style.setProperty('--app-accent-hex', accent.hex);
     root.style.setProperty('--app-accent-rgb', accent.rgb);
 
-    // CSS variables for atmosphere, blur & card/panel display
-    const opacityNorm = settings.cardOpacity / 100;
-    root.style.setProperty('--card-opacity', opacityNorm.toString());
-    root.style.setProperty('--panel-opacity', Math.max(0.3, opacityNorm * 0.9).toString());
-    root.style.setProperty('--header-opacity', Math.max(0.35, opacityNorm * 0.85).toString());
-    root.style.setProperty('--bg-blur', `${settings.bgBlur}px`);
-    root.style.setProperty('--glass-blur', `${settings.bgBlur}px`);
-    root.style.setProperty('--bg-dim', (settings.bgDim / 100).toString());
+    const isAtmosphereOn = settings.enableAtmosphere ?? true;
+    const effectiveCardOpacity = isAtmosphereOn ? settings.cardOpacity : 100;
+    const effectiveBlur = isAtmosphereOn ? settings.bgBlur : 25;
+    const effectiveDim = isAtmosphereOn ? settings.bgDim : 90;
 
-    // Enable custom translucent class if cardOpacity < 100 or custom background is set
-    if (settings.cardOpacity < 100 || settings.customBgImage) {
+    // CSS variables for atmosphere, blur & card/panel display
+    const opacityNorm = effectiveCardOpacity / 100;
+    root.style.setProperty('--card-opacity', opacityNorm.toString());
+    root.style.setProperty('--panel-opacity', Math.max(0.25, opacityNorm * 0.75).toFixed(3));
+    root.style.setProperty('--group-opacity', Math.max(0.18, opacityNorm * 0.52).toFixed(3));
+    root.style.setProperty('--subgroup-opacity', Math.max(0.10, opacityNorm * 0.35).toFixed(3));
+    root.style.setProperty('--header-opacity', Math.max(0.35, opacityNorm * 0.88).toFixed(3));
+    root.style.setProperty('--bg-blur', `${effectiveBlur}px`);
+    root.style.setProperty('--glass-blur', `${Math.max(10, effectiveBlur)}px`);
+    root.style.setProperty('--bg-dim', (effectiveDim / 100).toString());
+
+    // Enable custom translucent class if atmosphere is ON and cardOpacity < 100 or custom background is set
+    if (isAtmosphereOn && (settings.cardOpacity < 100 || settings.customBgImage)) {
       root.classList.add('custom-card-translucent');
     } else {
       root.classList.remove('custom-card-translucent');
     }
 
     // Toggle has-custom-bg class so wallpaper can show through in all theme modes
-    if (settings.customBgImage) {
+    if (isAtmosphereOn && settings.customBgImage) {
       root.classList.add('has-custom-bg');
     } else {
       root.classList.remove('has-custom-bg');
@@ -188,6 +213,7 @@ export function useAppSettings() {
 
   return {
     settings,
+    effectiveSettings,
     updateSettings,
     resetToDefaults,
     handleUploadImage,

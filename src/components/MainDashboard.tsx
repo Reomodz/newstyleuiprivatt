@@ -13,6 +13,7 @@ import { useTargetForms } from '../hooks/useTargetForms';
 import { useProfileExportImport } from '../hooks/useProfileExportImport';
 
 import { ProcessDescriptor, WatchlistTargetItem } from '../types';
+import { AppThemeSettings } from '../types/theme';
 import { il2cppEngine } from '../services/il2cppEngine';
 
 interface MainDashboardProps {
@@ -26,6 +27,7 @@ interface MainDashboardProps {
   watchlistManager?: ReturnType<typeof useWatchlistManager>;
   activeTab?: 'target' | 'watchlist' | 'history';
   onTabChange?: (tab: 'target' | 'watchlist' | 'history') => void;
+  themeSettings?: AppThemeSettings;
 }
 
 export const MainDashboard: React.FC<MainDashboardProps> = ({
@@ -38,6 +40,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   watchlistManager,
   activeTab: controlledActiveTab,
   onTabChange,
+  themeSettings,
 }) => {
   // Navigation State
   const [internalActiveTab, setInternalActiveTab] = useState<'target' | 'watchlist' | 'history'>('target');
@@ -358,6 +361,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               showToast={showToast}
               onNavigateToBrowser={onNavigateToBrowser}
               isDumpLoaded={isDumpLoaded}
+              themeSettings={themeSettings}
             />
           )}
 

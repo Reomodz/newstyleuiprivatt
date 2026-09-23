@@ -5,6 +5,7 @@ import {
   TargetCardViewSettings,
   ProfileCardViewSettings,
 } from '../../types';
+import { AppThemeSettings } from '../../types/theme';
 import { ProfileListSection } from './ProfileListSection';
 import { ProfileTargetsView } from './ProfileTargetsView';
 
@@ -37,6 +38,7 @@ interface ProfileSidebarProps {
   showToast?: (msg: string) => void;
   onNavigateToBrowser?: (classIndex?: number, memberKind?: 'FIELD' | 'METHOD', memberName?: string) => void;
   isDumpLoaded?: boolean;
+  themeSettings?: AppThemeSettings;
 }
 
 export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
@@ -68,6 +70,7 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
   showToast,
   onNavigateToBrowser,
   isDumpLoaded = true,
+  themeSettings,
 }) => {
   return (
     <div className="flex flex-col gap-3 sm:gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -117,6 +120,7 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
           showToast={showToast}
           onNavigateToBrowser={onNavigateToBrowser}
           isDumpLoaded={isDumpLoaded}
+          themeSettings={themeSettings}
         />
       )}
     </div>

@@ -10,6 +10,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { TargetGroup } from '../../types';
+import { AppThemeSettings } from '../../types/theme';
 
 export interface TargetGroupCardProps {
   group: TargetGroup;
@@ -29,6 +30,7 @@ export interface TargetGroupCardProps {
   onAddTargetsToGroup: () => void;
   onOpenAddNewTarget: () => void;
   onDeleteGroup: () => void;
+  themeSettings?: AppThemeSettings;
   children: React.ReactNode;
 }
 
@@ -50,17 +52,21 @@ export const TargetGroupCard: React.FC<TargetGroupCardProps> = ({
   onAddTargetsToGroup,
   onOpenAddNewTarget,
   onDeleteGroup,
+  themeSettings,
   children,
 }) => {
   const isNamedGroup = Boolean(group.groupName);
   const isCoreGroup = group.groupName === '. Core / GameFacade' || group.groupName?.startsWith('. Core');
+
+  const isAtmosphereOn = themeSettings?.enableAtmosphere ?? true;
+  const isTranslucent = isAtmosphereOn && Boolean(themeSettings?.customBgImage || (themeSettings?.cardOpacity && themeSettings.cardOpacity < 100));
 
   return (
     <div
       onDragOver={isCoreGroup ? undefined : onGroupDragOver}
       onDragLeave={isCoreGroup ? undefined : onGroupDragLeave}
       onDrop={isCoreGroup ? undefined : onGroupDrop}
-      className={`group/groupcard rounded-xl sm:rounded-2xl border transition-all ${
+      className={`target-group-card group/groupcard rounded-xl sm:rounded-2xl border transition-all ${
         isBeingDragged
           ? 'opacity-35 scale-[0.99] border-dashed border-purple-500/70 bg-purple-950/20'
           : isReorderTarget
@@ -69,6 +75,8 @@ export const TargetGroupCard: React.FC<TargetGroupCardProps> = ({
             : 'border-b-2 border-b-purple-500 border-[#3A3A40] bg-[#1A1A1E] shadow-[0_6px_20px_rgba(168,85,247,0.3)]'
           : isTargetDragOver && !isCoreGroup
           ? 'border-indigo-500 bg-indigo-950/20 shadow-lg shadow-indigo-500/10 ring-1 ring-indigo-500/40'
+          : isTranslucent
+          ? 'border-white/10 hover:border-white/20 shadow-lg'
           : 'border-[#2D2D30] bg-[#161618] hover:border-[#3A3A40]'
       } overflow-hidden p-2.5 sm:p-3.5 flex flex-col gap-2.5`}
     >

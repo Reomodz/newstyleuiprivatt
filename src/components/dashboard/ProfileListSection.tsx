@@ -138,11 +138,11 @@ export const ProfileListSection: React.FC<ProfileListSectionProps> = ({
                   setActiveProfileId(prof.id);
                   setSelectedProfileViewId(prof.id);
                 }}
-                className={`bg-[#1E1E20] hover:bg-[#242428] border ${
+                className={`bg-[#1E1E20] hover:bg-[#242428] border profile-item-card ${
                   isCompact ? 'p-2.5 sm:p-3 pl-3.5 sm:pl-4 gap-1.5' : 'p-3 sm:p-3.5 pl-4 sm:pl-5 gap-2'
                 } rounded-xl sm:rounded-2xl shadow-sm flex flex-col cursor-pointer transition-all active:scale-[0.99] group/pcard relative overflow-hidden`}
                 style={{
-                  borderColor: isScanActive ? 'rgba(var(--app-accent-rgb), 0.55)' : '#2D2D30',
+                  borderColor: isScanActive ? 'rgba(var(--app-accent-rgb), 0.55)' : undefined,
                   boxShadow: isScanActive ? '0 4px 14px rgba(var(--app-accent-rgb), 0.12)' : undefined,
                 }}
               >

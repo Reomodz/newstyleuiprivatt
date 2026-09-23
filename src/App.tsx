@@ -19,6 +19,7 @@ export const App: React.FC = () => {
   // App Theme & Appearance Customizer State
   const {
     settings: themeSettings,
+    effectiveSettings,
     updateSettings: updateThemeSettings,
     resetToDefaults: resetThemeDefaults,
     handleUploadImage: uploadThemeImage,
@@ -286,10 +287,12 @@ export const App: React.FC = () => {
     }
   };
 
+  const isAtmosphereActive = themeSettings.enableAtmosphere ?? true;
+
   return (
     <div
       className={`app-root-container flex flex-col h-[100dvh] w-full max-w-full overflow-hidden text-[#E2E2E4] relative transition-colors duration-300 ${
-        themeSettings.customBgImage || themeSettings.cardOpacity < 100
+        isAtmosphereActive && (themeSettings.customBgImage || themeSettings.cardOpacity < 100)
           ? 'bg-transparent'
           : themeSettings.themeMode === 'day'
           ? 'bg-[#F4F5F7]'
@@ -299,26 +302,30 @@ export const App: React.FC = () => {
       }`}
     >
       {/* Atmosphere Backdrop / Custom Wallpaper Layer (Smooth GPU blur with overflow margin) */}
-      <div
-        className="fixed -inset-8 z-0 pointer-events-none transition-all duration-300 bg-cover bg-center bg-no-repeat overflow-hidden"
-        style={{
-          backgroundImage: themeSettings.customBgImage
-            ? `url(${themeSettings.customBgImage})`
-            : `radial-gradient(circle at 18% 18%, rgba(var(--app-accent-rgb), 0.16) 0%, transparent 45%), radial-gradient(circle at 82% 82%, rgba(var(--app-accent-rgb), 0.10) 0%, transparent 50%), radial-gradient(circle at 50% 50%, rgba(24, 24, 30, 0.7) 0%, #121215 100%)`,
-          filter: themeSettings.bgBlur > 0 ? `blur(${themeSettings.bgBlur}px)` : 'none',
-          transform: themeSettings.bgBlur > 0 ? 'scale(1.08)' : 'scale(1)',
-          willChange: 'filter, transform',
-        }}
-      />
+      {isAtmosphereActive && (
+        <>
+          <div
+            className="fixed -inset-8 z-0 pointer-events-none transition-all duration-300 bg-cover bg-center bg-no-repeat overflow-hidden"
+            style={{
+              backgroundImage: themeSettings.customBgImage
+                ? `url(${themeSettings.customBgImage})`
+                : `radial-gradient(circle at 18% 18%, rgba(var(--app-accent-rgb), 0.16) 0%, transparent 45%), radial-gradient(circle at 82% 82%, rgba(var(--app-accent-rgb), 0.10) 0%, transparent 50%), radial-gradient(circle at 50% 50%, rgba(24, 24, 30, 0.7) 0%, #121215 100%)`,
+              filter: themeSettings.bgBlur > 0 ? `blur(${themeSettings.bgBlur}px)` : 'none',
+              transform: themeSettings.bgBlur > 0 ? 'scale(1.08)' : 'scale(1)',
+              willChange: 'filter, transform',
+            }}
+          />
 
-      {/* Pure Neutral Dark Ambient Dimming Overlay */}
-      <div
-        className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-300"
-        style={{
-          backgroundColor: '#000000',
-          opacity: (themeSettings.bgDim * (themeSettings.customBgImage ? 0.75 : 0.55)) / 100,
-        }}
-      />
+          {/* Pure Neutral Dark Ambient Dimming Overlay */}
+          <div
+            className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-300"
+            style={{
+              backgroundColor: '#000000',
+              opacity: (themeSettings.bgDim * (themeSettings.customBgImage ? 0.75 : 0.55)) / 100,
+            }}
+          />
+        </>
+      )}
 
       {/* Header */}
       <div className="relative z-10 w-full shrink-0">
@@ -370,6 +377,7 @@ export const App: React.FC = () => {
             watchlistManager={watchlistManager}
             activeTab={dashboardTab}
             onTabChange={handleDashboardTabChange}
+            themeSettings={effectiveSettings}
           />
         ) : activeWorkspace === 'browser' ? (
           <ManagerBrowser

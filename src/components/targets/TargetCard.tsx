@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { WatchlistTargetItem, TargetCardViewSettings } from '../../types';
+import { AppThemeSettings } from '../../types/theme';
 import { il2cppEngine } from '../../services/il2cppEngine';
 
 export interface TargetCardProps {
@@ -32,6 +33,7 @@ export interface TargetCardProps {
   onDelete: (item: WatchlistTargetItem) => void;
   onNavigateToBrowser?: (classIndex?: number, memberKind?: 'FIELD' | 'METHOD', memberName?: string) => void;
   isDumpLoaded?: boolean;
+  themeSettings?: AppThemeSettings;
 }
 
 export const TargetCard: React.FC<TargetCardProps> = React.memo(({
@@ -53,6 +55,7 @@ export const TargetCard: React.FC<TargetCardProps> = React.memo(({
   onDelete,
   onNavigateToBrowser,
   isDumpLoaded = true,
+  themeSettings,
 }) => {
   const hasFallbacks =
     (item.fallbackClassNames && item.fallbackClassNames.length > 0) ||
@@ -60,6 +63,9 @@ export const TargetCard: React.FC<TargetCardProps> = React.memo(({
 
   const isCompact = cardViewSettings.density === 'compact';
   const [isCommentExpanded, setIsCommentExpanded] = useState(false);
+
+  const isAtmosphereOn = themeSettings?.enableAtmosphere ?? true;
+  const isTranslucent = isAtmosphereOn && Boolean(themeSettings?.customBgImage || (themeSettings?.cardOpacity && themeSettings.cardOpacity < 100));
 
   return (
     <div
@@ -69,10 +75,14 @@ export const TargetCard: React.FC<TargetCardProps> = React.memo(({
       onDragLeave={(e) => onDragLeave(e, item)}
       onDrop={(e) => onDrop(e, item)}
       onClick={() => onView(item)}
-      className={`bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] hover:bg-[#232326] border transition-all relative cursor-pointer active:scale-[0.99] group/card ${
+      className={`target-item-card target-card border ${
+        isTranslucent
+          ? 'border-white/10 hover:border-white/20 hover:bg-white/[0.04]'
+          : 'bg-[#1E1E20] md:bg-gradient-to-br md:from-[#1E1E22] md:to-[#17171A] hover:bg-[#232326] border-[#2D2D30] hover:border-indigo-500/40'
+      } transition-all relative cursor-pointer active:scale-[0.99] group/card ${
         isBeingDragged
           ? 'opacity-40 border-indigo-500 scale-[0.98] ring-1 ring-indigo-500/50'
-          : 'border-[#2D2D30] hover:border-indigo-500/40'
+          : ''
       } ${isCompact ? 'p-2 sm:p-2.5 gap-1' : 'p-2.5 sm:p-3 gap-1.5'} rounded-xl shadow-sm flex flex-col`}
     >
       {/* Drop Insertion Line Indicator */}

@@ -198,6 +198,7 @@
 .has-custom-bg .bg-\[\#121214\],
 .has-custom-bg .bg-\[\#131315\],
 .has-custom-bg .bg-\[\#141416\],
+/* Primary cards across app: Profile cards, target cards, browser items, process items */
 .custom-card-translucent .bg-\[\#1E1E20\],
 .custom-card-translucent .bg-\[\#1C1C1E\],
 .custom-card-translucent .bg-\[\#1C1C1F\],
@@ -222,16 +223,47 @@
 .custom-card-translucent .bg-\[\#242428\],
 .custom-card-translucent .bg-\[\#28282A\],
 .custom-card-translucent .bg-\[\#323236\],
-.custom-card-translucent .bg-\[\#121214\],
-.custom-card-translucent .bg-\[\#131315\],
-.custom-card-translucent .bg-\[\#141416\],
-.custom-card-translucent [class*="bg-[#121214]"],
+.custom-card-translucent .profile-item-card,
+.custom-card-translucent .target-item-card,
+.custom-card-translucent .profile-header-card,
+.has-custom-bg .profile-item-card,
+.has-custom-bg .target-item-card,
+.has-custom-bg .profile-header-card {
+  background-color: rgba(22, 22, 26, var(--card-opacity, 0.92)) !important;
+  backdrop-filter: blur(var(--glass-blur, 16px)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur, 16px)) !important;
+}
+
+/* Outer Target Group Cards */
+.custom-card-translucent .target-group-card,
+.has-custom-bg .target-group-card {
+  background-color: rgba(20, 20, 24, var(--group-opacity, 0.48)) !important;
+  background-image: none !important;
+  backdrop-filter: blur(var(--glass-blur, 14px)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur, 14px)) !important;
+}
+
+/* Inner Target Subgroup Cards */
 .custom-card-translucent .target-subgroup-card,
-.has-custom-bg [class*="bg-[#121214]"],
 .has-custom-bg .target-subgroup-card {
-  background-color: rgba(18, 18, 22, max(0.35, calc(var(--card-opacity, 0.92) * 0.85))) !important;
-  backdrop-filter: blur(var(--glass-blur, 0px)) !important;
-  -webkit-backdrop-filter: blur(var(--glass-blur, 0px)) !important;
+  background-color: rgba(16, 16, 20, var(--subgroup-opacity, 0.32)) !important;
+  background-image: none !important;
+  backdrop-filter: blur(var(--glass-blur, 10px)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur, 10px)) !important;
+}
+
+/* Profile Targets Sticky Search Toolbar */
+.custom-card-translucent .profile-search-toolbar,
+.has-custom-bg .profile-search-toolbar {
+  background-color: rgba(20, 20, 24, var(--panel-opacity, 0.75)) !important;
+  backdrop-filter: blur(var(--glass-blur, 16px)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur, 16px)) !important;
+}
+
+.custom-card-translucent .profile-search-input,
+.has-custom-bg .profile-search-input {
+  background-color: rgba(28, 28, 34, var(--panel-opacity, 0.75)) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
 }
 
 /* Neutralize opaque gradients when custom wallpaper or custom opacity is active */

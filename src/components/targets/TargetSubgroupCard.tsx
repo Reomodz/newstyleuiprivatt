@@ -1,6 +1,7 @@
 import React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { WatchlistTargetItem } from '../../types';
+import { AppThemeSettings } from '../../types/theme';
 
 export interface TargetSubgroupCardProps {
   parentGroupName: string;
@@ -14,6 +15,7 @@ export interface TargetSubgroupCardProps {
   onDrop: (e: React.DragEvent) => void;
   onAddTargets: () => void;
   onDeleteSubgroup: () => void;
+  themeSettings?: AppThemeSettings;
   renderCard: (item: WatchlistTargetItem, isFirst: boolean, isLast: boolean) => React.ReactNode;
 }
 
@@ -28,9 +30,13 @@ export const TargetSubgroupCard: React.FC<TargetSubgroupCardProps> = ({
   onDrop,
   onAddTargets,
   onDeleteSubgroup,
+  themeSettings,
   renderCard,
 }) => {
   const isNamedSubgroup = Boolean(subGroupName);
+
+  const isAtmosphereOn = themeSettings?.enableAtmosphere ?? true;
+  const isTranslucent = isAtmosphereOn && Boolean(themeSettings?.customBgImage || (themeSettings?.cardOpacity && themeSettings.cardOpacity < 100));
 
   return (
     <div
@@ -42,6 +48,8 @@ export const TargetSubgroupCard: React.FC<TargetSubgroupCardProps> = ({
           ? `p-1.5 sm:p-2 rounded-lg border transition-all ${
               isDragOver
                 ? 'border-sky-500 bg-sky-950/20'
+                : isTranslucent
+                ? 'border-white/10 hover:border-white/15'
                 : 'border-[#232328] bg-[#121214]/80'
             }`
           : ''

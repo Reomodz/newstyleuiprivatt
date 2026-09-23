@@ -16,6 +16,7 @@ import {
   TargetCardViewSettings,
   ProfileCardViewSettings,
 } from '../../types';
+import { AppThemeSettings } from '../../types/theme';
 import { MakeGroupModal, MakeSubgroupModal, SelectTargetsModal } from '../modals';
 import { TargetCard, TargetGroupCard, TargetSubgroupCard } from '../targets';
 import { ConfirmDialog } from '../ui';
@@ -41,6 +42,7 @@ interface ProfileTargetsViewProps {
   showToast?: (msg: string) => void;
   onNavigateToBrowser?: (classIndex?: number, memberKind?: 'FIELD' | 'METHOD', memberName?: string) => void;
   isDumpLoaded?: boolean;
+  themeSettings?: AppThemeSettings;
 }
 
 export const ProfileTargetsView: React.FC<ProfileTargetsViewProps> = ({
@@ -63,12 +65,16 @@ export const ProfileTargetsView: React.FC<ProfileTargetsViewProps> = ({
   showToast,
   onNavigateToBrowser,
   isDumpLoaded = true,
+  themeSettings,
 }) => {
   const [expandActiveProfileDesc, setExpandActiveProfileDesc] = useState(false);
   const [isMakeGroupModalOpen, setIsMakeGroupModalOpen] = useState(false);
   const [makeSubgroupParentGroup, setMakeSubgroupParentGroup] = useState<string | null>(null);
   const [selectTargetsConfig, setSelectTargetsConfig] = useState<{ groupName: string; subGroupName?: string } | null>(null);
   const [targetToDelete, setTargetToDelete] = useState<WatchlistTargetItem | null>(null);
+
+  const isAtmosphereOn = themeSettings?.enableAtmosphere ?? true;
+  const isTranslucent = isAtmosphereOn && Boolean(themeSettings?.customBgImage || (themeSettings?.cardOpacity && themeSettings.cardOpacity < 100));
 
   const {
     collapsedGroups,
@@ -146,6 +152,7 @@ export const ProfileTargetsView: React.FC<ProfileTargetsViewProps> = ({
         onDelete={setTargetToDelete}
         onNavigateToBrowser={onNavigateToBrowser}
         isDumpLoaded={isDumpLoaded}
+        themeSettings={themeSettings}
       />
     );
   };
@@ -153,7 +160,11 @@ export const ProfileTargetsView: React.FC<ProfileTargetsViewProps> = ({
   return (
     <div className="flex flex-col gap-2.5 sm:gap-3.5 relative">
       {/* Top Navigation & Profile Header with Back Button */}
-      <div className="flex items-center justify-between gap-1.5 sm:gap-3 bg-[#1E1E20] border border-[#2D2D30] rounded-xl sm:rounded-2xl p-2.5 sm:p-3 pl-4 sm:pl-5 shadow-sm relative overflow-hidden">
+      <div
+        className={`profile-header-card flex items-center justify-between gap-1.5 sm:gap-3 ${
+          isTranslucent ? 'border-white/10 shadow-lg' : 'bg-[#1E1E20] border-[#2D2D30]'
+        } border rounded-xl sm:rounded-2xl p-2.5 sm:p-3 pl-4 sm:pl-5 shadow-sm relative overflow-hidden transition-all`}
+      >
         {/* Left Dynamic Accent Line */}
         <div
           className="absolute left-0 top-0 bottom-0 w-[2px] transition-all"
@@ -167,7 +178,7 @@ export const ProfileTargetsView: React.FC<ProfileTargetsViewProps> = ({
           {/* Back Button */}
           <button
             onClick={() => setSelectedProfileViewId(null)}
-            className="p-1 sm:p-2 bg-[#262629] hover:bg-[#323236] text-[#E2E2E4] rounded-lg border border-[#353538] transition-colors shrink-0 shadow-sm"
+            className="p-1 sm:p-2 bg-[#262629]/80 hover:bg-[#323236] text-[#E2E2E4] rounded-lg border border-[#353538] transition-colors shrink-0 shadow-sm"
             title="Back to All Profiles"
           >
             <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -178,7 +189,14 @@ export const ProfileTargetsView: React.FC<ProfileTargetsViewProps> = ({
               <span className="text-xs sm:text-sm font-bold text-[#E2E2E4] truncate">
                 {activeProfile.name}
               </span>
-              <span className="text-[9px] sm:text-[10px] font-mono px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 shrink-0">
+              <span
+                className="text-[9px] sm:text-[10px] font-mono px-1.5 py-0.2 rounded shrink-0 border"
+                style={{
+                  backgroundColor: 'rgba(var(--app-accent-rgb), 0.15)',
+                  borderColor: 'rgba(var(--app-accent-rgb), 0.35)',
+                  color: 'var(--app-accent-hex)',
+                }}
+              >
                 {activeProfile.items.length || 0}
               </span>
             </div>
@@ -201,7 +219,7 @@ export const ProfileTargetsView: React.FC<ProfileTargetsViewProps> = ({
         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           <button
             onClick={() => handleOpenEditProfile(activeProfile)}
-            className="p-1.5 sm:p-2 text-[#8E8E93] hover:text-indigo-400 bg-[#262629] hover:bg-[#323236] rounded-lg border border-[#353538] transition-colors"
+            className="p-1.5 sm:p-2 text-[#8E8E93] hover:text-indigo-400 bg-[#262629]/80 hover:bg-[#323236] rounded-lg border border-[#353538] transition-colors"
             title="Edit Profile & Code Style"
           >
             <Pencil className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -209,7 +227,7 @@ export const ProfileTargetsView: React.FC<ProfileTargetsViewProps> = ({
 
           <button
             onClick={() => handleExportProfile(activeProfile)}
-            className="p-1.5 sm:p-2 text-[#8E8E93] hover:text-emerald-400 bg-[#262629] hover:bg-[#323236] rounded-lg border border-[#353538] transition-colors"
+            className="p-1.5 sm:p-2 text-[#8E8E93] hover:text-emerald-400 bg-[#262629]/80 hover:bg-[#323236] rounded-lg border border-[#353538] transition-colors"
             title="Export / Share Profile JSON"
           >
             <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -218,15 +236,26 @@ export const ProfileTargetsView: React.FC<ProfileTargetsViewProps> = ({
       </div>
 
       {/* Sticky Toolbar: Targets Search Filter, Make Group & Target Card Settings */}
-      <div className="sticky top-0 z-20 -mx-1 px-1 sm:-mx-2 sm:px-2 py-2 bg-[#18181A]/95 backdrop-blur-md border-b border-[#2D2D32] shadow-md flex items-center gap-1.5 sm:gap-2 transition-all rounded-b-xl">
+      <div
+        className={`profile-search-toolbar sticky top-0 z-20 -mx-1 px-1 sm:-mx-2 sm:px-2 py-2 ${
+          isTranslucent ? 'border-white/10' : 'bg-[#18181A]/95 border-[#2D2D32]'
+        } backdrop-blur-md border-b shadow-md flex items-center gap-1.5 sm:gap-2 transition-all rounded-b-xl`}
+      >
         <div className="relative flex-1 min-w-0">
-          <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 text-indigo-400 pointer-events-none z-10" />
+          <Search
+            className="w-3.5 h-3.5 sm:w-4 sm:h-4 absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10"
+            style={{ color: 'var(--app-accent-hex, #6366f1)' }}
+          />
           <input
             type="text"
             value={watchlistFilter}
             onChange={(e) => setWatchlistFilter(e.target.value)}
             placeholder="Search targets by member, class, group or offset..."
-            className="w-full pl-8 sm:pl-9 pr-8 py-1.5 sm:py-2 bg-[#1E1E20] border border-[#2D2D30] focus:border-indigo-500 rounded-lg sm:rounded-xl text-xs text-[#E2E2E4] placeholder-[#6C6C70] focus:outline-none shadow-sm transition-colors"
+            className={`profile-search-input w-full pl-8 sm:pl-9 pr-8 py-1.5 sm:py-2 ${
+              isTranslucent
+                ? 'border focus:border-indigo-400 text-white placeholder-[#8E8E93]'
+                : 'bg-[#1E1E20] border-[#2D2D30] focus:border-indigo-500 text-[#E2E2E4] placeholder-[#6C6C70]'
+            } rounded-lg sm:rounded-xl text-xs focus:outline-none shadow-sm transition-colors`}
           />
           {watchlistFilter && (
             <button
@@ -252,7 +281,7 @@ export const ProfileTargetsView: React.FC<ProfileTargetsViewProps> = ({
 
         <button
           onClick={() => setIsCardSettingsModalOpen(true)}
-          className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 sm:py-2 bg-[#1E1E20] hover:bg-[#26262A] text-[#8E8E93] hover:text-white border border-[#2D2D30] hover:border-indigo-500/40 rounded-lg sm:rounded-xl text-xs font-semibold transition-colors shadow-sm shrink-0"
+          className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 sm:py-2 bg-[#1E1E20]/80 hover:bg-[#26262A] text-[#8E8E93] hover:text-white border border-[#2D2D30] hover:border-indigo-500/40 rounded-lg sm:rounded-xl text-xs font-semibold transition-colors shadow-sm shrink-0"
           title="Card Display Options & Grouping Toggle"
         >
           <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" />
@@ -320,6 +349,7 @@ export const ProfileTargetsView: React.FC<ProfileTargetsViewProps> = ({
                 onAddTargetsToGroup={() => setSelectTargetsConfig({ groupName: group.groupName! })}
                 onOpenAddNewTarget={() => onOpenAddTarget(group.groupName || undefined, undefined)}
                 onDeleteGroup={() => handleDeleteCreatedGroup(group.groupName!)}
+                themeSettings={themeSettings}
               >
                 {group.subGroups.map((subGroup) => {
                   const subGKey = `${gKey}-${subGroup.subGroupName || '__direct__'}`;
@@ -350,6 +380,7 @@ export const ProfileTargetsView: React.FC<ProfileTargetsViewProps> = ({
                       onDeleteSubgroup={() =>
                         handleDeleteCreatedSubgroup(group.groupName!, subGroup.subGroupName!)
                       }
+                      themeSettings={themeSettings}
                       renderCard={renderCard}
                     />
                   );
