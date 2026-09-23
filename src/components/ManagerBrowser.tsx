@@ -149,6 +149,12 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
     }
   }, [initialClassTab, selectedClassIndex]);
 
+  // Clear search text whenever switching class tabs or navigating levels
+  useEffect(() => {
+    setSearchQuery('');
+    setDebouncedSearchQuery('');
+  }, [classTab, selectedClassIndex, selectedNamespace, selectedAssemblyIndex]);
+
   // Scroll to top when navigating levels or switching tabs
   useEffect(() => {
     if (scrollContainerRef.current && !scrollToMember) {
@@ -267,11 +273,14 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
     return () => clearTimeout(timer);
   }, [scrollToMember, selectedClassIndex, currentFields, currentMethods, browserSettings.density]);
 
+  // Effective search scope: If inside class details (fields/methods), search scope is locked to 'current' only
+  const effectiveSearchScope = selectedClassIndex !== null ? 'current' : searchScope;
+
   // Global search results (Requires min 2 chars for everywhere search to keep UI fast)
   const globalSearchResults: SymbolSearchDescriptor[] = useMemo(() => {
-    if (searchScope !== 'everywhere' || !debouncedSearchQuery.trim() || debouncedSearchQuery.trim().length < 2) return [];
+    if (effectiveSearchScope !== 'everywhere' || !debouncedSearchQuery.trim() || debouncedSearchQuery.trim().length < 2) return [];
     return il2cppEngine.searchEverywhere(debouncedSearchQuery, matchMode, matchCase);
-  }, [searchScope, debouncedSearchQuery, matchMode, matchCase, storageDumpName]);
+  }, [effectiveSearchScope, debouncedSearchQuery, matchMode, matchCase, storageDumpName]);
 
   // Filter helper using debounced query for instant smooth typing
   const filterMatch = (text: string | undefined): boolean => {
@@ -508,7 +517,11 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
             </div>
 
             <button
-              onClick={onCloseSearch}
+              onClick={() => {
+                setSearchQuery('');
+                setDebouncedSearchQuery('');
+                if (onCloseSearch) onCloseSearch();
+              }}
               className="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-[#8E8E93] hover:text-white rounded-lg hover:bg-[#28282A] transition-colors shrink-0"
             >
               Cancel
@@ -518,28 +531,34 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
           {/* Search Options Toolbar */}
           <div className="flex items-center justify-between text-[10px] sm:text-xs text-[#8E8E93] gap-1">
             {/* Scope tabs */}
-            <div className="flex items-center bg-[#28282A] p-0.5 rounded-lg border border-[#3A3A3C]">
-              <button
-                onClick={() => setSearchScope('current')}
-                className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-md font-medium transition-colors text-[9.5px] sm:text-xs ${
-                  searchScope === 'current'
-                    ? 'bg-[#3A3A3C] text-white'
-                    : 'hover:text-[#E2E2E4]'
-                }`}
-              >
-                CURRENT LEVEL
-              </button>
-              <button
-                onClick={() => setSearchScope('everywhere')}
-                className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-md font-medium transition-colors text-[9.5px] sm:text-xs ${
-                  searchScope === 'everywhere'
-                    ? 'bg-[#3A3A3C] text-white'
-                    : 'hover:text-[#E2E2E4]'
-                }`}
-              >
-                EVERYWHERE
-              </button>
-            </div>
+            {selectedClassIndex === null ? (
+              <div className="flex items-center bg-[#28282A] p-0.5 rounded-lg border border-[#3A3A3C]">
+                <button
+                  onClick={() => setSearchScope('current')}
+                  className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-md font-medium transition-colors text-[9.5px] sm:text-xs ${
+                    searchScope === 'current'
+                      ? 'bg-[#3A3A3C] text-white'
+                      : 'hover:text-[#E2E2E4]'
+                  }`}
+                >
+                  CURRENT LEVEL
+                </button>
+                <button
+                  onClick={() => setSearchScope('everywhere')}
+                  className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-md font-medium transition-colors text-[9.5px] sm:text-xs ${
+                    searchScope === 'everywhere'
+                      ? 'bg-[#3A3A3C] text-white'
+                      : 'hover:text-[#E2E2E4]'
+                  }`}
+                >
+                  EVERYWHERE
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center bg-[#28282A] px-2.5 py-1 rounded-lg border border-[#3A3A3C] text-[9.5px] sm:text-xs font-semibold text-sky-400">
+                <span>CURRENT LEVEL</span>
+              </div>
+            )}
 
             {/* Match mode options */}
             <div className="flex items-center gap-1 sm:gap-2">
@@ -578,7 +597,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
       {/* Main Content Area */}
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
         {/* Global search results mode */}
-        {isSearchOpen && searchScope === 'everywhere' && searchQuery.trim() ? (
+        {isSearchOpen && effectiveSearchScope === 'everywhere' && searchQuery.trim() ? (
           <div>
             <div className="px-2.5 sm:px-4 py-1.5 sm:py-2.5 text-[10px] sm:text-xs font-semibold text-[#8E8E93] border-b border-[#353535] bg-[#202020]/60 uppercase tracking-wider flex items-center justify-between">
               <span>Search Results · {globalSearchResults.length.toLocaleString()} found</span>

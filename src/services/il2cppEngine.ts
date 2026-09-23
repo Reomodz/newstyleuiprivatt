@@ -358,8 +358,8 @@ class Il2cppEngine {
     const nsCommentRegex = /^\/\/\s*Namespace:\s*([a-zA-Z0-9_.]*)/i;
     const nsRegex = /^namespace\s+([a-zA-Z0-9_.]+)\s*\{?/;
     const classRegex = /^(?:\[.*?\]\s*)*(?:public|private|internal|protected)?\s*(?:abstract\s+|sealed\s+|static\s+)?(class|struct|enum|interface)\s+([a-zA-Z0-9_.<>]+)(?:\s*:\s*([a-zA-Z0-9_.<>]+))?/;
-    const methodRegex = /(?:\[.*?\]\s*)*(?:public|private|internal|protected)?\s*(?:static\s+|virtual\s+|override\s+|abstract\s+|extern\s+|unsafe\s+)*([a-zA-Z0-9_<>.[\]&]+)\s+([a-zA-Z0-9_.<>]+)\s*\((.*?)\)\s*;?(?:\s*\/\/\s*(?:RVA:\s*)?(0x[0-9a-fA-F]+|\d+))?(?:\s*\/\/\s*typeinfo\s*(0x[0-9a-fA-F]+))?/;
-    const fieldRegex = /(?:\[.*?\]\s*)*(?:public|private|internal|protected)?\s*(?:static\s+|readonly\s+|const\s+|volatile\s+)*([a-zA-Z0-9_<>.[\]&]+)\s+([a-zA-Z0-9_<>]+)(?:\s*=\s*[^;/]+)?\s*;\s*(?:\/\/\s*(?:Offset:\s*)?(0x[0-9a-fA-F]+|\d+))?/;
+    const methodRegex = /(?:\[.*?\]\s*)*(?:public|private|internal|protected)?\s*(?:static\s+|virtual\s+|override\s+|abstract\s+|extern\s+|unsafe\s+)*([a-zA-Z0-9_<>.[\]&*?]+)\s+([a-zA-Z0-9_.<>]+)\s*\((.*?)\)\s*;?(?:\s*\/\/\s*(?:RVA:\s*)?(0x[0-9a-fA-F]+|\d+))?(?:\s*\/\/\s*typeinfo\s*(0x[0-9a-fA-F]+))?/;
+    const fieldRegex = /(?:\[.*?\]\s*)*(?:public|private|internal|protected)?\s*(?:static\s+|readonly\s+|const\s+|volatile\s+|unsafe\s+|fixed\s+)*([a-zA-Z0-9_<>.[\]&*?]+)\s+([a-zA-Z0-9_<>]+)(?:\s*=\s*[^;/]+)?\s*;\s*(?:\/\/\s*(?:Offset:\s*)?(0x[0-9a-fA-F]+|\d+))?/;
 
     let lastYieldTime = performance.now();
 
@@ -963,7 +963,7 @@ class Il2cppEngine {
       if (!currentClass) continue;
 
       const methodRegex =
-        /(?:\[.*?\]\s*)*(?:public|private|internal|protected)?\s*(?:static\s+|virtual\s+|override\s+|abstract\s+|extern\s+|unsafe\s+)*([a-zA-Z0-9_<>.[\]&]+)\s+([a-zA-Z0-9_.<>]+)\s*\((.*?)\)\s*;?(?:\s*\/\/\s*(?:RVA:\s*)?(0x[0-9a-fA-F]+|\d+))?(?:\s*\/\/\s*typeinfo\s*(0x[0-9a-fA-F]+))?/;
+        /(?:\[.*?\]\s*)*(?:public|private|internal|protected)?\s*(?:static\s+|virtual\s+|override\s+|abstract\s+|extern\s+|unsafe\s+)*([a-zA-Z0-9_<>.[\]&*?]+)\s+([a-zA-Z0-9_.<>]+)\s*\((.*?)\)\s*;?(?:\s*\/\/\s*(?:RVA:\s*)?(0x[0-9a-fA-F]+|\d+))?(?:\s*\/\/\s*typeinfo\s*(0x[0-9a-fA-F]+))?/;
 
       if (line.includes('(') && !line.startsWith('//')) {
         const methodMatch = line.match(methodRegex);
@@ -1022,7 +1022,7 @@ class Il2cppEngine {
       }
 
       const fieldRegex =
-        /(?:\[.*?\]\s*)*(?:public|private|internal|protected)?\s*(?:static\s+|readonly\s+|const\s+|volatile\s+)*([a-zA-Z0-9_<>.[\]&]+)\s+([a-zA-Z0-9_<>]+)(?:\s*=\s*[^;/]+)?\s*;\s*(?:\/\/\s*(?:Offset:\s*)?(0x[0-9a-fA-F]+|\d+))?/;
+        /(?:\[.*?\]\s*)*(?:public|private|internal|protected)?\s*(?:static\s+|readonly\s+|const\s+|volatile\s+|unsafe\s+|fixed\s+)*([a-zA-Z0-9_<>.[\]&*?]+)\s+([a-zA-Z0-9_<>]+)(?:\s*=\s*[^;/]+)?\s*;\s*(?:\/\/\s*(?:Offset:\s*)?(0x[0-9a-fA-F]+|\d+))?/;
 
       if (line.includes(';') && !line.includes('(') && !line.startsWith('//')) {
         const fieldMatch = line.match(fieldRegex);

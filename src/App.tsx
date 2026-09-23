@@ -54,6 +54,24 @@ export const App: React.FC = () => {
   const [canvasTabs, setCanvasTabs] = useState<CanvasTabViewData[]>([]);
   const [activeCanvasTabId, setActiveCanvasTabId] = useState<string | null>(null);
 
+  // Dashboard Active Tab Memory (Remembers last active tab: 'target' | 'watchlist' | 'history')
+  const [dashboardTab, setDashboardTab] = useState<'target' | 'watchlist' | 'history'>(() => {
+    try {
+      const saved = localStorage.getItem('il2cpp_last_dashboard_tab');
+      if (saved && (saved === 'target' || saved === 'watchlist' || saved === 'history')) {
+        return saved as 'target' | 'watchlist' | 'history';
+      }
+    } catch {}
+    return 'watchlist';
+  });
+
+  const handleDashboardTabChange = (tab: 'target' | 'watchlist' | 'history') => {
+    setDashboardTab(tab);
+    try {
+      localStorage.setItem('il2cpp_last_dashboard_tab', tab);
+    } catch {}
+  };
+
   // UI Panels & Modals State
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -320,6 +338,8 @@ export const App: React.FC = () => {
           onOpenMenu={() => setIsDrawerOpen(true)}
           activeWorkspace={activeWorkspace}
           onSwitchWorkspace={setActiveWorkspace}
+          dashboardTab={dashboardTab}
+          activeProfileName={activeProfile?.name}
         />
       </div>
 
@@ -333,7 +353,7 @@ export const App: React.FC = () => {
             onOpenProcessPicker={() => {}}
             onNavigateToBrowser={(classIndex, memberKind, memberName) => {
               if (memberKind) {
-                setBrowserInitialTab(memberKind);
+                 setBrowserInitialTab(memberKind);
               }
               if (memberName) {
                 setBrowserScrollToMember({ memberName, kind: memberKind || 'FIELD' });
@@ -348,6 +368,8 @@ export const App: React.FC = () => {
             onCopyText={handleCopyText}
             showToast={showToast}
             watchlistManager={watchlistManager}
+            activeTab={dashboardTab}
+            onTabChange={handleDashboardTabChange}
           />
         ) : activeWorkspace === 'browser' ? (
           <ManagerBrowser

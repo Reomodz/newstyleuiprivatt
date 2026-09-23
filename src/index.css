@@ -207,8 +207,12 @@
 .custom-card-translucent .bg-\[\#323236\],
 .custom-card-translucent .bg-\[\#121214\],
 .custom-card-translucent .bg-\[\#131315\],
-.custom-card-translucent .bg-\[\#141416\] {
-  background-color: rgba(26, 26, 30, var(--card-opacity, 0.92)) !important;
+.custom-card-translucent .bg-\[\#141416\],
+.custom-card-translucent [class*="bg-[#121214]"],
+.custom-card-translucent .target-subgroup-card,
+.has-custom-bg [class*="bg-[#121214]"],
+.has-custom-bg .target-subgroup-card {
+  background-color: rgba(18, 18, 22, max(0.35, calc(var(--card-opacity, 0.92) * 0.85))) !important;
   backdrop-filter: blur(var(--glass-blur, 0px)) !important;
   -webkit-backdrop-filter: blur(var(--glass-blur, 0px)) !important;
 }

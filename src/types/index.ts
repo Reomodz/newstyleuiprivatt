@@ -307,6 +307,7 @@ export interface TargetCardViewSettings {
   showTargetBanner?: boolean;
   showScanLogCard?: boolean;
   expandAllDescriptions?: boolean;
+  showReorderButtons?: boolean;
 }
 
 export const DEFAULT_TARGET_VIEW_SETTINGS: TargetCardViewSettings = {
@@ -323,6 +324,7 @@ export const DEFAULT_TARGET_VIEW_SETTINGS: TargetCardViewSettings = {
   showTargetBanner: true,
   showScanLogCard: true,
   expandAllDescriptions: false,
+  showReorderButtons: false,
 };
 
 export interface HistoryCardViewSettings {

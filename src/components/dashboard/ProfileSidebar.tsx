@@ -1,4 +1,4 @@
-import React, { useState, useMemo, RefObject } from 'react';
+import React, { useState, useEffect, useMemo, RefObject } from 'react';
 import {
   Layers, Upload, Plus, Pencil, Share2, Trash2, ChevronRight, ChevronLeft,
   Search, SlidersHorizontal, Sliders, FolderPlus, X
@@ -84,8 +84,32 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
     }
   };
 
-  // Collapsed group sections state
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  // Collapsed group sections state with persistent storage memory
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() => {
+    try {
+      const key = `il2cpp_collapsed_groups_${activeProfileId || 'default'}`;
+      const saved = localStorage.getItem(key);
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // fallback
+    }
+    return {};
+  });
+
+  // Re-sync collapsed states when active profile changes
+  useEffect(() => {
+    try {
+      const key = `il2cpp_collapsed_groups_${activeProfileId || 'default'}`;
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        setCollapsedGroups(JSON.parse(saved));
+      } else {
+        setCollapsedGroups({});
+      }
+    } catch {
+      setCollapsedGroups({});
+    }
+  }, [activeProfileId]);
   const [expandedProfileDescIds, setExpandedProfileDescIds] = useState<Record<string, boolean>>({});
   const [expandActiveProfileDesc, setExpandActiveProfileDesc] = useState(false);
 
@@ -221,7 +245,16 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
 
   const toggleGroupCollapse = (groupName: string | null) => {
     const key = groupName || '__ungrouped__';
-    setCollapsedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
+    setCollapsedGroups((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      try {
+        const storageKey = `il2cpp_collapsed_groups_${activeProfileId || 'default'}`;
+        localStorage.setItem(storageKey, JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
   };
 
   // Target Drag and Drop States

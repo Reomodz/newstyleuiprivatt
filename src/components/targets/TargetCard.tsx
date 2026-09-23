@@ -193,32 +193,34 @@ export const TargetCard: React.FC<TargetCardProps> = React.memo(({
         {/* Action Buttons: Move Up/Down, Edit (Pencil), Delete */}
         <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
           {/* Quick Move Up / Move Down for Touch/Keyboard users */}
-          <div className="flex items-center bg-[#18181A] border border-[#2D2D30] rounded-md p-0.5 sm:opacity-0 group-hover/card:opacity-100 transition-opacity">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onMove(item.id, 'up');
-              }}
-              disabled={isFirstInGroup}
-              className="p-0.5 text-[#8E8E93] hover:text-white disabled:opacity-20 disabled:pointer-events-none rounded transition-colors"
-              title="Move Up in profile"
-            >
-              <ChevronUp className="w-3 h-3" />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onMove(item.id, 'down');
-              }}
-              disabled={isLastInGroup}
-              className="p-0.5 text-[#8E8E93] hover:text-white disabled:opacity-20 disabled:pointer-events-none rounded transition-colors"
-              title="Move Down in profile"
-            >
-              <ChevronDown className="w-3 h-3" />
-            </button>
-          </div>
+          {cardViewSettings.showReorderButtons && (
+            <div className="flex items-center bg-[#18181A] border border-[#2D2D30] rounded-md p-0.5 transition-opacity">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMove(item.id, 'up');
+                }}
+                disabled={isFirstInGroup}
+                className="p-0.5 text-[#8E8E93] hover:text-white disabled:opacity-20 disabled:pointer-events-none rounded transition-colors"
+                title="Move Up in profile"
+              >
+                <ChevronUp className="w-3 h-3" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMove(item.id, 'down');
+                }}
+                disabled={isLastInGroup}
+                className="p-0.5 text-[#8E8E93] hover:text-white disabled:opacity-20 disabled:pointer-events-none rounded transition-colors"
+                title="Move Down in profile"
+              >
+                <ChevronDown className="w-3 h-3" />
+              </button>
+            </div>
+          )}
 
           <button
             onClick={(e) => {

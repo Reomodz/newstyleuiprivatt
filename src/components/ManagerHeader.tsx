@@ -10,8 +10,10 @@ import {
   Layers,
   Sparkles,
   Search,
-  LayoutDashboard,
   Code2,
+  BookmarkPlus,
+  Cpu,
+  History,
 } from 'lucide-react';
 
 interface ManagerHeaderProps {
@@ -29,6 +31,8 @@ interface ManagerHeaderProps {
   onOpenMenu: () => void;
   activeWorkspace: 'dashboard' | 'browser' | 'canvas';
   onSwitchWorkspace: (workspace: 'dashboard' | 'browser' | 'canvas') => void;
+  dashboardTab?: 'target' | 'watchlist' | 'history';
+  activeProfileName?: string;
 }
 
 export const ManagerHeader: React.FC<ManagerHeaderProps> = ({
@@ -44,7 +48,35 @@ export const ManagerHeader: React.FC<ManagerHeaderProps> = ({
   onOpenMenu,
   activeWorkspace,
   onSwitchWorkspace,
+  dashboardTab = 'watchlist',
+  activeProfileName,
 }) => {
+  // Dynamic header tab representation
+  const getDashboardButtonInfo = () => {
+    switch (dashboardTab) {
+      case 'watchlist':
+        return {
+          label: activeProfileName ? `${activeProfileName}` : 'Profiles & Offsets',
+          shortLabel: 'Profiles',
+          icon: <BookmarkPlus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />,
+        };
+      case 'history':
+        return {
+          label: 'History',
+          shortLabel: 'History',
+          icon: <History className="w-3 h-3 sm:w-3.5 sm:h-3.5" />,
+        };
+      case 'target':
+      default:
+        return {
+          label: 'Storage Dump',
+          shortLabel: 'Dump',
+          icon: <Cpu className="w-3 h-3 sm:w-3.5 sm:h-3.5" />,
+        };
+    }
+  };
+
+  const dashInfo = getDashboardButtonInfo();
   return (
     <header className="app-top-header bg-[#1A1A1A]/80 backdrop-blur-md text-[#E2E2E4] border-b border-[#353535]/70 shrink-0 flex flex-col select-none transition-colors">
       {/* Top Primary Bar */}
@@ -83,14 +115,15 @@ export const ManagerHeader: React.FC<ManagerHeaderProps> = ({
             <div className="flex items-center bg-[#202020] p-0.5 rounded-lg border border-[#353535] animate-in fade-in duration-200">
               <button
                 onClick={() => onSwitchWorkspace('dashboard')}
-                className={`flex items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-md text-[10px] sm:text-xs font-medium transition-all ${
+                className={`flex items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-md text-[10px] sm:text-xs font-medium transition-all max-w-[150px] sm:max-w-[200px] truncate ${
                   activeWorkspace === 'dashboard'
                     ? 'bg-indigo-600 text-white shadow-sm font-semibold'
                     : 'text-[#8E8E93] hover:text-[#E2E2E4]'
                 }`}
+                title={`Switch to ${dashInfo.label}`}
               >
-                <LayoutDashboard className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                <span>Storage Hub</span>
+                {dashInfo.icon}
+                <span className="truncate">{dashInfo.label}</span>
               </button>
               <button
                 onClick={() => onSwitchWorkspace('browser')}

@@ -296,7 +296,7 @@ export function useMemoryScanner(initialHistory: ScanHistoryRecord[] = []) {
 
           for (const foundCls of candidateClassList) {
             const formattedResolvedClassName = foundCls.namespaceName && foundCls.namespaceName !== '-'
-              ? `${foundCls.namespaceName}::${foundCls.name}`
+              ? `${foundCls.namespaceName}:${foundCls.name}`
               : foundCls.name;
 
             if (item.kind === 'FIELD') {

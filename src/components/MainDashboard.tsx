@@ -48,6 +48,8 @@ interface MainDashboardProps {
   onCopyText: (text: string, label: string) => void;
   showToast: (msg: string) => void;
   watchlistManager?: ReturnType<typeof useWatchlistManager>;
+  activeTab?: 'target' | 'watchlist' | 'history';
+  onTabChange?: (tab: 'target' | 'watchlist' | 'history') => void;
 }
 
 export const MainDashboard: React.FC<MainDashboardProps> = ({
@@ -58,9 +60,18 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   onCopyText,
   showToast,
   watchlistManager,
+  activeTab: controlledActiveTab,
+  onTabChange,
 }) => {
-  // Dashboard Navigation State
-  const [activeTab, setActiveTab] = useState<'target' | 'watchlist' | 'history'>('target');
+  // Dashboard Navigation State (Persisted & Controlled)
+  const [internalActiveTab, setInternalActiveTab] = useState<'target' | 'watchlist' | 'history'>('target');
+  const activeTab = controlledActiveTab ?? internalActiveTab;
+  const setActiveTab = (tab: 'target' | 'watchlist' | 'history') => {
+    setInternalActiveTab(tab);
+    if (onTabChange) {
+      onTabChange(tab);
+    }
+  };
 
   // Storage dump state
   const [storageMeta, setStorageMeta] = useState(() => il2cppEngine.getStorageMeta());
