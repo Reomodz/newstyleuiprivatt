@@ -43,9 +43,9 @@ export const TargetSubgroupCard: React.FC<TargetSubgroupCardProps> = ({
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
-      className={`flex flex-col gap-1.5 target-subgroup-card ${
+      className={`flex flex-col gap-1.5 ${
         isNamedSubgroup
-          ? `p-1.5 sm:p-2 rounded-lg border transition-all ${
+          ? `target-subgroup-card p-1.5 sm:p-2 rounded-lg border transition-all ${
               isDragOver
                 ? 'border-sky-500 bg-sky-950/20'
                 : isTranslucent

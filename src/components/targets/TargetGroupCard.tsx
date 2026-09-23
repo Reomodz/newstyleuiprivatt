@@ -77,7 +77,7 @@ export const TargetGroupCard: React.FC<TargetGroupCardProps> = ({
           ? 'border-indigo-500 bg-indigo-950/20 shadow-lg shadow-indigo-500/10 ring-1 ring-indigo-500/40'
           : isTranslucent
           ? 'border-white/10 hover:border-white/20 shadow-lg'
-          : 'border-[#2D2D30] bg-[#161618] hover:border-[#3A3A40]'
+          : 'border-[#2D2D30] bg-[#131316] hover:border-[#3A3A40]'
       } overflow-hidden p-2.5 sm:p-3.5 flex flex-col gap-2.5`}
     >
       {/* Group Header */}

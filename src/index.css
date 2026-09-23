@@ -237,10 +237,10 @@
 /* Outer Target Group Cards */
 .custom-card-translucent .target-group-card,
 .has-custom-bg .target-group-card {
-  background-color: rgba(20, 20, 24, var(--group-opacity, 0.48)) !important;
+  background-color: rgba(15, 15, 18, var(--card-opacity, 0.92)) !important;
   background-image: none !important;
-  backdrop-filter: blur(var(--glass-blur, 14px)) !important;
-  -webkit-backdrop-filter: blur(var(--glass-blur, 14px)) !important;
+  backdrop-filter: blur(var(--glass-blur, 16px)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur, 16px)) !important;
 }
 
 /* Inner Target Subgroup Cards */
