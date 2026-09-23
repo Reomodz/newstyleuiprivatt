@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, ReactNode } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 
 interface VirtualScrollListProps<T> {
   items: T[];
@@ -19,15 +20,16 @@ export function VirtualScrollList<T>({
   estimatedItemHeight = 72,
   columns = 1,
   gridClassName = '',
-  overscan = 8,
+  overscan = 25, // Generous overscan buffer for instant high-speed scrolling
   scrollContainerRef,
   emptyMessage,
   className = '',
 }: VirtualScrollListProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [scrollTop, setScrollTop] = useState(0);
-  const [viewportHeight, setViewportHeight] = useState(600);
-  const [containerWidth, setContainerWidth] = useState(1024);
+  const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
+  const [containerWidth, setContainerWidth] = useState(
+    typeof window !== 'undefined' ? window.innerWidth : 360
+  );
 
   // Determine effective column count based on container width if responsive object passed
   const currentColumns = useMemo(() => {
@@ -42,14 +44,21 @@ export function VirtualScrollList<T>({
     return 1;
   }, [columns, containerWidth]);
 
-  // Monitor container size
+  // Keep scroll container element synced for TanStack Virtualizer
   useEffect(() => {
-    const target = scrollContainerRef?.current || containerRef.current?.parentElement || containerRef.current;
+    const el = scrollContainerRef?.current || containerRef.current?.parentElement || null;
+    if (el !== scrollEl) {
+      setScrollEl(el);
+    }
+  }, [scrollContainerRef, scrollEl]);
+
+  // Monitor container size for responsive columns
+  useEffect(() => {
+    const target = scrollEl || scrollContainerRef?.current || containerRef.current?.parentElement || containerRef.current;
     if (!target) return;
 
     const updateDimensions = () => {
       if (target) {
-        setViewportHeight(target.clientHeight || window.innerHeight);
         setContainerWidth(target.clientWidth || window.innerWidth);
       }
     };
@@ -62,81 +71,67 @@ export function VirtualScrollList<T>({
 
     resizeObserver.observe(target);
     return () => resizeObserver.disconnect();
-  }, [scrollContainerRef]);
-
-  // Monitor scroll position of target container
-  useEffect(() => {
-    const scrollTarget = scrollContainerRef?.current || containerRef.current?.parentElement;
-    if (!scrollTarget) return;
-
-    let rafId: number | null = null;
-    const handleScroll = () => {
-      if (rafId !== null) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        setScrollTop(scrollTarget.scrollTop);
-      });
-    };
-
-    scrollTarget.addEventListener('scroll', handleScroll, { passive: true });
-    // Initial read
-    setScrollTop(scrollTarget.scrollTop);
-
-    return () => {
-      scrollTarget.removeEventListener('scroll', handleScroll);
-      if (rafId !== null) cancelAnimationFrame(rafId);
-    };
-  }, [scrollContainerRef]);
+  }, [scrollEl, scrollContainerRef]);
 
   const totalCount = items.length;
+  const totalRows = Math.ceil(totalCount / currentColumns);
 
-  // Calculate row virtualization
-  const { visibleItems, startIndex, topPadding, totalHeight } = useMemo(() => {
-    if (totalCount === 0) {
-      return { visibleItems: [], startIndex: 0, topPadding: 0, totalHeight: 0 };
-    }
-
-    const rowHeight = estimatedItemHeight;
-    const totalRows = Math.ceil(totalCount / currentColumns);
-
-    // Calculate start and end rows with overscan buffers
-    const startRow = Math.max(0, Math.floor(scrollTop / rowHeight) - overscan);
-    const endRow = Math.min(
-      totalRows,
-      Math.ceil((scrollTop + viewportHeight) / rowHeight) + overscan
-    );
-
-    const startIdx = startRow * currentColumns;
-    const endIdx = Math.min(totalCount, endRow * currentColumns);
-
-    const topPad = startRow * rowHeight;
-    const totHeight = totalRows * rowHeight;
-
-    return {
-      visibleItems: items.slice(startIdx, endIdx),
-      startIndex: startIdx,
-      topPadding: topPad,
-      totalHeight: totHeight,
-    };
-  }, [items, totalCount, currentColumns, scrollTop, viewportHeight, estimatedItemHeight, overscan]);
+  // 📜 High-Performance Virtualizer (O(1) deterministic math, zero DOM layout reflows)
+  const rowVirtualizer = useVirtualizer({
+    count: totalRows,
+    getScrollElement: () => scrollEl || scrollContainerRef?.current || containerRef.current?.parentElement || null,
+    estimateSize: () => estimatedItemHeight,
+    overscan: overscan ?? 25,
+  });
 
   if (totalCount === 0 && emptyMessage) {
     return <>{emptyMessage}</>;
   }
 
+  const virtualItems = rowVirtualizer.getVirtualItems();
+
   return (
-    <div ref={containerRef} className={`w-full relative ${className}`} style={{ minHeight: `${totalHeight}px` }}>
-      <div style={{ transform: `translateY(${topPadding}px)`, width: '100%' }}>
-        <div className={gridClassName}>
-          {visibleItems.map((item, relIndex) => {
-            const absoluteIndex = startIndex + relIndex;
-            return (
-              <React.Fragment key={absoluteIndex}>
-                {renderItem(item, absoluteIndex)}
-              </React.Fragment>
-            );
-          })}
-        </div>
-      </div>
+    <div
+      ref={containerRef}
+      className={`w-full relative ${className}`}
+      style={{
+        height: `${rowVirtualizer.getTotalSize()}px`,
+        width: '100%',
+        position: 'relative',
+      }}
+    >
+      {virtualItems.map((virtualRow) => {
+        const startIdx = virtualRow.index * currentColumns;
+        const endIdx = Math.min(totalCount, startIdx + currentColumns);
+        const rowItems = items.slice(startIdx, endIdx);
+
+        return (
+          <div
+            key={virtualRow.key}
+            data-index={virtualRow.index}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              transform: `translateY(${virtualRow.start}px)`,
+              willChange: 'transform',
+            }}
+            className="w-full min-w-0"
+          >
+            <div className={`w-full min-w-0 ${gridClassName}`}>
+              {rowItems.map((item, relIndex) => {
+                const absoluteIndex = startIdx + relIndex;
+                return (
+                  <React.Fragment key={absoluteIndex}>
+                    {renderItem(item, absoluteIndex)}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

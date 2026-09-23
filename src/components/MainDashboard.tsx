@@ -1,42 +1,18 @@
-import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
-import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
-import {
-  Cpu, BookmarkPlus, History
-} from 'lucide-react';
-import {
-  AddTargetModal,
-  EditTargetModal,
-  CreateProfileModal,
-  EditProfileModal,
-  TargetDetailModal,
-  HistoryDetailModal,
-  CardSettingsModal,
-  ProfileCardSettingsModal,
-  HistoryCardSettingsModal,
-  JsonDiagnosticModal,
-} from "./modals";
-import { ConfirmDialog } from "./ui";
-import { HistoryTab } from "./dashboard/HistoryTab";
-import { DashboardHeader } from "./dashboard/DashboardHeader";
-import { ProfileSidebar } from "./dashboard/ProfileSidebar";
+import React, { useState, useMemo, useCallback } from 'react';
+import { Cpu, BookmarkPlus, History } from 'lucide-react';
+import { HistoryTab } from './dashboard/HistoryTab';
+import { DashboardHeader } from './dashboard/DashboardHeader';
+import { ProfileSidebar } from './dashboard/ProfileSidebar';
+import { MainDashboardModals } from './dashboard/MainDashboardModals';
 
 import { useWatchlistManager } from '../hooks/useWatchlistManager';
 import { useMemoryScanner } from '../hooks/useMemoryScanner';
-import { validateAndParseProfileJson, JsonDiagnosticResult } from '../utils/jsonValidator';
+import { useDumpManager } from '../hooks/useDumpManager';
+import { useDashboardSettings } from '../hooks/useDashboardSettings';
+import { useTargetForms } from '../hooks/useTargetForms';
+import { useProfileExportImport } from '../hooks/useProfileExportImport';
 
-import {
-  ProcessDescriptor,
-  WatchlistProfile,
-  WatchlistTargetItem,
-  ScanHistoryRecord,
-  CodeStylePreset,
-  TargetCardViewSettings,
-  DEFAULT_TARGET_VIEW_SETTINGS,
-  ProfileCardViewSettings,
-  DEFAULT_PROFILE_VIEW_SETTINGS,
-  HistoryCardViewSettings,
-  DEFAULT_HISTORY_VIEW_SETTINGS,
-} from '../types';
+import { ProcessDescriptor, WatchlistTargetItem } from '../types';
 import { il2cppEngine } from '../services/il2cppEngine';
 
 interface MainDashboardProps {
@@ -63,7 +39,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   activeTab: controlledActiveTab,
   onTabChange,
 }) => {
-  // Dashboard Navigation State (Persisted & Controlled)
+  // Navigation State
   const [internalActiveTab, setInternalActiveTab] = useState<'target' | 'watchlist' | 'history'>('target');
   const activeTab = controlledActiveTab ?? internalActiveTab;
   const setActiveTab = (tab: 'target' | 'watchlist' | 'history') => {
@@ -73,20 +49,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     }
   };
 
-  // Storage dump state
-  const [storageMeta, setStorageMeta] = useState(() => il2cppEngine.getStorageMeta());
-  const [loadedStorageFileName, setLoadedStorageFileName] = useState<string | null>(storageDumpName || null);
-  const [loadedHeaderFileName, setLoadedHeaderFileName] = useState<string | null>(null);
-  const [isParsingDump, setIsParsingDump] = useState(false);
-  const [parseProgress, setParseProgress] = useState<import('../types').DumpParseProgress | null>(null);
-  const [parsedSummary, setParsedSummary] = useState<{
-    classes: number;
-    methods: number;
-    fields: number;
-    typeInfos?: number;
-  } | null>(null);
-
-  // Profiles State
+  // Watchlist & Profiles State
   const defaultWatchlist = useWatchlistManager();
   const {
     profiles,
@@ -98,158 +61,191 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     saveProfiles,
   } = watchlistManager || defaultWatchlist;
 
-  // Profile JSON Import ref
-  const profileImportInputRef = useRef<HTMLInputElement>(null);
+  // Dump Manager Hook
+  const {
+    storageMeta,
+    loadedStorageFileName,
+    loadedHeaderFileName,
+    isParsingDump,
+    parseProgress,
+    parsedSummary,
+    handleDumpCsUpload,
+    handleIl2cppHUpload,
+    handleUnloadDumpCs,
+    handleUnloadIl2cppH,
+  } = useDumpManager({
+    storageDumpName,
+    onStorageDumpLoaded,
+    showToast,
+  });
 
-  // Edit Profile Name Modal State
-  const [editingProfile, setEditingProfile] = useState<WatchlistProfile | null>(null);
-  const [editProfileName, setEditProfileName] = useState('');
-  const [editProfileDesc, setEditProfileDesc] = useState('');
-  const [editProfileCodeStyle, setEditProfileCodeStyle] = useState<CodeStylePreset>('cpp_constexpr');
-  const [editProfileCustomTemplate, setEditProfileCustomTemplate] = useState('constexpr uintptr_t {name} = {offset};');
+  // Settings & Modal State Hook
+  const {
+    profileCardSettings,
+    setProfileCardSettings,
+    isProfileCardSettingsModalOpen,
+    setIsProfileCardSettingsModalOpen,
+    cardViewSettings,
+    setCardViewSettings,
+    isCardSettingsModalOpen,
+    setIsCardSettingsModalOpen,
+    historyCardSettings,
+    setHistoryCardSettings,
+    isHistoryCardSettingsModalOpen,
+    setIsHistoryCardSettingsModalOpen,
+    jsonDiagnostic,
+    setJsonDiagnostic,
+    isJsonDiagModalOpen,
+    setIsJsonDiagModalOpen,
+    viewingTargetItem,
+    setViewingTargetItem,
+    selectedHistoryRecord,
+    setSelectedHistoryRecord,
+    historyModalCodeStyle,
+    setHistoryModalCodeStyle,
+    historyModalCustomTemplate,
+    setHistoryModalCustomTemplate,
+    historyModalTab,
+    setHistoryModalTab,
+    handleOpenHistoryRecord,
+    isConfirmClearHistoryOpen,
+    setIsConfirmClearHistoryOpen,
+  } = useDashboardSettings(activeProfile);
 
-  // Fallback Collapsible Toggles
-  const [showAddFallbacks, setShowAddFallbacks] = useState(false);
-  const [showEditFallbacks, setShowEditFallbacks] = useState(false);
+  // Target & Profile Forms Hook
+  const {
+    isNewProfileModalOpen,
+    setIsNewProfileModalOpen,
+    newProfileName,
+    setNewProfileName,
+    newProfileDesc,
+    setNewProfileDesc,
+    newProfileCodeStyle,
+    setNewProfileCodeStyle,
+    newProfileCustomTemplate,
+    setNewProfileCustomTemplate,
+    handleCreateProfile,
 
-  // Scan History
+    editingProfile,
+    setEditingProfile,
+    editProfileName,
+    setEditProfileName,
+    editProfileDesc,
+    setEditProfileDesc,
+    editProfileCodeStyle,
+    setEditProfileCodeStyle,
+    editProfileCustomTemplate,
+    setEditProfileCustomTemplate,
+    handleOpenEditProfile,
+    handleSaveEditProfile,
+
+    isAddTargetModalOpen,
+    setIsAddTargetModalOpen,
+    newTargetKind,
+    setNewTargetKind,
+    newTargetCustomName,
+    setNewTargetCustomName,
+    newTargetIsCustom,
+    setNewTargetIsCustom,
+    newTargetDefaultOffset,
+    setNewTargetDefaultOffset,
+    newTargetGroupName,
+    setNewTargetGroupName,
+    newTargetSubGroupName,
+    setNewTargetSubGroupName,
+    availableGroups,
+    availableSubGroups,
+    newTargetAssemblyName,
+    setNewTargetAssemblyName,
+    newTargetClassName,
+    setNewTargetClassName,
+    newTargetMemberName,
+    setNewTargetMemberName,
+    newTargetComment,
+    setNewTargetComment,
+    showAddFallbacks,
+    setShowAddFallbacks,
+    tempFallbackClassInput,
+    setTempFallbackClassInput,
+    tempFallbackMemberInput,
+    setTempFallbackMemberInput,
+    newTargetFallbackClasses,
+    setNewTargetFallbackClasses,
+    newTargetFallbackMembers,
+    setNewTargetFallbackMembers,
+    handleAddTarget,
+    handleOpenAddTargetToGroup,
+
+    editingTargetItem,
+    setEditingTargetItem,
+    editTargetKind,
+    setEditTargetKind,
+    editTargetCustomName,
+    setEditTargetCustomName,
+    editTargetIsCustom,
+    setEditTargetIsCustom,
+    editTargetDefaultOffset,
+    setEditTargetDefaultOffset,
+    editTargetAssemblyName,
+    setEditTargetAssemblyName,
+    editTargetClassName,
+    setEditTargetClassName,
+    editTargetMemberName,
+    setEditTargetMemberName,
+    editTargetComment,
+    setEditTargetComment,
+    showEditFallbacks,
+    setShowEditFallbacks,
+    editTempFallbackClassInput,
+    setEditTempFallbackClassInput,
+    editTempFallbackMemberInput,
+    setEditTempFallbackMemberInput,
+    editTargetFallbackClasses,
+    setEditTargetFallbackClasses,
+    editTargetFallbackMembers,
+    setEditTargetFallbackMembers,
+    handleOpenEditTarget,
+    handleSaveEditTarget,
+    handleRemoveTargetItem,
+    handleReorderTargets,
+  } = useTargetForms({
+    profiles,
+    activeProfile,
+    saveProfiles,
+    setActiveProfileId,
+    setSelectedProfileViewId,
+    showToast,
+  });
+
+  // Profile Export & Import Hook
+  const {
+    profileImportInputRef,
+    handleExportProfile,
+    handleImportProfile,
+    handleApplyImportedProfile,
+    handleDeleteProfile,
+  } = useProfileExportImport({
+    profiles,
+    saveProfiles,
+    activeProfileId,
+    setActiveProfileId,
+    selectedProfileViewId,
+    setSelectedProfileViewId,
+    cardViewSettings,
+    setCardViewSettings,
+    setJsonDiagnostic,
+    setIsJsonDiagModalOpen,
+    showToast,
+  });
+
+  // Memory Scanner Hook
   const {
     scanHistory,
     saveHistory,
     isScanning,
     scanLogs,
-    handleScanProfile: doScanProfile
+    handleScanProfile: doScanProfile,
   } = useMemoryScanner();
-
-  // Modal / Form States
-  const [isNewProfileModalOpen, setIsNewProfileModalOpen] = useState(false);
-  const [newProfileName, setNewProfileName] = useState('');
-  const [newProfileDesc, setNewProfileDesc] = useState('');
-  const [newProfileCodeStyle, setNewProfileCodeStyle] = useState<CodeStylePreset>('cpp_constexpr');
-  const [newProfileCustomTemplate, setNewProfileCustomTemplate] = useState('constexpr uintptr_t {name} = {offset};');
-
-  const [isAddTargetModalOpen, setIsAddTargetModalOpen] = useState(false);
-  const [newTargetIsCustom, setNewTargetIsCustom] = useState(false);
-  const [newTargetDefaultOffset, setNewTargetDefaultOffset] = useState('');
-  const [newTargetCustomName, setNewTargetCustomName] = useState('');
-  const [newTargetGroupName, setNewTargetGroupName] = useState('');
-  const [newTargetSubGroupName, setNewTargetSubGroupName] = useState('');
-  const [newTargetAssemblyName, setNewTargetAssemblyName] = useState('');
-  const [newTargetNamespaceName, setNewTargetNamespaceName] = useState('');
-  const [newTargetClassName, setNewTargetClassName] = useState('');
-  const [newTargetMemberName, setNewTargetMemberName] = useState('');
-  const [newTargetKind, setNewTargetKind] = useState<'FIELD' | 'METHOD'>('FIELD');
-  const [newTargetComment, setNewTargetComment] = useState('');
-  const [newTargetFallbackClasses, setNewTargetFallbackClasses] = useState<string[]>([]);
-  const [newTargetFallbackMembers, setNewTargetFallbackMembers] = useState<string[]>([]);
-  const [tempFallbackClassInput, setTempFallbackClassInput] = useState('');
-  const [tempFallbackMemberInput, setTempFallbackMemberInput] = useState('');
-
-  // Edit Target Modal State
-  const [editingTargetItem, setEditingTargetItem] = useState<WatchlistTargetItem | null>(null);
-  const [editTargetIsCustom, setEditTargetIsCustom] = useState(false);
-  const [editTargetDefaultOffset, setEditTargetDefaultOffset] = useState('');
-  const [editTargetCustomName, setEditTargetCustomName] = useState('');
-  const [editTargetAssemblyName, setEditTargetAssemblyName] = useState('');
-  const [editTargetNamespaceName, setEditTargetNamespaceName] = useState('');
-  const [editTargetClassName, setEditTargetClassName] = useState('');
-  const [editTargetMemberName, setEditTargetMemberName] = useState('');
-  const [editTargetKind, setEditTargetKind] = useState<'FIELD' | 'METHOD'>('FIELD');
-  const [editTargetComment, setEditTargetComment] = useState('');
-  const [editTargetFallbackClasses, setEditTargetFallbackClasses] = useState<string[]>([]);
-  const [editTargetFallbackMembers, setEditTargetFallbackMembers] = useState<string[]>([]);
-  const [editTempFallbackClassInput, setEditTempFallbackClassInput] = useState('');
-  const [editTempFallbackMemberInput, setEditTempFallbackMemberInput] = useState('');
-
-  // Live filter inside watchlist
-  const [watchlistFilter, setWatchlistFilter] = useState('');
-
-  // Profile Card View & Display Settings (for Profile Overview Cards)
-  const [profileCardSettings, setProfileCardSettings] = useState<ProfileCardViewSettings>(() => {
-    try {
-      const saved = localStorage.getItem('il2cpp_profile_view_settings');
-      if (saved) {
-        return { ...DEFAULT_PROFILE_VIEW_SETTINGS, ...JSON.parse(saved) };
-      }
-    } catch {
-      // fallback
-    }
-    return DEFAULT_PROFILE_VIEW_SETTINGS;
-  });
-
-  const [isProfileCardSettingsModalOpen, setIsProfileCardSettingsModalOpen] = useState(false);
-
-  // Target Card View & Display Settings (Custom Target Card Options)
-  const [cardViewSettings, setCardViewSettings] = useState<TargetCardViewSettings>(() => {
-    try {
-      const saved = localStorage.getItem('il2cpp_target_view_settings_v3');
-      if (saved) {
-        return { ...DEFAULT_TARGET_VIEW_SETTINGS, ...JSON.parse(saved) };
-      }
-    } catch {
-      // fallback
-    }
-    return DEFAULT_TARGET_VIEW_SETTINGS;
-  });
-
-  // Auto-persist target card settings changes to local storage
-  useEffect(() => {
-    try {
-      localStorage.setItem('il2cpp_target_view_settings_v3', JSON.stringify(cardViewSettings));
-    } catch {
-      // ignore
-    }
-  }, [cardViewSettings]);
-
-  // Sync active profile's stored card settings when switching profiles
-  useEffect(() => {
-    if (activeProfile?.cardViewSettings) {
-      setCardViewSettings((prev) => ({
-        ...prev,
-        ...activeProfile.cardViewSettings,
-      }));
-    }
-  }, [activeProfile?.id]);
-
-  const [isCardSettingsModalOpen, setIsCardSettingsModalOpen] = useState(false);
-
-  // History Card View & Display Settings
-  const [historyCardSettings, setHistoryCardSettings] = useState<HistoryCardViewSettings>(() => {
-    try {
-      const saved = localStorage.getItem('il2cpp_history_view_settings');
-      if (saved) {
-        return { ...DEFAULT_HISTORY_VIEW_SETTINGS, ...JSON.parse(saved) };
-      }
-    } catch {
-      // fallback
-    }
-    return DEFAULT_HISTORY_VIEW_SETTINGS;
-  });
-
-  const [isHistoryCardSettingsModalOpen, setIsHistoryCardSettingsModalOpen] = useState(false);
-
-  // JSON Safety & Diagnostic Modal State
-  const [jsonDiagnostic, setJsonDiagnostic] = useState<JsonDiagnosticResult | null>(null);
-  const [isJsonDiagModalOpen, setIsJsonDiagModalOpen] = useState(false);
-
-  // Target Detail Modal State (View Mode)
-  const [viewingTargetItem, setViewingTargetItem] = useState<WatchlistTargetItem | null>(null);
-
-  // History Detail Sheet / Modal State
-  const [selectedHistoryRecord, setSelectedHistoryRecord] = useState<ScanHistoryRecord | null>(null);
-  const [historyModalCodeStyle, setHistoryModalCodeStyle] = useState<CodeStylePreset>('cpp_constexpr');
-  const [historyModalCustomTemplate, setHistoryModalCustomTemplate] = useState('constexpr uintptr_t {name} = {offset};');
-  const [historyModalTab, setHistoryModalTab] = useState<'targets' | 'code'>('targets');
-
-  const handleOpenHistoryRecord = (rec: ScanHistoryRecord) => {
-    setSelectedHistoryRecord(rec);
-    setHistoryModalCodeStyle(rec.codeStylePreset || 'cpp_constexpr');
-    setHistoryModalCustomTemplate(rec.customCodeStyleTemplate || 'constexpr uintptr_t {name} = {offset};');
-    setHistoryModalTab('targets');
-  };
-
-  // History Clear All Confirmation Modal State
-  const [isConfirmClearHistoryOpen, setIsConfirmClearHistoryOpen] = useState(false);
 
   const handleScanProfile = useCallback(() => {
     doScanProfile(
@@ -263,730 +259,50 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     );
   }, [doScanProfile, activeProfile, currentProcess, loadedStorageFileName, profiles, saveProfiles, showToast]);
 
-  // Handle Storage dump.cs File Upload
-  const handleDumpCsUpload = async (file: File) => {
-    setIsParsingDump(true);
-    setParseProgress({
-      fileName: file.name,
-      fileSizeMb: Number((file.size / (1024 * 1024)).toFixed(2)),
-      percent: 0,
-      processedBytes: 0,
-      totalBytes: file.size,
-      classesCount: 0,
-      methodsCount: 0,
-      fieldsCount: 0,
-      stage: `Preparing to stream ${file.name} (${Number((file.size / (1024 * 1024)).toFixed(2))} MB)...`,
+  // Watchlist Filter State
+  const [watchlistFilter, setWatchlistFilter] = useState('');
+
+  // Filtered displayed targets
+  const displayedItems = useMemo<WatchlistTargetItem[]>(() => {
+    if (!activeProfile) return [];
+    if (!watchlistFilter.trim()) return activeProfile.items;
+    const query = watchlistFilter.toLowerCase().trim();
+    return activeProfile.items.filter((item) => {
+      const matchCustomName = item.customName?.toLowerCase().includes(query);
+      const matchMember = item.memberName?.toLowerCase().includes(query);
+      const matchClass = item.className?.toLowerCase().includes(query);
+      const matchGroup = item.groupName?.toLowerCase().includes(query);
+      const matchSubGroup = item.subGroupName?.toLowerCase().includes(query);
+      const matchOffset = item.offsetHex?.toLowerCase().includes(query);
+      const matchRva = item.rvaHex?.toLowerCase().includes(query);
+      const matchDefault = item.defaultOffset?.toLowerCase().includes(query);
+      const matchComment = item.comment?.toLowerCase().includes(query);
+      return (
+        matchCustomName ||
+        matchMember ||
+        matchClass ||
+        matchGroup ||
+        matchSubGroup ||
+        matchOffset ||
+        matchRva ||
+        matchDefault ||
+        matchComment
+      );
     });
-
-    try {
-      const result = await il2cppEngine.parseDumpCsFile(file, (progress) => {
-        setParseProgress(progress);
-      });
-      setLoadedStorageFileName(file.name);
-      const updatedMeta = il2cppEngine.getStorageMeta();
-      setStorageMeta(updatedMeta);
-      if (onStorageDumpLoaded) {
-        onStorageDumpLoaded(file.name);
-      }
-      setParsedSummary({
-        classes: result.classesCount,
-        methods: result.methodsCount,
-        fields: result.fieldsCount,
-        typeInfos: updatedMeta.totalTypeInfos,
-      });
-      setIsParsingDump(false);
-      setParseProgress(null);
-      showToast(`Parsed ${file.name} (${Number((file.size / (1024 * 1024)).toFixed(2))} MB): ${result.classesCount.toLocaleString()} classes, ${result.methodsCount.toLocaleString()} methods`);
-    } catch (err) {
-      setIsParsingDump(false);
-      setParseProgress(null);
-      showToast('Failed to parse dump.cs file');
-    }
-  };
-
-  // Handle Storage il2cpp.h File Upload
-  const handleIl2cppHUpload = async (file: File) => {
-    setIsParsingDump(true);
-    setParseProgress({
-      fileName: file.name,
-      fileSizeMb: Number((file.size / (1024 * 1024)).toFixed(2)),
-      percent: 0,
-      processedBytes: 0,
-      totalBytes: file.size,
-      classesCount: storageMeta.totalClasses,
-      methodsCount: storageMeta.totalMethods,
-      fieldsCount: storageMeta.totalFields,
-      typeInfosCount: 0,
-      stage: `Scanning ${file.name} (${Number((file.size / (1024 * 1024)).toFixed(2))} MB)...`,
-    });
-
-    try {
-      await il2cppEngine.parseIl2cppHFile(file, (progress) => {
-        setParseProgress(progress);
-      });
-      setLoadedHeaderFileName(file.name);
-      const updatedMeta = il2cppEngine.getStorageMeta();
-      setStorageMeta(updatedMeta);
-      setParsedSummary((prev) => ({
-        classes: prev?.classes ?? updatedMeta.totalClasses,
-        methods: prev?.methods ?? updatedMeta.totalMethods,
-        fields: prev?.fields ?? updatedMeta.totalFields,
-        typeInfos: updatedMeta.totalTypeInfos,
-      }));
-      setIsParsingDump(false);
-      setParseProgress(null);
-      showToast(`Loaded ${file.name}: TypeInfo ${updatedMeta.baseAddressHex || '0x0'} & Static Offset ${updatedMeta.staticFieldsOffsetHex || '0xB8'}`);
-    } catch (err) {
-      setIsParsingDump(false);
-      setParseProgress(null);
-      showToast('Failed to parse il2cpp.h file');
-    }
-  };
-
-  // Unload il2cpp.h
-  const handleUnloadIl2cppH = () => {
-    il2cppEngine.unloadIl2cppH();
-    setLoadedHeaderFileName(null);
-    const updatedMeta = il2cppEngine.getStorageMeta();
-    setStorageMeta(updatedMeta);
-    setParsedSummary((prev) => (prev ? { ...prev, typeInfos: 0 } : null));
-    showToast('Unloaded il2cpp.h from workspace');
-  };
-
-  // Unload dump.cs
-  const handleUnloadDumpCs = () => {
-    il2cppEngine.unloadDumpCs();
-    setLoadedStorageFileName(null);
-    const updatedMeta = il2cppEngine.getStorageMeta();
-    setStorageMeta(updatedMeta);
-    setParsedSummary(null);
-    if (onStorageDumpLoaded) onStorageDumpLoaded(null as any);
-    showToast('Unloaded dump.cs from workspace');
-  };
-
-  // Create Profile
-  const handleCreateProfile = () => {
-    if (!newProfileName.trim()) return;
-
-    const now = Date.now();
-    const defaultCoreItems: WatchlistTargetItem[] = [
-      {
-        id: `target_${now}_initbase`,
-        customName: 'InitBase',
-        groupName: '. Core / GameFacade',
-        assemblyName: 'il2cpp',
-        className: 'GameFacade',
-        memberName: 't_GameFacade_TypeInfo',
-        il2cppSymbolName: 't_GameFacade_TypeInfo',
-        isIl2cppSymbol: true,
-        kind: 'FIELD',
-        comment: 'TypeInfo Base Address',
-        resolved: false,
-      },
-      {
-        id: `target_${now}_staticclass`,
-        customName: 'StaticClass',
-        groupName: '. Core / GameFacade',
-        assemblyName: 'il2cpp',
-        className: 'GameFacade',
-        memberName: 'IL2CPP_STATIC_FIELDS_OFFSET',
-        il2cppSymbolName: 'IL2CPP_STATIC_FIELDS_OFFSET',
-        isIl2cppSymbol: true,
-        kind: 'FIELD',
-        comment: 'Static Field Custom Name',
-        resolved: false,
-      },
-    ];
-
-    const newProf: WatchlistProfile = {
-      id: `prof_${now}`,
-      name: newProfileName.trim(),
-      description: newProfileDesc.trim() || 'Custom offset profile',
-      codeStylePreset: newProfileCodeStyle,
-      customCodeStyleTemplate: newProfileCustomTemplate.trim() || undefined,
-      createdAt: now,
-      updatedAt: now,
-      items: defaultCoreItems,
-    };
-    const next = [newProf, ...profiles];
-    saveProfiles(next);
-    setActiveProfileId(newProf.id);
-    setSelectedProfileViewId(newProf.id);
-    setNewProfileName('');
-    setNewProfileDesc('');
-    setNewProfileCodeStyle('cpp_constexpr');
-    setNewProfileCustomTemplate('constexpr uintptr_t {name} = {offset};');
-    setIsNewProfileModalOpen(false);
-    showToast(`Created profile "${newProf.name}" with Core targets`);
-  };
-
-  // Open Edit Profile Name Modal
-  const handleOpenEditProfile = (prof: WatchlistProfile, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setEditingProfile(prof);
-    setEditProfileName(prof.name);
-    setEditProfileDesc(prof.description || '');
-    setEditProfileCodeStyle(prof.codeStylePreset || 'cpp_constexpr');
-    setEditProfileCustomTemplate(prof.customCodeStyleTemplate || 'constexpr uintptr_t {name} = {offset};');
-  };
-
-  // Save Edit Profile Name & Code Style
-  const handleSaveEditProfile = () => {
-    if (!editingProfile || !editProfileName.trim()) return;
-    const updated = profiles.map((p) =>
-      p.id === editingProfile.id
-        ? {
-            ...p,
-            name: editProfileName.trim(),
-            description: editProfileDesc.trim(),
-            codeStylePreset: editProfileCodeStyle,
-            customCodeStyleTemplate: editProfileCustomTemplate.trim() || undefined,
-            updatedAt: Date.now(),
-          }
-        : p
-    );
-    saveProfiles(updated);
-    setEditingProfile(null);
-    showToast(`Updated profile "${editProfileName.trim()}"`);
-  };
-
-  // Export / Share Profile as JSON with Full Card Settings & Default Folder Storage
-  const handleExportProfile = async (prof: WatchlistProfile, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-
-    // Bundle profile details AND complete card settings
-    const exportData = {
-      version: '1.2',
-      exportedAt: new Date().toISOString(),
-      profile: {
-        id: prof.id,
-        name: prof.name,
-        description: prof.description,
-        targetApp: prof.targetApp,
-        codeStylePreset: prof.codeStylePreset || 'cpp_constexpr',
-        customCodeStyleTemplate: prof.customCodeStyleTemplate,
-        groupOrder: prof.groupOrder,
-        // Include full target card view settings in export!
-        cardViewSettings: prof.cardViewSettings || cardViewSettings,
-        items: prof.items.map((item) => {
-          if (item.isIl2cppSymbol || item.groupName === '. Core / GameFacade') {
-            return {
-              id: item.id,
-              isIl2cppSymbol: true,
-              il2cppSymbolName: item.il2cppSymbolName || item.memberName,
-              customName: item.customName,
-              groupName: '. Core / GameFacade',
-              subGroupName: undefined,
-              assemblyName: 'il2cpp',
-              className: item.className || 'GameFacade',
-              memberName: item.memberName || item.il2cppSymbolName || 'IL2CPP_SYMBOL',
-              comment: item.comment,
-              offsetHex: item.offsetHex,
-              defaultOffset: item.defaultOffset,
-            };
-          }
-          if (item.isCustom) {
-            return {
-              id: item.id,
-              isCustom: true,
-              customName: item.customName,
-              groupName: item.groupName,
-              subGroupName: item.subGroupName,
-              comment: item.comment,
-              offsetHex: item.offsetHex,
-              defaultOffset: item.defaultOffset,
-            };
-          }
-          return {
-            id: item.id,
-            customName: item.customName,
-            groupName: item.groupName,
-            subGroupName: item.subGroupName,
-            assemblyName: item.assemblyName,
-            className: item.className,
-            memberName: item.memberName,
-            kind: item.kind,
-            comment: item.comment,
-            offsetHex: item.offsetHex,
-            rvaHex: item.rvaHex,
-            isStatic: item.isStatic,
-            valueType: item.valueType,
-            fallbackClassNames: item.fallbackClassNames,
-            fallbackMemberNames: item.fallbackMemberNames,
-          };
-        }),
-      },
-    };
-
-    const jsonStr = JSON.stringify(exportData, null, 2);
-    const sanitizedName = prof.name.replace(/[^a-zA-Z0-9_-]/g, '_');
-    const fileName = `IL2Cpp_${sanitizedName}_profile.json`;
-
-    // 1. Copy JSON string to clipboard
-    try {
-      if (navigator.clipboard) {
-        await navigator.clipboard.writeText(jsonStr);
-      }
-    } catch {
-      // Fallback ignore copy error
-    }
-
-    // 2. Download/save file to default IL2Cpp folder
-    let savedNative = false;
-    try {
-      if ((window as any).Capacitor?.isNativePlatform()) {
-        await Filesystem.writeFile({
-          path: `IL2Cpp/${fileName}`,
-          data: jsonStr,
-          directory: Directory.Documents,
-          encoding: Encoding.UTF8,
-          recursive: true,
-        });
-        savedNative = true;
-      }
-    } catch (err) {
-      console.warn('Capacitor filesystem save fallback:', err);
-    }
-
-    if (!savedNative) {
-      try {
-        const blob = new Blob([jsonStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      } catch {
-        // Blob fallback
-      }
-    }
-
-    showToast(
-      savedNative
-        ? `Shared "${prof.name}"! Saved to IL2Cpp folder & copied to clipboard`
-        : `Exported "${prof.name}"! File downloaded (${fileName}) & copied to clipboard`
-    );
-  };
-
-  // Apply validated / recovered profile to state & local persistence
-  const handleApplyImportedProfile = (newProfile: WatchlistProfile, cardSettingsToApply?: TargetCardViewSettings) => {
-    if (cardSettingsToApply) {
-      const mergedSettings: TargetCardViewSettings = {
-        ...cardViewSettings,
-        ...cardSettingsToApply,
-      };
-      setCardViewSettings(mergedSettings);
-    }
-    const updated = [newProfile, ...profiles];
-    saveProfiles(updated);
-    setActiveProfileId(newProfile.id);
-    setSelectedProfileViewId(newProfile.id);
-    showToast(
-      `Imported profile "${newProfile.name}" (${newProfile.items.length} targets${
-        cardSettingsToApply ? ' + card settings restored' : ''
-      })`
-    );
-  };
-
-  // Import Profile from JSON File (with Safety Diagnostic & Error Recovery)
-  const handleImportProfile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const text = (event.target?.result as string) || '';
-        const diag = validateAndParseProfileJson(text);
-
-        if (diag.status === 'valid' && diag.recoveredProfile) {
-          handleApplyImportedProfile(diag.recoveredProfile, diag.recoveredCardSettings);
-        } else {
-          // Open JSON Safety Diagnostic & Error dialog for unsupported and partial formats
-          setJsonDiagnostic(diag);
-          setIsJsonDiagModalOpen(true);
-        }
-      } catch (err: any) {
-        setJsonDiagnostic({
-          status: 'unsupported',
-          errorTitle: 'File Read Failure',
-          errors: [`Failed to read file: ${err?.message || 'Unknown error'}`],
-          warnings: [],
-          info: [],
-          recoveredProfile: null,
-        });
-        setIsJsonDiagModalOpen(true);
-      }
-    };
-    reader.readAsText(file);
-    if (e.target) e.target.value = '';
-  };
-
-  // Delete Profile
-  const handleDeleteProfile = (id: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    const next = profiles.filter((p) => p.id !== id);
-    saveProfiles(next);
-    if (activeProfileId === id) {
-      setActiveProfileId(next[0]?.id || '');
-    }
-    if (selectedProfileViewId === id) {
-      setSelectedProfileViewId(null);
-    }
-    showToast(next.length === 0 ? 'All profiles deleted' : 'Profile deleted');
-  };
-
-  // Available groups and subgroups for active profile
-  const availableGroups = useMemo(() => {
-    if (!activeProfile) return [];
-    const set = new Set<string>();
-    for (const item of activeProfile.items) {
-      if (item.groupName?.trim()) set.add(item.groupName.trim());
-    }
-    return Array.from(set);
-  }, [activeProfile]);
-
-  const availableSubGroups = useMemo(() => {
-    if (!activeProfile) return [];
-    const set = new Set<string>();
-    for (const item of activeProfile.items) {
-      if (item.subGroupName?.trim()) set.add(item.subGroupName.trim());
-    }
-    return Array.from(set);
-  }, [activeProfile]);
-
-  const handleOpenAddTargetToGroup = useCallback((groupName?: string, subGroupName?: string) => {
-    setNewTargetGroupName(groupName || '');
-    setNewTargetSubGroupName(subGroupName || '');
-    setIsAddTargetModalOpen(true);
-  }, []);
-
-  const handleReorderTargets = useCallback((profileId: string, items: WatchlistTargetItem[], groupOrder?: string[]) => {
-    const nextProfiles = profiles.map((p) =>
-      p.id === profileId
-        ? {
-            ...p,
-            items,
-            ...(groupOrder !== undefined ? { groupOrder } : {}),
-            updatedAt: Date.now(),
-          }
-        : p
-    );
-    saveProfiles(nextProfiles);
-  }, [profiles, saveProfiles]);
-
-  // Open Edit Target Modal
-  const handleOpenEditTarget = (item: WatchlistTargetItem) => {
-    setEditingTargetItem(item);
-    setEditTargetIsCustom(Boolean(item.isCustom));
-    setEditTargetDefaultOffset(item.defaultOffset || item.offsetHex || item.rvaHex || '');
-    setEditTargetCustomName(item.customName || '');
-    setEditTargetAssemblyName(item.assemblyName || item.resolvedAssemblyName || '');
-    setEditTargetNamespaceName(item.namespaceName || '');
-    setEditTargetClassName(item.className ? (item.namespaceName ? `${item.namespaceName}:${item.className}` : item.className) : '');
-    setEditTargetMemberName(item.memberName || '');
-    setEditTargetKind(item.kind || 'FIELD');
-    setEditTargetComment(item.comment || '');
-    const hasFallbacks =
-      (item.fallbackClassNames && item.fallbackClassNames.length > 0) ||
-      (item.fallbackMemberNames && item.fallbackMemberNames.length > 0);
-    setEditTargetFallbackClasses(item.fallbackClassNames || []);
-    setEditTargetFallbackMembers(item.fallbackMemberNames || []);
-    setShowEditFallbacks(Boolean(hasFallbacks));
-    setEditTempFallbackClassInput('');
-    setEditTempFallbackMemberInput('');
-  };
-
-  // Save Edit Target
-  const handleSaveEditTarget = () => {
-    if (!editingTargetItem || !activeProfile) return;
-
-    if (editTargetIsCustom) {
-      if (!editTargetCustomName.trim()) return;
-    } else {
-      if (!editTargetClassName.trim() || !editTargetMemberName.trim()) return;
-    }
-
-    let parsedNs = editTargetNamespaceName.trim() || undefined;
-    let parsedClass = editTargetClassName.trim();
-    if (parsedClass.includes(':')) {
-      const parts = parsedClass.split(':');
-      parsedNs = parts[0].trim() || undefined;
-      parsedClass = parts.slice(1).join(':').trim();
-    } else if (parsedClass.includes('::')) {
-      const parts = parsedClass.split('::');
-      parsedNs = parts[0].trim() || undefined;
-      parsedClass = parts.slice(1).join(':').trim();
-    }
-
-    const cleanOffset = editTargetDefaultOffset.trim();
-    const formattedOffset = cleanOffset
-      ? cleanOffset.startsWith('0x') || cleanOffset.startsWith('0X')
-        ? cleanOffset
-        : `0x${cleanOffset}`
-      : undefined;
-
-    const isCore =
-      editingTargetItem.isIl2cppSymbol ||
-      editingTargetItem.groupName === '. Core / GameFacade' ||
-      editingTargetItem.groupName?.startsWith('. Core');
-
-    const updatedItem: WatchlistTargetItem = isCore
-      ? {
-          ...editingTargetItem,
-          isCustom: false,
-          isIl2cppSymbol: true,
-          assemblyName: 'il2cpp',
-          resolvedAssemblyName: 'il2cpp',
-          customName: editTargetCustomName.trim() || undefined,
-          memberName: editTargetMemberName.trim() || editTargetCustomName.trim() || 'IL2CPP_SYMBOL',
-          il2cppSymbolName: editTargetMemberName.trim() || undefined,
-          className: editingTargetItem.className || 'GameFacade',
-          defaultOffset: formattedOffset,
-          offsetHex: formattedOffset || editingTargetItem.offsetHex,
-          comment: editTargetComment.trim() || undefined,
-          groupName: '. Core / GameFacade',
-          subGroupName: undefined,
-          resolved: Boolean(formattedOffset) || editingTargetItem.resolved,
-        }
-      : editTargetIsCustom
-      ? {
-          id: editingTargetItem.id,
-          isCustom: true,
-          customName: editTargetCustomName.trim() || undefined,
-          defaultOffset: formattedOffset,
-          offsetHex: formattedOffset,
-          comment: editTargetComment.trim() || undefined,
-          groupName: editingTargetItem.groupName,
-          subGroupName: editingTargetItem.subGroupName,
-          resolved: Boolean(formattedOffset),
-        }
-      : {
-          ...editingTargetItem,
-          isCustom: false,
-          defaultOffset: formattedOffset,
-          customName: editTargetCustomName.trim() || undefined,
-          groupName: editingTargetItem.groupName,
-          subGroupName: editingTargetItem.subGroupName,
-          assemblyName: editTargetAssemblyName.trim() || undefined,
-          namespaceName: parsedNs,
-          className: parsedClass,
-          memberName: editTargetMemberName.trim(),
-          kind: editTargetKind,
-          comment: editTargetComment.trim() || undefined,
-          fallbackClassNames: editTargetFallbackClasses.length > 0 ? editTargetFallbackClasses : undefined,
-          fallbackMemberNames: editTargetFallbackMembers.length > 0 ? editTargetFallbackMembers : undefined,
-          // If direct offset is provided or modified, update resolved offset
-          offsetHex: formattedOffset || editingTargetItem.offsetHex,
-          rvaHex: editTargetKind === 'METHOD' && formattedOffset ? formattedOffset : editingTargetItem.rvaHex,
-          resolved: Boolean(formattedOffset) || editingTargetItem.resolved,
-          resolvedViaFallback: editingTargetItem.resolvedViaFallback,
-          resolvedClassName: editingTargetItem.resolvedClassName,
-          resolvedMemberName: editingTargetItem.resolvedMemberName,
-          resolvedAssemblyName: editingTargetItem.resolvedAssemblyName,
-        };
-
-    const nextProfiles = profiles.map((p) =>
-      p.id === activeProfile.id
-        ? {
-            ...p,
-            items: p.items.map((it) => (it.id === editingTargetItem.id ? updatedItem : it)),
-            updatedAt: Date.now(),
-          }
-        : p
-    );
-    saveProfiles(nextProfiles);
-
-    setEditingTargetItem(null);
-    showToast(`Updated target ${updatedItem.customName || `${updatedItem.className || ''}.${updatedItem.memberName || ''}`}`);
-  };
-
-  // Add Target Item to Active Profile
-  const handleAddTarget = () => {
-    if (!activeProfile) return;
-
-    const isCore =
-      newTargetGroupName === '. Core / GameFacade' ||
-      newTargetGroupName?.startsWith('. Core');
-
-    if (isCore) {
-      if (!newTargetCustomName.trim() && !newTargetMemberName.trim()) return;
-    } else if (newTargetIsCustom) {
-      if (!newTargetCustomName.trim()) return;
-    } else {
-      if (!newTargetClassName.trim() || !newTargetMemberName.trim()) return;
-    }
-
-    let parsedNs = newTargetNamespaceName.trim() || undefined;
-    let parsedClass = newTargetClassName.trim();
-    if (parsedClass.includes(':')) {
-      const parts = parsedClass.split(':');
-      parsedNs = parts[0].trim() || undefined;
-      parsedClass = parts.slice(1).join(':').trim();
-    } else if (parsedClass.includes('::')) {
-      const parts = parsedClass.split('::');
-      parsedNs = parts[0].trim() || undefined;
-      parsedClass = parts.slice(1).join(':').trim();
-    }
-
-    const cleanOffset = newTargetDefaultOffset.trim();
-    const formattedOffset = cleanOffset
-      ? cleanOffset.startsWith('0x') || cleanOffset.startsWith('0X')
-        ? cleanOffset
-        : `0x${cleanOffset}`
-      : undefined;
-
-    const newItem: WatchlistTargetItem = isCore
-      ? {
-          id: `t_${Date.now()}`,
-          isCustom: false,
-          isIl2cppSymbol: true,
-          assemblyName: 'il2cpp',
-          resolvedAssemblyName: 'il2cpp',
-          customName: newTargetCustomName.trim() || undefined,
-          memberName: newTargetMemberName.trim() || newTargetCustomName.trim() || 'IL2CPP_SYMBOL',
-          il2cppSymbolName: newTargetMemberName.trim() || undefined,
-          className: 'GameFacade',
-          defaultOffset: formattedOffset,
-          offsetHex: formattedOffset,
-          groupName: '. Core / GameFacade',
-          subGroupName: undefined,
-          comment: newTargetComment.trim() || undefined,
-          resolved: Boolean(formattedOffset),
-        }
-      : newTargetIsCustom
-      ? {
-          id: `t_${Date.now()}`,
-          isCustom: true,
-          customName: newTargetCustomName.trim(),
-          defaultOffset: formattedOffset,
-          offsetHex: formattedOffset,
-          comment: newTargetComment.trim() || undefined,
-          groupName: newTargetGroupName.trim() || undefined,
-          subGroupName: newTargetSubGroupName.trim() || undefined,
-          resolved: Boolean(formattedOffset),
-        }
-      : {
-          id: `t_${Date.now()}`,
-          isCustom: false,
-          defaultOffset: formattedOffset,
-          customName: newTargetCustomName.trim() || undefined,
-          groupName: newTargetGroupName.trim() || undefined,
-          subGroupName: newTargetSubGroupName.trim() || undefined,
-          assemblyName: newTargetAssemblyName.trim() || undefined,
-          namespaceName: parsedNs,
-          className: parsedClass,
-          memberName: newTargetMemberName.trim(),
-          kind: newTargetKind,
-          comment: newTargetComment.trim() || undefined,
-          fallbackClassNames: newTargetFallbackClasses.length > 0 ? newTargetFallbackClasses : undefined,
-          fallbackMemberNames: newTargetFallbackMembers.length > 0 ? newTargetFallbackMembers : undefined,
-          offsetHex: formattedOffset,
-          rvaHex: newTargetKind === 'METHOD' ? formattedOffset : undefined,
-          resolved: Boolean(formattedOffset),
-        };
-
-    const nextProfiles = profiles.map((p) =>
-      p.id === activeProfile.id ? { ...p, items: [...p.items, newItem], updatedAt: Date.now() } : p
-    );
-    saveProfiles(nextProfiles);
-
-    setNewTargetIsCustom(false);
-    setNewTargetDefaultOffset('');
-    setNewTargetCustomName('');
-    setNewTargetGroupName('');
-    setNewTargetSubGroupName('');
-    setNewTargetAssemblyName('');
-    setNewTargetNamespaceName('');
-    setNewTargetClassName('');
-    setNewTargetMemberName('');
-    setNewTargetComment('');
-    setNewTargetFallbackClasses([]);
-    setNewTargetFallbackMembers([]);
-    setTempFallbackClassInput('');
-    setTempFallbackMemberInput('');
-    setIsAddTargetModalOpen(false);
-    showToast(`Added target ${newItem.customName || `${newItem.className || ''}.${newItem.memberName || ''}`}`);
-  };
-
-  // Remove Item
-  const handleRemoveTargetItem = (itemId: string) => {
-    if (!activeProfile) return;
-    const nextProfiles = profiles.map((p) =>
-      p.id === activeProfile.id
-        ? { ...p, items: p.items.filter((i) => i.id !== itemId), updatedAt: Date.now() }
-        : p
-    );
-    saveProfiles(nextProfiles);
-    showToast('Target removed');
-  };
-
-  // Filtered items
-  const displayedItems = useMemo(() => {
-    if (!activeProfile) return [];
-    const lowerFilter = watchlistFilter.toLowerCase();
-    return activeProfile.items.filter(
-      (i) =>
-        (i.customName && i.customName.toLowerCase().includes(lowerFilter)) ||
-        (i.groupName && i.groupName.toLowerCase().includes(lowerFilter)) ||
-        (i.subGroupName && i.subGroupName.toLowerCase().includes(lowerFilter)) ||
-        (i.assemblyName && i.assemblyName.toLowerCase().includes(lowerFilter)) ||
-        (i.resolvedAssemblyName && i.resolvedAssemblyName.toLowerCase().includes(lowerFilter)) ||
-        (i.className && i.className.toLowerCase().includes(lowerFilter)) ||
-        (i.memberName && i.memberName.toLowerCase().includes(lowerFilter)) ||
-        (i.comment && i.comment.toLowerCase().includes(lowerFilter))
-    );
   }, [activeProfile, watchlistFilter]);
 
-  return (
-    <div className="dashboard-workspace-container flex-1 flex flex-col h-full bg-[#18181A] text-[#E2E2E4] overflow-hidden relative">
-      {/* Top Tab Navigation (Clean Underline Style across Mobile, Tablet & Big Screen) */}
-      <div className="dashboard-tab-bar bg-[#1E1E20] border-b border-[#2D2D30] px-1 sm:px-4 shrink-0">
-        <div className="max-w-5xl mx-auto flex items-center justify-center">
-          <button
-            onClick={() => setActiveTab('target')}
-            style={activeTab === 'target' ? { borderColor: 'var(--app-accent-hex)', color: 'var(--app-accent-hex)' } : undefined}
-            className={`flex-1 py-2 sm:py-2.5 px-1 sm:px-4 text-[10.5px] xs:text-xs md:text-sm font-semibold transition-all border-b-2 flex justify-center items-center gap-1 sm:gap-2 whitespace-nowrap ${
-              activeTab === 'target'
-                ? 'font-bold'
-                : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4] hover:border-[#3D3D42]'
-            }`}
-          >
-            <Cpu className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-            <span className="whitespace-nowrap">Storage Dump</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('watchlist')}
-            style={activeTab === 'watchlist' ? { borderColor: 'var(--app-accent-hex)', color: 'var(--app-accent-hex)' } : undefined}
-            className={`flex-1 py-2 sm:py-2.5 px-1 sm:px-4 text-[10.5px] xs:text-xs md:text-sm font-semibold transition-all border-b-2 flex justify-center items-center gap-1 sm:gap-2 whitespace-nowrap ${
-              activeTab === 'watchlist'
-                ? 'font-bold'
-                : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4] hover:border-[#3D3D42]'
-            }`}
-          >
-            <BookmarkPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-            <span className="whitespace-nowrap">Profiles & Offsets</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('history')}
-            style={activeTab === 'history' ? { borderColor: 'var(--app-accent-hex)', color: 'var(--app-accent-hex)' } : undefined}
-            className={`flex-1 py-2 sm:py-2.5 px-1 sm:px-4 text-[10.5px] xs:text-xs md:text-sm font-semibold transition-all border-b-2 flex justify-center items-center gap-1 sm:gap-2 whitespace-nowrap ${
-              activeTab === 'history'
-                ? 'font-bold'
-                : 'border-transparent text-[#8E8E93] hover:text-[#E2E2E4] hover:border-[#3D3D42]'
-            }`}
-          >
-            <History className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-            <span className="whitespace-nowrap">History</span>
-          </button>
-        </div>
-      </div>
+  const isDumpLoaded = Boolean(
+    loadedStorageFileName ||
+    storageDumpName ||
+    il2cppEngine.getStorageMeta().dumpCsFileName ||
+    il2cppEngine.getAssemblies().length > 0
+  );
 
-      <div className="flex-1 overflow-y-auto w-full">
-        <div className="max-w-5xl mx-auto w-full p-2 sm:p-4 flex flex-col gap-2.5 sm:gap-6 pb-20 sm:pb-24">
+  return (
+    <div className="flex flex-col h-full w-full min-w-0 bg-transparent text-[#E2E2E4] relative overflow-hidden">
+      {/* Main Tab Content View */}
+      <div className="flex-1 overflow-y-auto w-full min-w-0">
+        <div className="w-full max-w-5xl mx-auto p-2 sm:p-4 flex flex-col gap-2.5 sm:gap-6 pb-28 sm:pb-32">
           {/* TAB 1: STORAGE DUMP SETUP */}
           {activeTab === 'target' && (
             <DashboardHeader
@@ -1041,7 +357,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               handleOpenAddTargetToGroup={handleOpenAddTargetToGroup}
               showToast={showToast}
               onNavigateToBrowser={onNavigateToBrowser}
-              isDumpLoaded={Boolean(loadedStorageFileName || storageDumpName || il2cppEngine.getStorageMeta().dumpCsFileName || il2cppEngine.getAssemblies().length > 0)}
+              isDumpLoaded={isDumpLoaded}
             />
           )}
 
@@ -1061,11 +377,138 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         </div>
       </div>
 
+      {/* Floating Bottom Curved Navigation Dock */}
+      <div className="fixed bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 w-[333px] max-w-[94vw] pointer-events-auto pb-[env(safe-area-inset-bottom,0px)]">
+        <div className="h-[45px] flex items-center bg-[#16161A]/95 backdrop-blur-2xl px-1.5 sm:px-2 rounded-full border border-white/15 shadow-2xl shadow-black/90 ring-1 ring-white/10 justify-between gap-1 relative overflow-hidden">
+          <button
+            onClick={() => setActiveTab('target')}
+            className={`flex-1 h-[35px] flex items-center justify-center gap-1.5 px-2.5 rounded-full text-xs font-bold transition-all duration-200 relative group cursor-pointer ${
+              activeTab === 'target'
+                ? 'text-white bg-white/10 shadow-md border border-white/10'
+                : 'text-[#9E9EA5] hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Cpu
+              className={`w-3.5 h-3.5 shrink-0 transition-colors ${
+                activeTab === 'target' ? 'text-indigo-400' : 'text-[#9E9EA5] group-hover:text-white'
+              }`}
+              style={
+                activeTab === 'target'
+                  ? { color: 'var(--app-accent-hex, #818cf8)' }
+                  : undefined
+              }
+            />
+            <span
+              className="whitespace-nowrap transition-colors text-xs"
+              style={
+                activeTab === 'target'
+                  ? { color: 'var(--app-accent-hex, #818cf8)' }
+                  : undefined
+              }
+            >
+              Dump
+            </span>
 
+            {/* Curved Down Line Underline Indicator */}
+            {activeTab === 'target' && (
+              <span
+                className="absolute bottom-0.5 left-2.5 right-2.5 h-0.5 rounded-full transition-all duration-300 shadow-lg"
+                style={{
+                  backgroundColor: 'var(--app-accent-hex, #6366f1)',
+                  boxShadow: '0 0 10px rgba(var(--app-accent-rgb, 99, 102, 241), 0.8)',
+                }}
+              />
+            )}
+          </button>
 
-      <CreateProfileModal
-        isOpen={isNewProfileModalOpen}
-        onClose={() => setIsNewProfileModalOpen(false)}
+          <button
+            onClick={() => setActiveTab('watchlist')}
+            className={`flex-1 h-[35px] flex items-center justify-center gap-1.5 px-2.5 rounded-full text-xs font-bold transition-all duration-200 relative group cursor-pointer ${
+              activeTab === 'watchlist'
+                ? 'text-white bg-white/10 shadow-md border border-white/10'
+                : 'text-[#9E9EA5] hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <BookmarkPlus
+              className={`w-3.5 h-3.5 shrink-0 transition-colors ${
+                activeTab === 'watchlist' ? 'text-indigo-400' : 'text-[#9E9EA5] group-hover:text-white'
+              }`}
+              style={
+                activeTab === 'watchlist'
+                  ? { color: 'var(--app-accent-hex, #818cf8)' }
+                  : undefined
+              }
+            />
+            <span
+              className="whitespace-nowrap transition-colors text-xs"
+              style={
+                activeTab === 'watchlist'
+                  ? { color: 'var(--app-accent-hex, #818cf8)' }
+                  : undefined
+              }
+            >
+              Profiles
+            </span>
+
+            {/* Curved Down Line Underline Indicator */}
+            {activeTab === 'watchlist' && (
+              <span
+                className="absolute bottom-0.5 left-2.5 right-2.5 h-0.5 rounded-full transition-all duration-300 shadow-lg"
+                style={{
+                  backgroundColor: 'var(--app-accent-hex, #6366f1)',
+                  boxShadow: '0 0 10px rgba(var(--app-accent-rgb, 99, 102, 241), 0.8)',
+                }}
+              />
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`flex-1 h-[35px] flex items-center justify-center gap-1.5 px-2.5 rounded-full text-xs font-bold transition-all duration-200 relative group cursor-pointer ${
+              activeTab === 'history'
+                ? 'text-white bg-white/10 shadow-md border border-white/10'
+                : 'text-[#9E9EA5] hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <History
+              className={`w-3.5 h-3.5 shrink-0 transition-colors ${
+                activeTab === 'history' ? 'text-indigo-400' : 'text-[#9E9EA5] group-hover:text-white'
+              }`}
+              style={
+                activeTab === 'history'
+                  ? { color: 'var(--app-accent-hex, #818cf8)' }
+                  : undefined
+              }
+            />
+            <span
+              className="whitespace-nowrap transition-colors text-xs"
+              style={
+                activeTab === 'history'
+                  ? { color: 'var(--app-accent-hex, #818cf8)' }
+                  : undefined
+              }
+            >
+              History
+            </span>
+
+            {/* Curved Down Line Underline Indicator */}
+            {activeTab === 'history' && (
+              <span
+                className="absolute bottom-0.5 left-2.5 right-2.5 h-0.5 rounded-full transition-all duration-300 shadow-lg"
+                style={{
+                  backgroundColor: 'var(--app-accent-hex, #6366f1)',
+                  boxShadow: '0 0 10px rgba(var(--app-accent-rgb, 99, 102, 241), 0.8)',
+                }}
+              />
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Dashboard Dialogs & Modals */}
+      <MainDashboardModals
+        isNewProfileModalOpen={isNewProfileModalOpen}
+        setIsNewProfileModalOpen={setIsNewProfileModalOpen}
         newProfileName={newProfileName}
         setNewProfileName={setNewProfileName}
         newProfileDesc={newProfileDesc}
@@ -1075,11 +518,9 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         newProfileCustomTemplate={newProfileCustomTemplate}
         setNewProfileCustomTemplate={setNewProfileCustomTemplate}
         handleCreateProfile={handleCreateProfile}
-      />
-      <EditProfileModal
-        isOpen={!!editingProfile}
-        onClose={() => setEditingProfile(null)}
+
         editingProfile={editingProfile}
+        setEditingProfile={setEditingProfile}
         editProfileName={editProfileName}
         setEditProfileName={setEditProfileName}
         editProfileDesc={editProfileDesc}
@@ -1089,11 +530,10 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         editProfileCustomTemplate={editProfileCustomTemplate}
         setEditProfileCustomTemplate={setEditProfileCustomTemplate}
         handleSaveEditProfile={handleSaveEditProfile}
-      />
-      <AddTargetModal
-        isOpen={isAddTargetModalOpen}
+
+        isAddTargetModalOpen={isAddTargetModalOpen}
+        setIsAddTargetModalOpen={setIsAddTargetModalOpen}
         activeProfile={activeProfile}
-        onClose={() => setIsAddTargetModalOpen(false)}
         newTargetKind={newTargetKind}
         setNewTargetKind={setNewTargetKind}
         newTargetCustomName={newTargetCustomName}
@@ -1127,12 +567,9 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         newTargetFallbackMembers={newTargetFallbackMembers}
         setNewTargetFallbackMembers={setNewTargetFallbackMembers}
         handleAddTarget={handleAddTarget}
-      />
-      <EditTargetModal
-        isOpen={!!editingTargetItem}
-        activeProfile={activeProfile}
-        onClose={() => setEditingTargetItem(null)}
+
         editingTargetItem={editingTargetItem}
+        setEditingTargetItem={setEditingTargetItem}
         editTargetKind={editTargetKind}
         setEditTargetKind={setEditTargetKind}
         editTargetCustomName={editTargetCustomName}
@@ -1161,78 +598,49 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         setEditTargetFallbackMembers={setEditTargetFallbackMembers}
         handleSaveEditTarget={handleSaveEditTarget}
         handleOpenEditTarget={handleOpenEditTarget}
-      />
-      <TargetDetailModal
-        isOpen={!!viewingTargetItem}
-        onClose={() => setViewingTargetItem(null)}
+
         viewingTargetItem={viewingTargetItem}
         setViewingTargetItem={setViewingTargetItem}
-        activeProfile={activeProfile}
-        handleOpenEditTarget={handleOpenEditTarget}
         onCopyText={onCopyText}
         onNavigateToBrowser={onNavigateToBrowser}
-        isDumpLoaded={Boolean(loadedStorageFileName || storageDumpName || il2cppEngine.getStorageMeta().dumpCsFileName || il2cppEngine.getAssemblies().length > 0)}
-      />
-      <HistoryDetailModal
-        isOpen={!!selectedHistoryRecord}
-        onCopyText={onCopyText}
-        onClose={() => setSelectedHistoryRecord(null)}
+        isDumpLoaded={isDumpLoaded}
+
         selectedHistoryRecord={selectedHistoryRecord}
+        setSelectedHistoryRecord={setSelectedHistoryRecord}
         historyModalTab={historyModalTab}
         setHistoryModalTab={setHistoryModalTab}
         historyModalCodeStyle={historyModalCodeStyle}
         setHistoryModalCodeStyle={setHistoryModalCodeStyle}
         historyModalCustomTemplate={historyModalCustomTemplate}
         setHistoryModalCustomTemplate={setHistoryModalCustomTemplate}
-        showToast={showToast}
-      />
-      <CardSettingsModal
-        showToast={showToast}
-        isOpen={isCardSettingsModalOpen}
-        onClose={() => setIsCardSettingsModalOpen(false)}
-        config={cardViewSettings}
-        setConfig={setCardViewSettings}
-      />
-      <ProfileCardSettingsModal
-        showToast={showToast}
-        isOpen={isProfileCardSettingsModalOpen}
-        onClose={() => setIsProfileCardSettingsModalOpen(false)}
-        config={profileCardSettings}
-        setConfig={setProfileCardSettings}
-      />
-      <HistoryCardSettingsModal
-        showToast={showToast}
-        isOpen={isHistoryCardSettingsModalOpen}
-        onClose={() => setIsHistoryCardSettingsModalOpen(false)}
-        config={historyCardSettings}
-        setConfig={setHistoryCardSettings}
-      />
 
-      {/* JSON Safety & Diagnostic Modal */}
-      <JsonDiagnosticModal
-        isOpen={isJsonDiagModalOpen}
-        onClose={() => {
-          setIsJsonDiagModalOpen(false);
-          setJsonDiagnostic(null);
-        }}
-        diagnostic={jsonDiagnostic}
-        onConfirmImport={(profile, cardSettings) => {
-          handleApplyImportedProfile(profile, cardSettings);
-        }}
-      />
+        isCardSettingsModalOpen={isCardSettingsModalOpen}
+        setIsCardSettingsModalOpen={setIsCardSettingsModalOpen}
+        cardViewSettings={cardViewSettings}
+        setCardViewSettings={setCardViewSettings}
 
-      {/* Confirmation Modal: Clear All History */}
-      <ConfirmDialog
-        isOpen={isConfirmClearHistoryOpen}
-        onClose={() => setIsConfirmClearHistoryOpen(false)}
-        onConfirm={() => {
-          saveHistory([]);
-          showToast('All scan history cleared');
-        }}
-        title="Clear All History?"
-        subtitle={`This will permanently delete all ${scanHistory.length} scan logs.`}
-        description="Are you sure you want to clear your scan history logs? This action cannot be undone."
-        confirmText="Delete All"
+        isProfileCardSettingsModalOpen={isProfileCardSettingsModalOpen}
+        setIsProfileCardSettingsModalOpen={setIsProfileCardSettingsModalOpen}
+        profileCardSettings={profileCardSettings}
+        setProfileCardSettings={setProfileCardSettings}
+
+        isHistoryCardSettingsModalOpen={isHistoryCardSettingsModalOpen}
+        setIsHistoryCardSettingsModalOpen={setIsHistoryCardSettingsModalOpen}
+        historyCardSettings={historyCardSettings}
+        setHistoryCardSettings={setHistoryCardSettings}
+
+        isJsonDiagModalOpen={isJsonDiagModalOpen}
+        setIsJsonDiagModalOpen={setIsJsonDiagModalOpen}
+        jsonDiagnostic={jsonDiagnostic}
+        setJsonDiagnostic={setJsonDiagnostic}
+        handleApplyImportedProfile={handleApplyImportedProfile}
+
+        isConfirmClearHistoryOpen={isConfirmClearHistoryOpen}
+        setIsConfirmClearHistoryOpen={setIsConfirmClearHistoryOpen}
+        scanHistory={scanHistory}
+        saveHistory={saveHistory}
+
+        showToast={showToast}
       />
     </div>
   );

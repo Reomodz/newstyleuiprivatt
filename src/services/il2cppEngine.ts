@@ -296,7 +296,8 @@ class Il2cppEngine {
     assembliesCount: number;
   }> {
     const totalBytes = file.size;
-    const CHUNK_SIZE = 2 * 1024 * 1024; // 2 MB chunks for mobile memory safety
+    // Adapt chunk size for ultra-fast loading: larger chunks reduce arrayBuffer overhead
+    const CHUNK_SIZE = totalBytes <= 16 * 1024 * 1024 ? totalBytes : 8 * 1024 * 1024;
     let offset = 0;
     const decoder = new TextDecoder('utf-8');
     let remainder = '';
@@ -320,21 +321,23 @@ class Il2cppEngine {
     const newMethods: Record<number, MethodDescriptor[]> = {};
 
     const getOrCreateAssembly = (name: string): AssemblyDescriptor => {
-      if (!assemblyMap.has(name)) {
-        const asm: AssemblyDescriptor = {
+      let asm = assemblyMap.get(name);
+      if (!asm) {
+        asm = {
           index: assemblyMap.size,
           name,
           classCount: 0,
         };
         assemblyMap.set(name, asm);
       }
-      return assemblyMap.get(name)!;
+      return asm;
     };
 
     const getOrCreateNamespace = (asmIndex: number, nsName: string): NamespaceDescriptor => {
       const key = `${asmIndex}::${nsName}`;
-      if (!namespaceMap.has(key)) {
-        const ns: NamespaceDescriptor = {
+      let ns = namespaceMap.get(key);
+      if (!ns) {
+        ns = {
           index: namespaceMap.size,
           name: nsName,
           assemblyIndex: asmIndex,
@@ -342,7 +345,7 @@ class Il2cppEngine {
         };
         namespaceMap.set(key, ns);
       }
-      return namespaceMap.get(key)!;
+      return ns;
     };
 
     // Initialize default assembly
@@ -362,6 +365,7 @@ class Il2cppEngine {
     const fieldRegex = /(?:\[.*?\]\s*)*(?:public|private|internal|protected)?\s*(?:static\s+|readonly\s+|const\s+|volatile\s+|unsafe\s+|fixed\s+)*([a-zA-Z0-9_<>.[\]&*?]+)\s+([a-zA-Z0-9_<>]+)(?:\s*=\s*[^;/]+)?\s*;\s*(?:\/\/\s*(?:Offset:\s*)?(0x[0-9a-fA-F]+|\d+))?/;
 
     let lastYieldTime = performance.now();
+    let linesProcessedSinceYield = 0;
 
     while (offset < totalBytes) {
       const slice = file.slice(offset, Math.min(offset + CHUNK_SIZE, totalBytes));
@@ -379,34 +383,39 @@ class Il2cppEngine {
       remainder = offset < totalBytes ? lines.pop() || '' : '';
 
       for (let i = 0; i < lines.length; i++) {
+        linesProcessedSinceYield++;
         const rawLine = lines[i];
         const line = rawLine.trim();
         if (!line) continue;
 
-        // Assembly or Namespace comment (Standard Il2CppDumper format)
-        if (line.startsWith('//')) {
-          const asmMatch = line.match(asmRegex1) || line.match(asmRegex2);
-          if (asmMatch) {
-            let asmName = asmMatch[1].trim();
-            if (!asmName.endsWith('.dll')) asmName += '.dll';
-            currentAsmName = asmName;
-            const asm = getOrCreateAssembly(currentAsmName);
-            currentAsmIdx = asm.index;
-            continue;
+        // Fast path for comments (Standard Il2CppDumper format)
+        if (line.charCodeAt(0) === 47 && line.charCodeAt(1) === 47) { // line.startsWith('//')
+          if (line.includes('Assembly:') || line.includes('Image:') || line.endsWith('.dll')) {
+            const asmMatch = line.match(asmRegex1) || line.match(asmRegex2);
+            if (asmMatch) {
+              let asmName = asmMatch[1].trim();
+              if (!asmName.endsWith('.dll')) asmName += '.dll';
+              currentAsmName = asmName;
+              const asm = getOrCreateAssembly(currentAsmName);
+              currentAsmIdx = asm.index;
+              continue;
+            }
           }
 
-          const nsCommentMatch = line.match(nsCommentRegex);
-          if (nsCommentMatch) {
-            currentNamespace = nsCommentMatch[1] ? nsCommentMatch[1].trim() : '';
-            if (currentNamespace) {
-              getOrCreateNamespace(currentAsmIdx, currentNamespace);
+          if (line.includes('Namespace:')) {
+            const nsCommentMatch = line.match(nsCommentRegex);
+            if (nsCommentMatch) {
+              currentNamespace = nsCommentMatch[1] ? nsCommentMatch[1].trim() : '';
+              if (currentNamespace) {
+                getOrCreateNamespace(currentAsmIdx, currentNamespace);
+              }
+              continue;
             }
-            continue;
           }
           continue;
         }
 
-        // Namespace
+        // Fast path for Namespace declaration
         if (line.startsWith('namespace ')) {
           const nsMatch = line.match(nsRegex);
           if (nsMatch) {
@@ -416,16 +425,23 @@ class Il2cppEngine {
           }
         }
 
-        // Strip trailing comment for class structure checks (e.g. // TypeDefIndex: 123)
-        const lineNoComment = line.split('//')[0].trim();
+        // Fast check if line is end of class block
+        if ((line === '}' || line.startsWith('}') || line.startsWith('};')) && currentClass) {
+          currentClass = null;
+          continue;
+        }
 
-        // Class / Struct / Enum / Interface
+        // Fast path for Class / Struct / Enum / Interface
+        const hasOpenParen = line.includes('(');
+        const hasSemicolon = line.includes(';');
+
         if (
-          !lineNoComment.includes('(') &&
-          !lineNoComment.includes(';') &&
-          !lineNoComment.includes('=') &&
-          (lineNoComment.includes('class ') || lineNoComment.includes('struct ') || lineNoComment.includes('enum ') || lineNoComment.includes('interface '))
+          !hasOpenParen &&
+          !hasSemicolon &&
+          !line.includes('=') &&
+          (line.includes('class ') || line.includes('struct ') || line.includes('enum ') || line.includes('interface '))
         ) {
+          const lineNoComment = line.split('//')[0].trim();
           const classMatch = lineNoComment.match(classRegex) || line.match(classRegex);
           if (classMatch) {
             const kind = classMatch[1];
@@ -469,8 +485,8 @@ class Il2cppEngine {
 
         if (!currentClass) continue;
 
-        // Method
-        if (line.includes('(')) {
+        // Fast path for Method
+        if (hasOpenParen) {
           const methodMatch = line.match(methodRegex);
           if (methodMatch) {
             const returnType = methodMatch[1];
@@ -523,8 +539,8 @@ class Il2cppEngine {
           }
         }
 
-        // Field
-        if (line.includes(';')) {
+        // Fast path for Field
+        if (hasSemicolon && !hasOpenParen) {
           const fieldMatch = line.match(fieldRegex);
           if (fieldMatch) {
             const typeName = fieldMatch[1];
@@ -550,15 +566,11 @@ class Il2cppEngine {
             continue;
           }
         }
-
-        if ((line === '}' || line.startsWith('}') || line.startsWith('};')) && currentClass) {
-          currentClass = null;
-        }
       }
 
-      // Non-blocking time slicing: Yield to browser UI thread every 20ms
+      // Time slicing yield every 40ms or 15000 lines for maximum performance
       const now = performance.now();
-      if (now - lastYieldTime > 20) {
+      if (now - lastYieldTime > 40 && linesProcessedSinceYield > 5000) {
         if (onProgress) {
           onProgress({
             fileName: file.name,
@@ -574,6 +586,7 @@ class Il2cppEngine {
         }
         await new Promise((resolve) => setTimeout(resolve, 0));
         lastYieldTime = performance.now();
+        linesProcessedSinceYield = 0;
       }
     }
 
@@ -696,7 +709,7 @@ class Il2cppEngine {
     staticOffsetHex?: string;
   }> {
     const totalBytes = file.size;
-    const CHUNK_SIZE = 4 * 1024 * 1024;
+    const CHUNK_SIZE = totalBytes <= 16 * 1024 * 1024 ? totalBytes : 8 * 1024 * 1024;
     let offset = 0;
     const decoder = new TextDecoder('utf-8');
     let remainder = '';
@@ -782,7 +795,7 @@ class Il2cppEngine {
       }
 
       const now = performance.now();
-      if (now - lastYieldTime > 20) {
+      if (now - lastYieldTime > 40) {
         if (onProgress) {
           onProgress({
             fileName: file.name,

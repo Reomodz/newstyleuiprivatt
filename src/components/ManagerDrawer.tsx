@@ -77,7 +77,7 @@ export const ManagerDrawer: React.FC<ManagerDrawerProps> = ({
 
       {/* Floating Translucent Customizer Panel: directly shows the wallpaper behind it */}
       <div
-        className="pointer-events-auto w-[90vw] sm:w-[350px] border-l border-white/10 h-full flex flex-col justify-between text-[#E2E2E4] shadow-2xl transition-all duration-200 relative z-10 overflow-hidden"
+        className="pointer-events-auto w-[90vw] sm:w-[350px] border-l border-white/10 h-full flex flex-col justify-between text-[#E2E2E4] shadow-2xl transition-all duration-200 relative z-10 overflow-hidden pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]"
         style={{
           backgroundColor: `rgba(18, 18, 22, ${Math.max(0.35, (settings.cardOpacity / 100) * (settings.customBgImage ? 0.75 : 0.88))})`,
           backdropFilter: settings.bgBlur > 0 ? `blur(${settings.bgBlur}px)` : 'none',

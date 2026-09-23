@@ -487,7 +487,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
   );
 
   return (
-    <div className="browser-workspace-container flex-1 flex flex-col bg-[#242426] text-[#E2E2E4] overflow-hidden">
+    <div className="browser-workspace-container flex-1 flex flex-col w-full min-w-0 bg-[#242426] text-[#E2E2E4] overflow-hidden">
       {/* Search Dock */}
       {isSearchOpen && (
         <div className="bg-[#1C1C1E] border-b border-[#353535] p-2 sm:p-3 flex flex-col gap-2 sm:gap-2.5 shadow-md">
@@ -1418,7 +1418,7 @@ export const ManagerBrowser: React.FC<ManagerBrowserProps> = ({
 
       {/* Floating Target Logo & Selection Actions (Bottom-Right, Fields & Methods only) */}
       {Boolean(currentClassInfo && (classTab === ClassTab.FIELDS || classTab === ClassTab.METHODS)) && (
-        <div className="fixed bottom-3 right-3 sm:bottom-6 sm:right-6 z-40 flex items-center gap-1.5 sm:gap-2 max-w-[calc(100vw-24px)]">
+        <div className="fixed bottom-20 sm:bottom-6 right-3 sm:right-6 z-40 flex items-center gap-1.5 sm:gap-2 max-w-[calc(100vw-24px)] pb-[env(safe-area-inset-bottom,0px)] pr-[env(safe-area-inset-right,0px)]">
           {/* Left-Side Expanding Effects Panel */}
           {isTargetSelectionActive && (
             <div className="flex items-center gap-1 sm:gap-2 bg-[#1C1C20]/95 backdrop-blur-md border border-[#3A3A42] p-1 sm:p-2 rounded-xl sm:rounded-2xl shadow-2xl animate-in slide-in-from-right-4 fade-in duration-200 min-w-0">

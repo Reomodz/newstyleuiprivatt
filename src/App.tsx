@@ -288,7 +288,7 @@ export const App: React.FC = () => {
 
   return (
     <div
-      className={`app-root-container flex flex-col h-screen w-screen overflow-hidden text-[#E2E2E4] relative transition-colors duration-300 ${
+      className={`app-root-container flex flex-col h-[100dvh] w-full max-w-full overflow-hidden text-[#E2E2E4] relative transition-colors duration-300 ${
         themeSettings.customBgImage || themeSettings.cardOpacity < 100
           ? 'bg-transparent'
           : themeSettings.themeMode === 'day'
@@ -321,7 +321,7 @@ export const App: React.FC = () => {
       />
 
       {/* Header */}
-      <div className="relative z-10">
+      <div className="relative z-10 w-full shrink-0">
         <ManagerHeader
           storageDumpName={storageDumpName}
           breadcrumbs={breadcrumbs}
@@ -344,7 +344,7 @@ export const App: React.FC = () => {
       </div>
 
       {/* Main Workspace Body */}
-      <main className="flex-1 flex overflow-hidden relative z-10">
+      <main className="flex-1 flex flex-col w-full min-w-0 overflow-hidden relative z-10">
         {activeWorkspace === 'dashboard' ? (
           <MainDashboard
             currentProcess={null}

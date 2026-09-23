@@ -1,9 +1,12 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="h-full w-full">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#18181A" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>IL2CppManager</title>
     <meta name="description" content="A high-performance reverse engineering workbench for browsing Unity IL2CPP runtime metadata, reading native ARM64 instructions, and tracing interactive method call graphs." />
     <meta property="og:title" content="IL2CppManager" />
@@ -12,8 +15,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   </head>
-  <body class="bg-[#242426] text-[#E2E2E4] antialiased select-none font-sans overflow-hidden">
-    <div id="root" class="h-screen w-screen overflow-hidden flex flex-col"></div>
+  <body class="bg-[#18181A] text-[#E2E2E4] antialiased select-none font-sans overflow-hidden h-full w-full m-0 p-0">
+    <div id="root" class="h-full h-[100dvh] w-full max-w-full overflow-hidden flex flex-col"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

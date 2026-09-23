@@ -1,138 +1,167 @@
-<p align="center">
-  <img src="branding/il2cppmanager-play-icon.svg" width="112" alt="IL2CppManager logo">
-</p>
+# IL2CppManager
 
-<h1 align="center">IL2CppManager (Android Edition)</h1>
-
-<p align="center">
-  <strong>Native Android &amp; Mobile Workbench for Unity IL2CPP Runtime Inspection, Target Scanning &amp; Reverse Engineering</strong><br>
-  A high-performance Android application built with Capacitor, React, and TypeScript for inspecting Unity metadata, managing target watchlist profiles, disassembling ARM64 native instructions, visualizing interactive call graphs, and exporting offset code headers directly on mobile devices.
-</p>
-
-<p align="center">
-  <a href="#features"><img alt="Platform: Android" src="https://img.shields.io/badge/Platform-Android-3DDC84?style=flat-square&amp;logo=android&amp;logoColor=white"></a>
-  <a href="#features"><img alt="Capacitor" src="https://img.shields.io/badge/Capacitor-Android-119EFF?style=flat-square&amp;logo=capacitor&amp;logoColor=white"></a>
-  <a href="#features"><img alt="React 18" src="https://img.shields.io/badge/React-18-1C1C1E?style=flat-square&amp;logo=react"></a>
-  <a href="#features"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.7-1C1C1E?style=flat-square&amp;logo=typescript"></a>
-  <a href="#features"><img alt="Tailwind CSS" src="https://img.shields.io/badge/TailwindCSS-v4-1C1C1E?style=flat-square&amp;logo=tailwindcss"></a>
-  <a href="LICENSE"><img alt="Apache License 2.0" src="https://img.shields.io/badge/License-Apache_2.0-1C1C1E?style=flat-square"></a>
-</p>
+> **High-Performance Unity IL2CPP Metadata Inspector, Offset Watchlist Engine & Native Code Generator**  
+> Built for Android (Native Capacitor), Tablet & Desktop Web with React 18, TypeScript & Tailwind CSS.
 
 ---
 
-## 📸 Android App Screenshots
+## ⚡ Overview
 
-### 1. Live Memory Scanner & Target Setup
-Attach to running Unity IL2CPP game processes (PID mapped), manage watchlist profile targets, trigger real-time memory scans, and stream live resolution logs directly on Android.
-
-<p align="center">
-  <img src="docs/screenshots/android-live-scan.svg" width="60%" alt="Android Live Scanner & Process Attachment">
-</p>
-
-### 2. Hierarchical Metadata Browser
-Inspect loaded assemblies (`Assembly-CSharp.dll`, `UnityEngine.CoreModule.dll`), classes, inheritance structures, struct memory sizes, field offset pointers, and method RVAs on mobile touch displays.
-
-<p align="center">
-  <img src="docs/screenshots/android-metadata-browser.svg" width="60%" alt="Android Metadata & Offset Browser">
-</p>
-
-### 3. Interactive Call Graph & ARM64 Disassembler
-Trace method caller/callee execution flow with dynamic touch-draggable Bezier graph nodes, perform single-tap Auto-Tidy layout reorganization, and inspect decoded ARM64 machine instructions.
-
-<p align="center">
-  <img src="docs/screenshots/android-call-graph.svg" width="60%" alt="Android Call Graph & ARM64 Disassembler">
-</p>
-
-### 4. Multi-Format Code & C# Dump Exporter
-Export resolved offsets into clean code snippets across multiple formats (C++ constexpr headers, C# structs, Cheat Engine tables, Custom Template formats) or generate complete Il2CppDumper-compatible C# dumps.
-
-<p align="center">
-  <img src="docs/screenshots/android-code-export.svg" width="48%" alt="Android Code Style Exporter">
-  &nbsp;&nbsp;
-  <img src="docs/screenshots/android-dump-export.svg" width="48%" alt="Android Metadata Dump Exporter">
-</p>
+**IL2CppManager** is a modern reverse-engineering workspace designed for inspecting Unity IL2CPP metadata dumps (`dump.cs`, `il2cpp.h`), tracking target fields and method RVAs across game updates, organizing watchlist profiles with hierarchical groups and subgroups, and exporting resolved offsets directly into production-ready C++, C#, Cheat Engine, or custom template formats.
 
 ---
 
-## ⚡ Recent Enhancements & Android Features
+## 🚀 Key Feature Modules
 
-- **Mobile Process & Target Watchlist Engine:**
-  - Attach to active Unity game processes by package name or PID.
-  - Organize reverse-engineering targets into modular profiles with custom aliases, comments, groups, subgroups, and fallback resolution chains.
-  - Stream live scanning logs with memory-mapped `libil2cpp.so` base address resolution and single-tap max log modal expander in screen center.
-  - Clean target cards displaying raw resolved hex offsets (`0x1A0`) and member titles without cluttered prefixes.
+### 1. Storage Dump Hub & High-Speed Parsing Engine
+- **Instant Chunked Streaming Parser:** Stream and parse multi-megabyte `dump.cs` and `il2cpp.h` files without freezing the browser or mobile UI.
+- **Symbol Indexing:** Automatically extracts assemblies (`Assembly-CSharp.dll`, `UnityEngine.CoreModule.dll`, etc.), namespaces, classes, struct memory sizes, field offset pointers, and method RVAs.
+- **Zero-Offset Persistence:** Stores symbol definitions cleanly with real-time dynamic resolution against loaded dumps.
 
-- **Touch-Optimized Metadata Explorer:**
-  - Browse assemblies, namespaces, TypeDef sizes, fields, and method RVAs.
-  - Instant symbol search with responsive Android navigation drawer and touch-friendly controls.
+### 2. Profiles, Watchlists & Group Hierarchy
+- **Modular Profile System:** Create and switch between profiles for different games, mods, or patch versions.
+- **Hierarchical Grouping:** Organize targets into **Groups** and nested **Subgroups** (e.g., `Player / Movement`, `Combat / Weapons`).
+- **Persistent Group Collapse Memory:** Remembers your open/collapsed group view per-profile across navigation, tab switches, and app restarts.
+- **Drag-and-Drop & Manual Ordering:** Easily reorder targets and groups using smooth touch/mouse drag handles or optional Chevron Up/Down reorder buttons.
+- **Fallback Resolution Chains:** Specify alternate class and member names so offsets automatically resolve even if developers rename or obfuscate classes in future game patches.
 
-- **Visual Call Graph & ARM64 Disassembly:**
-  - Interactive Bezier call graphs with drag, pinch-to-zoom, and Auto-Tidy canvas positioning.
-  - Native ARM64 disassembler detailing opcodes (`STP`, `LDR`, `CMP`, `BL`, `RET`), registers, and branch targets.
+### 3. Hierarchical Assembly Browser
+- **4-Tier Drilldown:** Browse through **Assemblies ➔ Namespaces ➔ Classes ➔ Fields & Methods**.
+- **Context-Aware Search Engine:**
+  - **Class View Search:** Automatically locks search to **CURRENT LEVEL** inside class field/method views to prevent clutter.
+  - **Everywhere Global Search:** High-speed lookup across all assemblies for classes, methods, fields, and RVA hex signatures.
+  - **Auto-Reset on Navigation:** Search queries automatically reset when switching tabs (Fields ↔ Methods), clicking cancel, or navigating with breadcrumbs.
+- **One-Tap Target Saving:** Directly save any field or method from the browser into your active watchlist profile.
+- **Dynamic Header Switcher:** The top bar dynamically displays your active profile name or section with one-tap switching back from the browser.
 
-- **Screen-Centered Code Exporter & Custom Template Generator:**
-  - Fast, screen-centered history detail modal presenting full **Formatted Code Output**.
-  - Multi-language offset exporter (C++ constexpr headers, C# constants/fields, Cheat Engine INI, Custom Templates).
-  - Advanced **Custom Template Generator** supporting dynamic tag placeholders:
-    - `+{name}` - Custom or member identifier
-    - `+{offset}` - Resolved field offset or method RVA hex
-    - `+{rva}` - Method RVA hex
-    - `+{member}` - Clean member symbol name
-    - `+{group}` - Target group name
-    - `+{subgroup}` - Target subgroup name
-    - `+{kind}` - Symbol target kind (FIELD or METHOD)
-    - `+{type}` - Field/Return type declaration
-    - `+{comment}` - Target developer notes
-    - `+\n` - Multiline line breaks
-  - Uniform dark-themed **Download Full** export action matching the **Copy Code** control.
+### 4. Code Exporter & Custom Template Engine
+- **Multi-Preset Exporter:**
+  - **C++ `constexpr`:** `constexpr uintptr_t {name} = {offset};`
+  - **C# Constants / Struct Fields:** `public const int {name} = {offset};`
+  - **Cheat Engine INI Format**
+- **Dynamic Template Tag Placeholders:**
+  - `+{name}` — Custom target alias or member identifier
+  - `+{offset}` — Resolved field offset or method RVA hex (e.g., `0x1A0`)
+  - `+{rva}` — Method RVA hex
+  - `+{member}` — Clean member symbol name
+  - `+{group}` — Target group name
+  - `+{subgroup}` — Target subgroup name
+  - `+{kind}` — Target kind (`FIELD` or `METHOD`)
+  - `+{type}` — Field data type or method return type
+  - `+{comment}` — Code comments & developer notes
+  - `+\n` — Multiline line breaks
+- **Scan History:** Keeps a timestamped history of previous offset resolutions with instant copy and file export.
 
-- **Offline-First Persistence:**
-  - 100% offline functionality on Android device storage with JSON backup and restore.
+### 5. Customization, Glass Atmosphere & Card Settings
+- **Theme Modes & Vibrant Accents:**
+  - Night theme with 6 accent palettes: *Indigo Pulse*, *Neon Cyan*, *Matrix Emerald*, *Cyber Amber*, *Crimson Red*, and *Deep Violet*.
+- **Custom Wallpaper Backgrounds:**
+  - Choose from preset wallpapers or provide custom URLs.
+  - Fine-tune **Background Dim (0–90%)**, **Glass Blur (0–25px)**, and **Card Opacity (50–100%)**.
+  - Glass-morphic translucent styling applies consistently across cards, group containers, and subgroup cards.
+- **Card Customization Modal:**
+  - Density toggle (Compact vs. Comfortable).
+  - Tablet & Desktop layout (List vs. Side-by-side Grid).
+  - Field visibility toggles: Fallbacks, Assembly `.dll` tags, Custom Names, Kind Badges, Comments multiline expansion, Resolved Offsets, and Up/Down reorder buttons.
 
 ---
 
-## 📲 Building the Android APK
+## 📂 Project Architecture
 
-### Option 1: Automated GitHub Actions (Recommended)
-This repository includes a preconfigured GitHub Actions workflow (`.github/workflows/build-apk.yml`) that automatically builds the Android Debug APK on every push:
-1. Push your changes to GitHub.
-2. Go to the **Actions** tab in your repository.
-3. Select the **Build Android APK (Autonomous)** workflow.
-4. Download the ready-to-install `IL2CppManager-Android-APK` from the **Artifacts** section.
-
-### Option 2: Local Android Build
-
-```bash
-# 1. Install dependencies
-npm install
-
-# 2. Build the web bundle
-npm run build
-
-# 3. Initialize & sync Android Capacitor project
-npx cap add android
-npx cap sync android
-
-# 4. Build debug APK using Gradle
-cd android
-./gradlew assembleDebug
-
-# Output APK path:
-# android/app/build/outputs/apk/debug/app-debug.apk
+```
+├── branding/                      # App icons and graphics
+├── docs/                          # Documentation & visual guides
+├── src/
+│   ├── components/                # React UI Components
+│   │   ├── dashboard/             # Storage Dump & Profile Sidebar views
+│   │   │   ├── DashboardHeader.tsx
+│   │   │   └── ProfileSidebar.tsx # Profile watchlist with group collapse memory
+│   │   ├── modals/                # Settings, Edit & Creation Modals
+│   │   │   ├── MakeGroupModal.tsx
+│   │   │   ├── MakeSubgroupModal.tsx
+│   │   │   └── settings/          # Theme & Card Customization modals
+│   │   ├── targets/               # Target card components
+│   │   │   ├── TargetCard.tsx     # Individual target card with optional reorder buttons
+│   │   │   ├── TargetGroupCard.tsx
+│   │   │   └── TargetSubgroupCard.tsx # Translucent subgroup card container
+│   │   ├── MainDashboard.tsx      # Main dashboard controller
+│   │   ├── ManagerBrowser.tsx     # 4-tier Assembly Metadata browser
+│   │   └── ManagerHeader.tsx      # Dynamic header bar with context-aware tab indicator
+│   ├── hooks/                     # Custom React Hooks
+│   │   ├── useAppSettings.ts      # Wallpaper, theme & glass styling settings
+│   │   ├── useMemoryScanner.ts    # Offset scanner and scan history persistence
+│   │   └── useWatchlistManager.ts # Profile and target CRUD management
+│   ├── services/                  # Business Logic & Parsers
+│   │   └── Il2CppEngine.ts        # Fast zero-allocation dump.cs & il2cpp.h parser
+│   ├── types/                     # TypeScript Interfaces & Enums
+│   │   ├── index.ts               # Core target, profile, and browser types
+│   │   └── theme.ts               # Theme, wallpaper, and accent color types
+│   ├── App.tsx                    # Top-level application container
+│   ├── index.css                  # Tailwind CSS & custom glass styling engine
+│   └── main.tsx                   # App entry point
+├── capacitor.config.json          # Android Capacitor configuration
+├── package.json                   # Dependencies and npm scripts
+└── tsconfig.json                  # TypeScript configuration
 ```
 
 ---
 
-## 🛠️ Tech Stack & Architecture
+## 🛠️ Build & Development Guide
 
-- **Runtime:** Android Native via Capacitor (`@capacitor/android`, `@capacitor/cli`, `@capacitor/core`)
-- **Frontend:** React 18 & TypeScript
-- **Styling:** Tailwind CSS v4 (Mobile-First Android Dark Theme)
-- **Animations:** Motion (`motion/react`)
-- **Icons:** Lucide React
+### Prerequisites
+- **Node.js:** v18.0.0 or later
+- **npm:** v9.0.0 or later
+- **Android Studio / SDK:** (Required only for building local Android APKs)
+
+### 1. Development Mode
+Start the local Vite development server:
+```bash
+# Install dependencies
+npm install
+
+# Start development server on port 3000
+npm run dev
+```
+
+### 2. Web Production Build
+Compile TypeScript and bundle the static web application:
+```bash
+npm run build
+```
+The optimized bundle will be generated in the `dist/` directory.
+
+### 3. Building Android APK (Capacitor)
+
+#### Local Build:
+```bash
+# 1. Build the web distribution
+npm run build
+
+# 2. Sync web assets with the native Android project
+npx cap sync android
+
+# 3. Build the Debug APK using Gradle
+cd android
+./gradlew assembleDebug
+
+# Output APK location:
+# android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+#### GitHub Actions Automated Build:
+A pre-configured CI workflow (`.github/workflows/build-apk.yml`) is available to automatically compile and publish the Android APK artifact upon pushing to the repository.
+
+---
+
+## 💡 Tips & Shortcuts
+
+- **Quick Navigation:** Click on the dynamic header button in the top bar to jump straight back to your active profile from anywhere in the browser.
+- **Direct Symbol Inspection:** Click the **Eye icon** on any target card to immediately jump to its definition inside the Assembly Browser.
+- **Multi-Line Comments:** Enable *Expand All Descriptions & Comments* in **Target Card Settings** to view complete unclipped reverse-engineering notes on mobile touch screens.
+- **Custom Background Tuning:** Set your card opacity slider to `80%` and glass blur to `12px` for an immersive translucent glass UI over custom wallpapers.
 
 ---
 
 ## 📄 License
 
-IL2CppManager is released under the [Apache License 2.0](LICENSE).
+IL2CppManager is licensed under the [Apache License 2.0](LICENSE).

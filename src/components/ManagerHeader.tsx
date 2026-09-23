@@ -78,28 +78,32 @@ export const ManagerHeader: React.FC<ManagerHeaderProps> = ({
 
   const dashInfo = getDashboardButtonInfo();
   return (
-    <header className="app-top-header bg-[#1A1A1A]/80 backdrop-blur-md text-[#E2E2E4] border-b border-[#353535]/70 shrink-0 flex flex-col select-none transition-colors">
+    <header className="app-top-header bg-[#1A1A1A]/80 backdrop-blur-md text-[#E2E2E4] border-b border-[#353535]/70 shrink-0 flex flex-col select-none transition-colors pt-[env(safe-area-inset-top,0px)]">
       {/* Top Primary Bar */}
-      <div className="h-12 sm:h-14 px-2 sm:px-4 flex items-center justify-between gap-1.5 sm:gap-3">
+      <div className={`px-2 sm:px-4 flex items-center justify-between gap-1.5 sm:gap-3 transition-all ${
+        activeWorkspace === 'browser' ? 'h-11 sm:h-12' : 'h-12 sm:h-14'
+      }`}>
         {/* App Title Logo */}
-        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-xs sm:text-sm shadow-sm">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-xs sm:text-sm shadow-sm shrink-0">
               IL2
             </div>
-            <span className="font-bold text-xs sm:text-sm md:text-base tracking-tight text-white">
-              IL2CppManager
-            </span>
+            {activeWorkspace !== 'browser' && (
+              <span className="font-bold text-xs sm:text-sm md:text-base tracking-tight text-white shrink-0">
+                IL2CppManager
+              </span>
+            )}
           </div>
         </div>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink min-w-0 justify-end">
           {/* Search Toggle (Visible only in Browser or Canvas mode) */}
           {activeWorkspace !== 'dashboard' && (
             <button
               onClick={onToggleSearch}
-              className={`p-1.5 sm:p-2 rounded-lg transition-colors ${
+              className={`p-1.5 sm:p-2 rounded-lg transition-colors shrink-0 ${
                 isSearchOpen
                   ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
                   : 'text-[#B8B8B8] hover:text-[#E2E2E4] hover:bg-[#28282A]'
@@ -110,12 +114,12 @@ export const ManagerHeader: React.FC<ManagerHeaderProps> = ({
             </button>
           )}
 
-          {/* Workspace Switcher (Visible only when dump.cs is loaded) */}
+          {/* Workspace Switcher (Visible when dump.cs is loaded) */}
           {Boolean(storageDumpName) && (
-            <div className="flex items-center bg-[#202020] p-0.5 rounded-lg border border-[#353535] animate-in fade-in duration-200">
+            <div className="flex items-center bg-[#202023] p-0.5 sm:p-1 rounded-lg border border-[#353538] animate-in fade-in duration-200 min-w-0">
               <button
                 onClick={() => onSwitchWorkspace('dashboard')}
-                className={`flex items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-md text-[10px] sm:text-xs font-medium transition-all max-w-[150px] sm:max-w-[200px] truncate ${
+                className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-medium transition-all max-w-[120px] sm:max-w-[200px] truncate shrink ${
                   activeWorkspace === 'dashboard'
                     ? 'bg-indigo-600 text-white shadow-sm font-semibold'
                     : 'text-[#8E8E93] hover:text-[#E2E2E4]'
@@ -123,43 +127,47 @@ export const ManagerHeader: React.FC<ManagerHeaderProps> = ({
                 title={`Switch to ${dashInfo.label}`}
               >
                 {dashInfo.icon}
-                <span className="truncate">{dashInfo.label}</span>
+                <span className="truncate hidden min-[360px]:inline">{dashInfo.label}</span>
+                <span className="truncate min-[360px]:hidden">{dashInfo.shortLabel}</span>
               </button>
               <button
                 onClick={() => onSwitchWorkspace('browser')}
-                className={`flex items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-md text-[10px] sm:text-xs font-medium transition-all ${
+                className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-medium transition-all shrink-0 ${
                   activeWorkspace === 'browser'
                     ? 'bg-indigo-600 text-white shadow-sm font-semibold'
                     : 'text-[#8E8E93] hover:text-[#E2E2E4]'
                 }`}
               >
-                <Code2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <Code2 className="w-3.5 h-3.5" />
                 <span>Browser</span>
               </button>
               {canvasTabs.length > 0 && (
                 <button
                   onClick={() => onSwitchWorkspace('canvas')}
-                  className={`flex items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-md text-[10px] sm:text-xs font-medium transition-all ${
+                  className={`flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-medium transition-all shrink-0 ${
                     activeWorkspace === 'canvas'
                       ? 'bg-indigo-600 text-white shadow-sm font-semibold'
                       : 'text-[#8E8E93] hover:text-[#E2E2E4]'
                   }`}
                 >
-                  <Layers className="w-3 h-3 text-indigo-300" />
-                  <span>Canvas ({canvasTabs.length})</span>
+                  <Layers className="w-3.5 h-3.5 text-indigo-300" />
+                  <span className="hidden sm:inline">Canvas ({canvasTabs.length})</span>
+                  <span className="sm:hidden">({canvasTabs.length})</span>
                 </button>
               )}
             </div>
           )}
 
-          {/* 3-line Menu Drawer Toggle: Appearance & Theme Settings */}
-          <button
-            onClick={onOpenMenu}
-            className="p-1.5 sm:p-2 rounded-lg text-[#B8B8B8] hover:text-white hover:bg-[#28282A] transition-colors"
-            title="Appearance & Theme Settings"
-          >
-            <Menu className="w-4 h-4" />
-          </button>
+          {/* 3-line Menu Drawer Toggle: Appearance & Theme Settings (Hidden when on the browser view) */}
+          {activeWorkspace !== 'browser' && (
+            <button
+              onClick={onOpenMenu}
+              className="p-1.5 sm:p-2 rounded-lg text-[#B8B8B8] hover:text-white hover:bg-[#28282A] transition-colors shrink-0"
+              title="Appearance & Theme Settings"
+            >
+              <Menu className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
